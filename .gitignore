@@ -1,0 +1,7 @@
+.idea
+cmake-build-debug
+cmake-build-release
+cmake-windows-build-debug
+cmake-windows-build-release
+songs/
+Testing/
