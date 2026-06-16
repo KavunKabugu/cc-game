@@ -75,6 +75,7 @@ void TestValidChartAndFiltering() {
             { "type": "tap", "lane": 4, "timeMs": 200.0 },
             { "type": "tap", "lane": 1, "timeMs": -50.0 },
             { "type": "tap", "lane": 2, "timeMs": 250.0 },
+            { "type": "hold", "lane": 1, "timeMs": 750.0, "durationMs": 500.0 },
             { "type": "tap", "lane": 3, "timeMs": 1000.0 }
         ]
     })");
@@ -89,12 +90,13 @@ void TestValidChartAndFiltering() {
     assert(offsetSeconds == 0.1);
     assert(formatVersion == 1);
 
-    // Only 3 valid notes: (lane 0, 500ms), (lane 2, 250ms), (lane 3, 1000ms)
+    // Only 4 valid notes: (lane 0, 500ms), (lane 2, 250ms), (lane 1, 750ms hold), (lane 3, 1000ms)
     // Sorted chronologically:
     // 1st: lane 2 at 250ms -> 0.25s + 0.1s offset = 0.35s
     // 2nd: lane 0 at 500ms -> 0.5s + 0.1s offset = 0.6s
-    // 3rd: lane 3 at 1000ms -> 1.0s + 0.1s offset = 1.1s
-    assert(notes.size() == 3);
+    // 3rd: lane 1 at 750ms -> 0.75s + 0.1s offset = 0.85s (hold note converted to tap)
+    // 4th: lane 3 at 1000ms -> 1.0s + 0.1s offset = 1.1s
+    assert(notes.size() == 4);
 
     assert(notes[0].lane == 2);
     assert(std::abs(notes[0].hitTime - 0.35) < 1e-6);
@@ -102,8 +104,11 @@ void TestValidChartAndFiltering() {
     assert(notes[1].lane == 0);
     assert(std::abs(notes[1].hitTime - 0.6) < 1e-6);
 
-    assert(notes[2].lane == 3);
-    assert(std::abs(notes[2].hitTime - 1.1) < 1e-6);
+    assert(notes[2].lane == 1);
+    assert(std::abs(notes[2].hitTime - 0.85) < 1e-6);
+
+    assert(notes[3].lane == 3);
+    assert(std::abs(notes[3].hitTime - 1.1) < 1e-6);
 }
 
 } // namespace
