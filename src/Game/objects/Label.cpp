@@ -4,6 +4,8 @@
 
 #include "Label.h"
 
+#include "Game/Profile.h"
+
 namespace Game {
 
 Label::Label(const UnitBounds bounds, std::shared_ptr<TTF_Font> font, std::string text, const SDL_Color color)
@@ -29,6 +31,7 @@ void Label::SetAlignment(const HorizontalAlignment h, const VerticalAlignment v)
 }
 
 void Label::RebuildTexture(SDL_Renderer* renderer) {
+    CC_PROFILE("Label.RebuildTexture");
     if (!font || text.empty()) {
         textTexture.reset();
         textW = 0;

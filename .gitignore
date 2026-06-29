@@ -1,7 +1,25 @@
+# IDE specific  folders
 .idea
+.vs
+
+# Build directories
 cmake-build-debug
 cmake-build-release
 cmake-windows-build-debug
 cmake-windows-build-release
-songs/
+build
+build-debug
+build-release
+windows-build
+windows-build-debug
+windows-build-release
+
+# Build tool files
+out/
+
+# CTest files
 Testing/
+
+# Very large resource directories
+# And stuff not supposed to be tracked on git 
+songs/

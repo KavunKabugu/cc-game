@@ -3,6 +3,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "Game/Game.h"
+#include "Game/Profile.h"
 
 static Game::GameInstance* game = nullptr;
 
@@ -82,6 +83,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     game->Update();
     game->Render();
+    Game::ProfileEndFrame();
+    Game::ProfilePrintIfDue();
     return SDL_APP_CONTINUE;
 }
 

@@ -87,9 +87,16 @@ set(GAME_SOURCES
         src/Game/Gameplay/TimingRuler.cpp
         src/Game/Gameplay/TimingRuler.h
         src/Game/Gameplay/TimingRulerMath.h
+        src/Game/Profile.cpp
+        src/Game/Profile.h
 )
 
 add_executable(cc_game main.cpp ${GAME_SOURCES})
+
+option(CC_ENABLE_PROFILING "Enable in-game frame profiling scopes" OFF)
+if(CC_ENABLE_PROFILING)
+    target_compile_definitions(cc_game PRIVATE CC_ENABLE_PROFILING)
+endif()
 
 target_include_directories(cc_game PRIVATE src)
 

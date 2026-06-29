@@ -1,5 +1,7 @@
 #include "RhythmField.h"
 
+#include "Game/Profile.h"
+
 #include <algorithm>
 #include <utility>
 
@@ -70,6 +72,7 @@ RhythmField::RhythmField(const UnitBounds bounds,
     : Drawable(bounds), arcTexture(std::move(arcTexture)), sim(sim) {}
 
 void RhythmField::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
+    CC_PROFILE("RhythmField.Render");
     if (!arcTexture || !sim) return;
 
     const SDL_FRect rect = {

@@ -3,6 +3,8 @@
 //
 #include "Game.h"
 
+#include "Game/Profile.h"
+
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -449,6 +451,7 @@ void GameInstance::SetGameplayLaneKeyBinding(const int lane, const int slot, con
 }
 
 void GameInstance::Update() {
+    CC_PROFILE("Game.Update");
     const Uint64 nowNs = SDL_GetTicksNS();
     const double dt = (lastTickNs == 0) ? 0.0 : static_cast<double>(nowNs - lastTickNs) / 1'000'000'000.0;
     lastTickNs = nowNs;
@@ -473,6 +476,7 @@ void GameInstance::Update() {
 }
 
 void GameInstance::Render() const {
+    CC_PROFILE("Game.Render");
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
 

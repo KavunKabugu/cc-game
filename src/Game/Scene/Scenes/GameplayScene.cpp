@@ -26,6 +26,7 @@
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
 #include "Game/objects/TextButton.h"
+#include "Game/Profile.h"
 
 namespace Game {
 
@@ -261,10 +262,15 @@ GameplayScene::~GameplayScene() {
 }
 
 void GameplayScene::Update(const double dt) {
+    CC_PROFILE("GameplayScene.Update");
     if (clock && simulationReady) {
         clock->Update(dt);
 
-        const double songTime = clock->SongTime();
+        double songTime = 0.0;
+        {
+            CC_PROFILE("SongClock.SongTime");
+            songTime = clock->SongTime();
+        }
 
         switch (phase) {
         case Phase::Playing:
@@ -330,6 +336,7 @@ void GameplayScene::ProcessInputs(const double songTimeSeconds) {
 }
 
 void GameplayScene::ConsumeJudgements() {
+    CC_PROFILE("ConsumeJudgements");
     const auto& events = simulation.DrainEvents();
     if (events.empty()) return;
 

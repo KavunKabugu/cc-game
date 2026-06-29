@@ -1,5 +1,7 @@
 #include "NoteSimulation.h"
 
+#include "Game/Profile.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -30,6 +32,7 @@ void NoteSimulation::LoadChart(const ChartData& chart) {
 }
 
 void NoteSimulation::Tick(const double currentTimeSeconds) {
+    CC_PROFILE("NoteSimulation.Tick");
     // Spawn notes whose IsSeenAt has passed.
     while (nextSpawnIndex < notes.size()) {
         RuntimeNote& candidate = notes[nextSpawnIndex];
