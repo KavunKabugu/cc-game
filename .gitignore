@@ -5,6 +5,8 @@
 # Build directories
 cmake-build-debug
 cmake-build-release
+cmake-build-debug-mingw
+cmake-build-release-mingw
 cmake-windows-build-debug
 cmake-windows-build-release
 build

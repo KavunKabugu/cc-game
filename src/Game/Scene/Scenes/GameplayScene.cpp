@@ -248,7 +248,8 @@ GameplayScene::GameplayScene(
     const double offset = this->settings.audioOffsetSeconds;
     const double leadShortfall =
         std::isfinite(firstHit) ? std::max(0.0, spawnLead - firstHit - offset) : 0.0;
-    const double effectiveDelay = std::max(Gameplay::kStartDelaySeconds, leadShortfall);
+    // const double effectiveDelay = std::max(Gameplay::kStartDelaySeconds, leadShortfall);
+    const double effectiveDelay = Gameplay::kStartDelaySeconds + leadShortfall;
 
     clock = std::make_unique<Gameplay::SongClock>(*audioRes, effectiveDelay, offset);
     simulationReady = true;
