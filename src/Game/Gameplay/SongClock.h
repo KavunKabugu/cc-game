@@ -35,9 +35,9 @@ public:
     // Includes the user audio offset so callers see a single coherent timeline.
     [[nodiscard]] double SongTime() const;
 
-    // Chart-relative seconds for an input event, (eventTimeNs - musicWallStartNs) / 1e9 - audioOffsetSeconds.
-    // eventTimeNs must use the same clock as SDL key events (SDL_GetTicksNS).
-    // Only meaningful after StartMusic(), before that, returns SongTime().
+    // Chart-relative seconds for an input event mapped from SDL_GetTicksNS.
+    // Pre-music: (eventTimeNs - sceneWallStartNs) / 1e9 - startDelaySeconds - audioOffsetSeconds.
+    // After music: (eventTimeNs - musicWallStartNs) / 1e9 - audioOffsetSeconds.
     [[nodiscard]] double WallTimeSongSecondsAt(std::uint64_t eventTimeNs) const;
 
     [[nodiscard]] double AudioOffsetSeconds() const { return audioOffsetSeconds; }
@@ -50,8 +50,10 @@ private:
     std::shared_ptr<MIX_Audio> audio;
     std::shared_ptr<Sound> sound;
     double delayRemaining;
+    double startDelaySeconds;
     double audioOffsetSeconds;
     bool musicStarted = false;
+    std::uint64_t sceneWallStartNs = 0;
     std::uint64_t musicWallStartNs = 0;
 };
 

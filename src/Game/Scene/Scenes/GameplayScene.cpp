@@ -217,7 +217,7 @@ GameplayScene::GameplayScene(
 
     root->CreateChild<EscapeQuitHandler>(
         UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
-        [this]() { ReturnToSongSelect(); });
+        [this]() { HandleUserStop(); });
 
     resultsBackButton = root->CreateChild<TextButton>(
         kHiddenBounds,
@@ -265,21 +265,19 @@ GameplayScene::~GameplayScene() {
 void GameplayScene::Update(const double dt) {
     CC_PROFILE("GameplayScene.Update");
     if (clock && simulationReady) {
-        clock->Update(dt);
+        if (!sessionEnded) {
+            clock->Update(dt);
+        }
 
         double songTime = 0.0;
         {
             CC_PROFILE("SongClock.SongTime");
-            songTime = clock->SongTime();
+            songTime = sessionEnded ? frozenSongTime : clock->SongTime();
         }
 
         switch (phase) {
         case Phase::Playing:
-            if (clock->MusicStarted()) {
-                ProcessInputs(songTime);
-            } else {
-                DrainLaneInput();
-            }
+            ProcessInputs(songTime);
             simulation.Tick(songTime);
             ConsumeJudgements();
             HandleSongEnd();
@@ -295,8 +293,6 @@ void GameplayScene::Update(const double dt) {
             break;
         case Phase::Results:
             DrainLaneInput();
-            simulation.Tick(songTime);
-            ConsumeJudgements();
             break;
         }
     }
@@ -418,9 +414,30 @@ void GameplayScene::HandleSongEnd() {
     if (!clock || !clock->MusicStarted()) return;
 
     if (simulation.AllNotesResolved()) {
+        endReason = EndReason::Completed;
         phase = Phase::EndDelay;
         resultsDelayRemaining = kResultsDelaySeconds;
     }
+}
+
+void GameplayScene::HandleUserStop() {
+    if (phase == Phase::Results) {
+        return;
+    }
+    if (phase == Phase::EndDelay) {
+        EnterResults();
+        return;
+    }
+
+    if (clock) {
+        frozenSongTime = clock->SongTime();
+        clock->Stop();
+    }
+    sessionEnded = true;
+    endReason = EndReason::Stopped;
+    DrainLaneInput();
+    ConsumeJudgements();
+    EnterResults();
 }
 
 void GameplayScene::EnterResults() {

@@ -13,7 +13,9 @@ SongClock::SongClock(std::shared_ptr<MIX_Audio> audio,
                      const double audioOffsetSeconds)
     : audio(std::move(audio)),
       delayRemaining(startDelaySeconds),
-      audioOffsetSeconds(audioOffsetSeconds) {}
+      startDelaySeconds(startDelaySeconds),
+      audioOffsetSeconds(audioOffsetSeconds),
+      sceneWallStartNs(SDL_GetTicksNS()) {}
 
 SongClock::~SongClock() {
     Stop();
@@ -52,14 +54,19 @@ double SongClock::SongTime() const {
 }
 
 double SongClock::WallTimeSongSecondsAt(const std::uint64_t eventTimeNs) const {
-    if (!musicStarted || musicWallStartNs == 0) {
-        return SongTime();
+    if (musicStarted && musicWallStartNs != 0) {
+        double elapsedSec = 0.0;
+        if (eventTimeNs >= musicWallStartNs) {
+            elapsedSec = static_cast<double>(eventTimeNs - musicWallStartNs) * 1e-9;
+        }
+        return elapsedSec - audioOffsetSeconds;
     }
+
     double elapsedSec = 0.0;
-    if (eventTimeNs >= musicWallStartNs) {
-        elapsedSec = static_cast<double>(eventTimeNs - musicWallStartNs) * 1e-9;
+    if (eventTimeNs >= sceneWallStartNs) {
+        elapsedSec = static_cast<double>(eventTimeNs - sceneWallStartNs) * 1e-9;
     }
-    return elapsedSec - audioOffsetSeconds;
+    return elapsedSec - startDelaySeconds - audioOffsetSeconds;
 }
 
 bool SongClock::MusicEnded() const {

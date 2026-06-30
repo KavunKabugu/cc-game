@@ -48,11 +48,17 @@ private:
         Results,
     };
 
+    enum class EndReason {
+        Completed,
+        Stopped,
+    };
+
     void ProcessInputs(double songTimeSeconds);
     void DrainLaneInput() const;
     void ConsumeJudgements();
     void UpdateHud();
     void HandleSongEnd();
+    void HandleUserStop();
     void EnterResults();
     void ReturnToSongSelect() const;
 
@@ -105,7 +111,10 @@ private:
     std::vector<std::pair<double, double>> accuracySteps;
 
     Phase phase = Phase::Playing;
+    EndReason endReason = EndReason::Completed;
     double resultsDelayRemaining = 0.0;
+    double frozenSongTime = 0.0;
+    bool sessionEnded = false;
     bool simulationReady = false;
 };
 
