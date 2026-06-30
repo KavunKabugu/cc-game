@@ -93,6 +93,10 @@ set(GAME_SOURCES
 
 add_executable(cc_game main.cpp ${GAME_SOURCES})
 
+if(WIN32)
+	set_target_properties(cc_game PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
 option(CC_ENABLE_PROFILING "Enable in-game frame profiling scopes" OFF)
 if(CC_ENABLE_PROFILING)
     target_compile_definitions(cc_game PRIVATE CC_ENABLE_PROFILING)
