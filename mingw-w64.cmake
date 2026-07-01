@@ -1,4 +1,4 @@
-# Sample toolchain file for cross-compiling to Windows using MinGW
+# Toolchain file for cross-compiling to Windows using MinGW
 set(CMAKE_SYSTEM_NAME Windows)
 
 # Which compilers to use
@@ -6,11 +6,14 @@ set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
 set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)
 set(CMAKE_RC_COMPILER x86_64-w64-mingw32-windres)
 
-# Static linking for MinGW runtimes
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static" CACHE STRING "" FORCE)
+# Static libgcc/libstdc++.
+# Apparently just setting CMAKE_EXE_LINKER_FLAGS wasn't enough
+set(_CC_MINGW_LINK_FLAGS "-static-libgcc -static-libstdc++")
+set(CMAKE_EXE_LINKER_FLAGS "${_CC_MINGW_LINK_FLAGS}" CACHE STRING "" FORCE)
+set(CMAKE_SHARED_LINKER_FLAGS "${_CC_MINGW_LINK_FLAGS}" CACHE STRING "" FORCE)
 
 # Where is the target environment located
-set(CMAKE_FIND_ROOT_PATH  /usr/x86_64-w64-mingw32 )
+set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)
 
 # Adjust the default behavior of the FIND_XXX() commands:
 # search programs in the host environment

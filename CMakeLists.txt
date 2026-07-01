@@ -4,17 +4,25 @@ project(cc_game VERSION 0.1.1)
 set(CMAKE_CXX_STANDARD 23)
 include(CTest)
 
+# Remove X11 from SDL, it's not fun to build for,
+# it adds nothing to the project,
+# and I don't even use it so I don't want it
 set(SDL_X11 OFF CACHE BOOL "" FORCE)
+# Use the vendored SDL libraries
 set(SDLIMAGE_VENDORED ON CACHE BOOL "" FORCE)
 set(SDLTTF_VENDORED ON CACHE BOOL "" FORCE)
 set(SDLMIXER_VENDORED ON CACHE BOOL "" FORCE)
+# Don't use AVIF, I couldn't get it to build properly
+# so I guess we won't have AVIF support
 set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
 
+# SDL library directories
 add_subdirectory(lib/SDL3 EXCLUDE_FROM_ALL)
 add_subdirectory(lib/SDL3_ttf EXCLUDE_FROM_ALL)
 add_subdirectory(lib/SDL3_image EXCLUDE_FROM_ALL)
 add_subdirectory(lib/SDL3_mixer EXCLUDE_FROM_ALL)
 
+# cc-game source files
 set(GAME_SOURCES
     src/Game/Game.cpp
     src/Game/VideoSettings.h
@@ -93,10 +101,12 @@ set(GAME_SOURCES
 
 add_executable(cc_game main.cpp ${GAME_SOURCES})
 
+# If building for windows, make a desktop app (not console)
 if(WIN32)
 	set_target_properties(cc_game PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
+# Optional profiler for the game, I am pretty sure it's shit so maybe replace it later?
 option(CC_ENABLE_PROFILING "Enable in-game frame profiling scopes" OFF)
 if(CC_ENABLE_PROFILING)
     target_compile_definitions(cc_game PRIVATE CC_ENABLE_PROFILING)
@@ -112,9 +122,15 @@ add_executable(cc_map_converter
     map-converter/miniz.c
 )
 target_include_directories(cc_map_converter PRIVATE src map-converter)
+# ...or as standalone as it can get
 target_link_libraries(cc_map_converter PRIVATE SDL3::SDL3)
 
+# Bundler for windows, pretty sure this breaks stuff
+include(cmake/BundleWindows.cmake)
+cc_mingw_apply_runtime_fixes(cc_game cc_map_converter)
+cc_setup_windows_bundle(cc_game cc_map_converter)
 
+# Bunch of CTest testing stuff from this point on
 add_executable(scene_manager_tests
     tests/SceneManagerTests.cpp
     src/Game/Scene/SceneManager.cpp
