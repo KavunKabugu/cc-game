@@ -103,7 +103,8 @@ add_executable(cc_game main.cpp ${GAME_SOURCES})
 
 # If building for windows, make a desktop app (not console)
 if(WIN32)
-	set_target_properties(cc_game PROPERTIES WIN32_EXECUTABLE TRUE)
+    set_target_properties(cc_game PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_sources(cc_game PRIVATE src/resources.rc)
 endif()
 
 # Optional profiler for the game, I am pretty sure it's shit so maybe replace it later?
@@ -114,7 +115,12 @@ endif()
 
 target_include_directories(cc_game PRIVATE src)
 
-target_link_libraries(cc_game PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer atomic)
+target_link_libraries(cc_game PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer)
+# If using a GNU compiler (?) link to atomic
+# MSVC can't do this, and I think doesn't need this.
+if(MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT MSVC))
+    target_link_libraries(cc_game PRIVATE atomic)
+endif()
 
 # Standalone C++ Map Converter
 add_executable(cc_map_converter
@@ -127,7 +133,6 @@ target_link_libraries(cc_map_converter PRIVATE SDL3::SDL3)
 
 # Bundler for windows, pretty sure this breaks stuff
 include(cmake/BundleWindows.cmake)
-cc_mingw_apply_runtime_fixes(cc_game cc_map_converter)
 cc_setup_windows_bundle(cc_game cc_map_converter)
 
 # Bunch of CTest testing stuff from this point on

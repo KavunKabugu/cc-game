@@ -50,52 +50,34 @@ function(cc_collect_runtime_dll_targets out_var)
     set(${out_var} "${_targets}" PARENT_SCOPE)
 endfunction()
 
-function(cc_mingw_apply_runtime_fixes)
-    if(NOT MINGW)
-        return()
-    endif()
-
-    set(_winpthread_libs
-        "-Wl,--whole-archive"
-        "${CMAKE_FIND_ROOT_PATH}/lib/libwinpthread.a"
-        "-Wl,--no-whole-archive")
-
-    foreach(_target IN LISTS ARGN)
-        if(TARGET "${_target}")
-            target_link_libraries("${_target}" PRIVATE ${_winpthread_libs})
-        endif()
-    endforeach()
-
-    foreach(_t SDL3_ttf-shared gme_shared)
-        if(TARGET "${_t}")
-            target_link_libraries("${_t}" PRIVATE ${_winpthread_libs})
-        endif()
-    endforeach()
-endfunction()
-
 function(cc_setup_windows_bundle main_target)
+	# If not Windows, don't make a Windows bundle
     if(NOT WIN32)
         return()
     endif()
 
     set(_extra_exe_targets ${ARGN})
 
+	# Get all DLLs needed at runtime
     cc_collect_runtime_dll_targets(CC_RUNTIME_DLL_TARGETS)
 
     set(CC_BUNDLE_DIR "${CMAKE_BINARY_DIR}/bundle/cc-game" CACHE PATH
         "Output directory for the Windows release bundle")
 
+	# Install all runtime DLLs in the bundle
     install(TARGETS "${main_target}" ${_extra_exe_targets} RUNTIME DESTINATION . COMPONENT Runtime)
 
     foreach(_dll_target IN LISTS CC_RUNTIME_DLL_TARGETS)
         install(TARGETS "${_dll_target}" RUNTIME DESTINATION . COMPONENT Runtime)
     endforeach()
 
+	# Install runtime resources in the bundle
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/resources/"
         DESTINATION resources
         COMPONENT Runtime
     )
 
+	# Don't bundle if target isn't specified
     add_custom_target(cc_bundle
         COMMAND "${CMAKE_COMMAND}" --install "${CMAKE_BINARY_DIR}"
             --prefix "${CC_BUNDLE_DIR}"
@@ -111,7 +93,12 @@ function(cc_setup_windows_bundle main_target)
     set(CPACK_GENERATOR ZIP)
     set(CPACK_PACKAGE_NAME "cc-game")
     set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-    set(CPACK_PACKAGE_FILE_NAME "cc-game-${CMAKE_SYSTEM_PROCESSOR}-windows")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(_cc_arch "x64")
+    else()
+        set(_cc_arch "${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+    set(CPACK_PACKAGE_FILE_NAME "cc-game-${_cc_arch}-windows")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
     set(CPACK_COMPONENTS_ALL Runtime)
 endfunction()
