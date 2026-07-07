@@ -72,10 +72,10 @@ namespace {
 [[nodiscard]] SDL_Color BarColor(const ResultsGraphEvent& e) {
     using enum Judgement;
     const double absForGradient =
-        (e.judgement == Perfect || e.judgement == Good || e.judgement == Bad)
+        (e.judgement == Perfect || e.judgement == Great || e.judgement == Good || e.judgement == Bad)
             ? std::abs(std::clamp(e.deltaMs, -kMissExpireMs, kMissExpireMs))
             : 0.0;
-    if (e.judgement == Perfect || e.judgement == Good || e.judgement == Bad) {
+    if (e.judgement == Perfect || e.judgement == Great || e.judgement == Good || e.judgement == Bad) {
         return ResultsJudgementFillColor(e.judgement, absForGradient);
     }
     return ResultsJudgementFillColor(Miss, 0.0);
@@ -86,6 +86,29 @@ namespace {
     const float halfH,
     const double deltaMs) {
     return centerY - static_cast<float>(deltaMs / kMissExpireMs) * halfH;
+}
+
+void DrawHorizontalGridLine(
+    SDL_Renderer* renderer,
+    const SDL_FRect& plot,
+    const float centerY,
+    const float lineH,
+    const Uint8 r,
+    const Uint8 g,
+    const Uint8 b,
+    const Uint8 a) {
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    const SDL_FRect line = {
+        plot.x,
+        centerY - lineH * 0.5f,
+        plot.w,
+        lineH,
+    };
+    SDL_RenderFillRect(renderer, &line);
+}
+
+[[nodiscard]] float GridLineHeightPx(const float plotH) {
+    return std::max(2.0f, plotH * 0.008f);
 }
 
 void DrawTextRightOf(
@@ -246,9 +269,11 @@ void ResultsGraphDisplay::RebuildCachedLabels(SDL_Renderer* renderer) {
     }
     cachedAccuracyLabels.push_back(CreateTextTexture(renderer, labelFont, "0", labelColor));
 
-    // Delta mode labels: +Perfect, -Perfect, +Good, -Good, 0ms, +Miss, -Miss
+    // Delta mode labels: +/-Perfect, +/-Great, +/-Good, 0ms, +/-Miss
     cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", kPerfectWindowMs), labelColor));
     cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", -kPerfectWindowMs), labelColor));
+    cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", kGreatWindowMs), labelColor));
+    cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", -kGreatWindowMs), labelColor));
     cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", kGoodWindowMs), labelColor));
     cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, std::format("{:+.0f}", -kGoodWindowMs), labelColor));
     cachedDeltaLabels.push_back(CreateTextTexture(renderer, labelFont, "0ms", labelColor));
@@ -344,11 +369,12 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
             segmentAcc(prevX, 1.0, carry);
         }
 
+        const float gridLineH = GridLineHeightPx(plot.h);
+
         for (int step = 10; step <= 90; step += 10) {
             const float t = static_cast<float>(step) * 0.01f;
             const float yLine = plot.y + plot.h - t * plot.h;
-            SDL_SetRenderDrawColor(renderer, 175, 190, 210, 72);
-            SDL_RenderLine(renderer, plot.x, yLine, plot.x + plot.w, yLine);
+            DrawHorizontalGridLine(renderer, plot, yLine, gridLineH, 175, 190, 210, 72);
         }
 
         SDL_SetRenderDrawColor(renderer, 200, 215, 235, 140);
@@ -439,19 +465,23 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
             }
         }
 
+        const float gridLineH = GridLineHeightPx(plot.h);
+
         auto drawHorizontalGrid = [&](const double deltaMs, const Uint8 alpha) {
             const float y = YFromDeltaMs(centerY, halfH, deltaMs);
-            SDL_SetRenderDrawColor(renderer, 175, 190, 210, alpha);
-            SDL_RenderLine(renderer, plot.x, y, plot.x + plot.w, y);
+            DrawHorizontalGridLine(renderer, plot, y, gridLineH, 175, 190, 210, alpha);
         };
 
         drawHorizontalGrid(kPerfectWindowMs, 85);
         drawHorizontalGrid(-kPerfectWindowMs, 85);
+        drawHorizontalGrid(kGreatWindowMs, 90);
+        drawHorizontalGrid(-kGreatWindowMs, 90);
         drawHorizontalGrid(kGoodWindowMs, 95);
         drawHorizontalGrid(-kGoodWindowMs, 95);
+        drawHorizontalGrid(kMissExpireMs, 80);
+        drawHorizontalGrid(-kMissExpireMs, 80);
 
-        SDL_SetRenderDrawColor(renderer, 200, 215, 235, 140);
-        SDL_RenderLine(renderer, plot.x, centerY, plot.x + plot.w, centerY);
+        DrawHorizontalGridLine(renderer, plot, centerY, gridLineH, 200, 215, 235, 140);
 
         const auto cueA = static_cast<Uint8>(std::round(255.0f * kResultsGraphCueLineAlpha));
         SDL_SetRenderDrawColor(renderer, 255, 60, 60, cueA);
@@ -469,18 +499,20 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
         SDL_SetRenderDrawColor(renderer, 200, 215, 235, 140);
         SDL_RenderRect(renderer, &plot);
 
-        if (labelFont && cachedDeltaLabels.size() == 7) {
+        if (labelFont && cachedDeltaLabels.size() == 9) {
             const float axisRight = plot.x - 5.0f;
             DrawCachedTextRightOf(renderer, cachedDeltaLabels[0], axisRight, YFromDeltaMs(centerY, halfH, kPerfectWindowMs));
             DrawCachedTextRightOf(renderer, cachedDeltaLabels[1], axisRight, YFromDeltaMs(centerY, halfH, -kPerfectWindowMs));
-            DrawCachedTextRightOf(renderer, cachedDeltaLabels[2], axisRight, YFromDeltaMs(centerY, halfH, kGoodWindowMs));
-            DrawCachedTextRightOf(renderer, cachedDeltaLabels[3], axisRight, YFromDeltaMs(centerY, halfH, -kGoodWindowMs));
-            DrawCachedTextRightOf(renderer, cachedDeltaLabels[4], axisRight, centerY);
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[2], axisRight, YFromDeltaMs(centerY, halfH, kGreatWindowMs));
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[3], axisRight, YFromDeltaMs(centerY, halfH, -kGreatWindowMs));
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[4], axisRight, YFromDeltaMs(centerY, halfH, kGoodWindowMs));
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[5], axisRight, YFromDeltaMs(centerY, halfH, -kGoodWindowMs));
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[6], axisRight, centerY);
 
             const float topStripCenterY = slotRect.y + pad + marginTop * 0.5f;
             const float botStripCenterY = plot.y + plot.h + marginBottom * 0.5f;
-            DrawCachedTextRightOf(renderer, cachedDeltaLabels[5], axisRight, topStripCenterY);
-            DrawCachedTextRightOf(renderer, cachedDeltaLabels[6], axisRight, botStripCenterY);
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[7], axisRight, topStripCenterY);
+            DrawCachedTextRightOf(renderer, cachedDeltaLabels[8], axisRight, botStripCenterY);
         }
     }
 

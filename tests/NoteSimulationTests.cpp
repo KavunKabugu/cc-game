@@ -96,6 +96,27 @@ void TestTryHitPerfect() {
     assert(sim.AllNotesResolved());
 }
 
+void TestTryHitGreat() {
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = { ChartNote{.hitTime = 1.0, .lane = 0} };
+    sim.LoadChart(chart);
+
+    sim.Tick(1.0); // Exactly at note time
+    assert(sim.ActiveNotes().size() == 1);
+
+    const HitResult res = sim.TryHit(0, 1.0 + 0.045); // 45ms after note time
+    assert(res.judgement == Judgement::Great);
+    assert(res.missReason == MissReason::None);
+    assert(res.lane == 0);
+    assert(std::abs(res.deltaMs - 45.0) < 1e-6);
+
+    assert(sim.ActiveNotes().empty());
+    assert(sim.AllNotesResolved());
+}
+
 void TestTryHitGoodAndBad() {
     NoteSimulation sim;
     sim.Configure(10.0f, 150.0f, 1920);
@@ -110,21 +131,20 @@ void TestTryHitGoodAndBad() {
     // Spawn 1st note
     sim.Tick(1.0);
 
-    // TODO: convert these to values in GameplayConstants.h
-    // Good Window is <= 115.0ms (0.115s) and > 17.0ms (0.017s)
-    // Hit at 1.0 + 0.050s (50ms delta)
-    const HitResult res1 = sim.TryHit(0, 1.050);
+    // Good window: (kGreatWindowMs, kGoodWindowMs]
+    constexpr double kGoodTestDeltaMs = kGreatWindowMs + 5.0;
+    const HitResult res1 = sim.TryHit(0, 1.0 + kGoodTestDeltaMs * 1e-3);
     assert(res1.judgement == Judgement::Good);
-    assert(std::abs(res1.deltaMs - 50.0) < 1e-6);
+    assert(std::abs(res1.deltaMs - kGoodTestDeltaMs) < 1e-6);
 
     // Spawn 2nd note
     sim.Tick(2.0);
 
-    // Bad Window is > 115.0ms (0.115s) but within hit threshold
-    // Hit at 2.0 + 0.200s (200ms delta)
-    const HitResult res2 = sim.TryHit(1, 2.200);
+    // Bad window: > kGoodWindowMs but within hit threshold
+    constexpr double kBadTestDeltaMs = 200.0;
+    const HitResult res2 = sim.TryHit(1, 2.0 + kBadTestDeltaMs * 1e-3);
     assert(res2.judgement == Judgement::Bad);
-    assert(std::abs(res2.deltaMs - 200.0) < 1e-6);
+    assert(std::abs(res2.deltaMs - kBadTestDeltaMs) < 1e-6);
 }
 
 void TestEmptyLaneAndChords() {
@@ -164,6 +184,7 @@ int main() {
     TestSpawnAndBoundaries();
     TestExpiration();
     TestTryHitPerfect();
+    TestTryHitGreat();
     TestTryHitGoodAndBad();
     TestEmptyLaneAndChords();
     return 0;

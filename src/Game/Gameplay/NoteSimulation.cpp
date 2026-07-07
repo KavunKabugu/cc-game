@@ -109,6 +109,8 @@ HitResult NoteSimulation::TryHit(const int lane, const double hitTimeSeconds) {
     Judgement tier;
     if (absMs <= kPerfectWindowMs) {
         tier = Judgement::Perfect;
+    } else if (absMs <= kGreatWindowMs) {
+        tier = Judgement::Great;
     } else if (absMs <= kGoodWindowMs) {
         tier = Judgement::Good;
     } else {

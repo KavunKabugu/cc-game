@@ -32,6 +32,7 @@ public:
     void Dispatch(const std::vector<Container*>& roots, int windowW, int windowH);
     void ResetInteractionState();
     void ClearQueue();
+    void NotifyObjectDestroyed(GameObject* obj);
 
     void BeginDragCapture(GameObject* target, int button);
 

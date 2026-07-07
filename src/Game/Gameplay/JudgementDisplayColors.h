@@ -21,9 +21,11 @@ namespace Game::Gameplay {
     switch (judgement) {
     case Perfect:
         return SDL_Color{70, 190, 255, 255};
+    case Great:
+        return SDL_Color{100, 255, 100, 255};
     case Good: {
-        constexpr double span = std::max(1e-6, kGoodWindowMs - kPerfectWindowMs);
-        const double u = std::clamp((absDeltaMs - kPerfectWindowMs) / span, 0.0, 1.0);
+        constexpr double span = std::max(1e-6, kGoodWindowMs - kGreatWindowMs);
+        const double u = std::clamp((absDeltaMs - kGreatWindowMs) / span, 0.0, 1.0);
         return SDL_Color{
             LerpU8(30.0f, 255.0f, static_cast<float>(u)),
             LerpU8(220.0f, 230.0f, static_cast<float>(u)),

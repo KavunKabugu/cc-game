@@ -194,6 +194,8 @@ add_executable(lane_input_handler_tests
     tests/LaneInputHandlerTests.cpp
     src/Game/Gameplay/LaneInputHandler.cpp
     src/Game/objects/GameObject.cpp
+    src/Game/EventManager.cpp
+    src/Game/objects/Container.cpp
 )
 target_include_directories(lane_input_handler_tests PRIVATE src)
 target_link_libraries(lane_input_handler_tests PRIVATE SDL3::SDL3)
@@ -205,6 +207,7 @@ add_executable(vbox_layout_tests
     src/Game/objects/Container.cpp
     src/Game/objects/GameObject.cpp
     src/Game/objects/Drawable.cpp
+    src/Game/EventManager.cpp
 )
 target_include_directories(vbox_layout_tests PRIVATE src)
 target_link_libraries(vbox_layout_tests PRIVATE SDL3::SDL3)

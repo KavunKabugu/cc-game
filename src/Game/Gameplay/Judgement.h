@@ -7,10 +7,13 @@ namespace Game::Gameplay {
 
 enum class Judgement {
     Perfect,
+    Great,
     Good,
     Bad,
     Miss,
+    Count, // Count of Judgement enum, not a valid judgement.
 };
+static_assert(static_cast<int>(Judgement::Count) == static_cast<int>(Judgement::Miss) + 1);
 
 // Why a Miss happened (only meaningful when Judgement == Miss).
 enum class MissReason {

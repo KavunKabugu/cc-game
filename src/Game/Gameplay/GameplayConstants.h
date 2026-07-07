@@ -33,8 +33,9 @@ inline constexpr float kGameplayAudioOffsetMsMin = -100.0f;
 inline constexpr float kGameplayAudioOffsetMsMax = 100.0f;
 
 // Judgement timing windows (absolute |delta| in milliseconds).
-inline constexpr double kPerfectWindowMs = 17.0;
-inline constexpr double kGoodWindowMs = 115.0;
+inline constexpr double kPerfectWindowMs = 18.0;
+inline constexpr double kGreatWindowMs = 60.0;
+inline constexpr double kGoodWindowMs = 135.0;
 
 // How long after its hit time an unhit note stays hittable; past this it is
 // auto-resolved as Miss and despawned.

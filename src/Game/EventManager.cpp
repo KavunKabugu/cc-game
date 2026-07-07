@@ -140,6 +140,21 @@ void EventManager::ClearQueue() {
     eventQueue.clear();
 }
 
+void EventManager::NotifyObjectDestroyed(GameObject* obj) {
+    if (!obj) {
+        return;
+    }
+    if (dragCaptureTarget == obj) {
+        ClearDragCapture();
+    }
+    if (pressedObject == obj) {
+        pressedObject = nullptr;
+    }
+    if (hoveredObject == obj) {
+        hoveredObject = nullptr;
+    }
+}
+
 bool EventManager::IsKeyDown(const SDL_Keycode key) const {
     const auto it = keyStates.find(key);
     return it != keyStates.end() && it->second.pressed;

@@ -344,7 +344,7 @@ void GameplayScene::ConsumeJudgements() {
         if (result.missReason != Gameplay::MissReason::EmptyLane) {
             ++chartNotesProcessed;
         }
-        if (result.judgement == Perfect || result.judgement == Good || result.judgement == Bad) {
+        if (result.judgement == Perfect || result.judgement == Great || result.judgement == Good || result.judgement == Bad) {
             ++timingHitCount;
             sumTimingDeltaMs += result.deltaMs;
             sumTimingDeltaSqMs += result.deltaMs * result.deltaMs;
@@ -390,8 +390,9 @@ void GameplayScene::UpdateHud() {
     }
     if (judgementsLabel) {
         judgementsLabel->SetText(std::format(
-            "P {}   G {}   B {}   M {}",
+            "P {}   Gr {}   G {}   B {}   M {}",
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
+            judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Bad)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Miss)]));
@@ -479,8 +480,9 @@ void GameplayScene::EnterResults() {
     if (resultJudgementsLabel) {
         resultJudgementsLabel->SetBounds(kResultsJudgementsBounds);
         resultJudgementsLabel->SetText(std::format(
-            "Perfect {}   Good {}   Bad {}   Miss {}",
+            "Perfect {}   Great {}   Good {}   Bad {}   Miss {}",
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
+            judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Bad)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Miss)]));

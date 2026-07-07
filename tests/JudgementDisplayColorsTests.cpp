@@ -22,8 +22,12 @@ void TestTimingRulerMarkerRgb() {
     SDL_Color cPerf = TimingRulerMarkerRgb(Perfect, 0.0);
     assert(cPerf.r == 70 && cPerf.g == 190 && cPerf.b == 255 && cPerf.a == 255);
 
-    // Good (at kPerfectWindowMs)
-    SDL_Color cGoodStart = TimingRulerMarkerRgb(Good, kPerfectWindowMs);
+    // Great
+    SDL_Color cGreat = TimingRulerMarkerRgb(Great, 0.0);
+    assert(cGreat.r == 100 && cGreat.g == 255 && cGreat.b == 100 && cGreat.a == 255);
+
+    // Good (at kGreatWindowMs)
+    SDL_Color cGoodStart = TimingRulerMarkerRgb(Good, kGreatWindowMs);
     assert(cGoodStart.r == 30 && cGoodStart.g == 220 && cGoodStart.b == 90 && cGoodStart.a == 255);
 
     // Good (at kGoodWindowMs)

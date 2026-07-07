@@ -4,4 +4,12 @@
 
 #include "GameObject.h"
 
-// Definitions can go here if needed
+#include "Game/EventManager.h"
+
+namespace Game {
+
+GameObject::~GameObject() {
+    EventManager::getInstance().NotifyObjectDestroyed(this);
+}
+
+} // namespace Game

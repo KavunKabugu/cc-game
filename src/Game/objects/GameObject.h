@@ -29,7 +29,7 @@ class IMouseDraggable;
 class GameObject {
 public:
     explicit GameObject(const UnitBounds bounds) : bounds(bounds) {}
-    virtual ~GameObject() = default;
+    virtual ~GameObject();
 
     virtual void Update() = 0;
 

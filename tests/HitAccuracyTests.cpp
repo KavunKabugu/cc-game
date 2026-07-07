@@ -16,15 +16,16 @@ using Game::Gameplay::kBadScoreGraceEndMs;
 using Game::Gameplay::kBadScorePenaltyEndMs;
 using Game::Gameplay::kGoodWindowMs;
 using Game::Gameplay::kPerfectWindowMs;
+using Game::Gameplay::kGreatWindowMs;
 
 void TestContinuousVersusCeilGood() {
-    constexpr double d = kPerfectWindowMs + 1.5;
-    constexpr double span = kGoodWindowMs - kPerfectWindowMs;
+    constexpr double d = kGreatWindowMs + 1.5;
+    constexpr double span = kGoodWindowMs - kGreatWindowMs;
     constexpr double raw = 100.0 * (kGoodWindowMs - d) / span;
     constexpr HitResult hit{.judgement = Judgement::Good, .deltaMs = d};
     assert(ContinuousRawScore(hit) == raw);
     assert(ScoreForHitResult(hit) == static_cast<std::int32_t>(std::ceil(raw)));
-    assert(ScoreForHitResult(hit) == 99);
+    assert(ScoreForHitResult(hit) == 98);
 }
 
 void TestContinuousVersusCeilBad() {
@@ -54,6 +55,11 @@ void TestAccuracyNumeratorContribution() {
 
     assert(AccuracyNumeratorContribution(HitResult{
                .judgement = Judgement::Perfect,
+               .deltaMs = 0.0,
+           }) == 100.0);
+
+    assert(AccuracyNumeratorContribution(HitResult{
+               .judgement = Judgement::Great,
                .deltaMs = 0.0,
            }) == 100.0);
 }

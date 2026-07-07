@@ -21,6 +21,7 @@ inline constexpr double kBadScorePenaltyEndMs = kMissExpireMs;
 inline constexpr int kMissScore = -25;
 inline constexpr int kBadPenaltyCap = -25;
 inline constexpr int kPerfectScore = 100;
+inline constexpr int kGreatScore = 100;
 
 // Piecewise score as a real value (no ceil). Used for accuracy numerator and as
 // the base for integer scoring on Good/Bad.
@@ -31,9 +32,12 @@ inline constexpr int kPerfectScore = 100;
         return kMissScore;
     case Perfect:
         return kPerfectScore;
+    case Great: {
+        return kGreatScore;
+    }
     case Good: {
         const double d = std::abs(result.deltaMs);
-        return 100.0 * (kGoodWindowMs - d) / (kGoodWindowMs - kPerfectWindowMs);
+        return 100.0 * (kGoodWindowMs - d) / (kGoodWindowMs - kGreatWindowMs);
     }
     case Bad: {
         const double d = std::abs(result.deltaMs);
@@ -67,6 +71,8 @@ inline constexpr int kPerfectScore = 100;
         return kMissScore;
     case Perfect:
         return kPerfectScore;
+    case Great:
+        return kGreatScore;
     case Good:
     case Bad:
         return static_cast<std::int32_t>(std::ceil(ContinuousRawScore(result)));
