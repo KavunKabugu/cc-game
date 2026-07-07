@@ -18,7 +18,7 @@ class TextButton;
 
 class SongSelectScene final : public SceneBase {
 public:
-    SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance);
+    SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance, const std::string& errorMessage = "");
 
 private:
     void BuildSongList();

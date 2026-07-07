@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include "SongManager.h"
 #include "ThirdParty/json.hpp"
 #include "Game/ResourceManager.h"
@@ -10,8 +17,27 @@
 namespace Game::Song {
     using json = nlohmann::json;
 
+#ifdef _WIN32
+    static std::string PathToUtf8String(const std::filesystem::path& p) {
+        auto u8 = p.u8string();
+        return std::string(u8.begin(), u8.end());
+    }
+
+    static std::filesystem::path Utf8StringToPath(const std::string& str) {
+        return std::filesystem::path(std::u8string(str.begin(), str.end()));
+    }
+#else
+    static std::string PathToUtf8String(const std::filesystem::path& p) {
+        return p.string();
+    }
+
+    static std::filesystem::path Utf8StringToPath(const std::string& str) {
+        return std::filesystem::path(str);
+    }
+#endif
+
     namespace {
-        constexpr int kCacheVersion = 1;
+        constexpr int kCacheVersion = 2;
 
         struct CacheEntry {
             std::int64_t timestampNs{0};
@@ -27,7 +53,7 @@ namespace Game::Song {
             for (const auto&[name, chartPath, level] : metadata.difficulties) {
                 difficulties.push_back({
                     {"name", name},
-                    {"chartPath", chartPath.string()},
+                    {"chartPath", PathToUtf8String(chartPath)},
                     {"level", level}
                 });
             }
@@ -36,7 +62,7 @@ namespace Game::Song {
                 {"title", metadata.title},
                 {"artist", metadata.artist},
                 {"bpm", metadata.bpm},
-                {"songFolder", metadata.songFolder.string()},
+                {"songFolder", PathToUtf8String(metadata.songFolder)},
                 {"audioFile", metadata.audioFile},
                 {"coverFile", metadata.coverFile},
                 {"difficulties", difficulties}
@@ -49,14 +75,14 @@ namespace Game::Song {
                 metadata->title = j.at("title").get<std::string>();
                 metadata->artist = j.at("artist").get<std::string>();
                 metadata->bpm = j.at("bpm").get<float>();
-                metadata->songFolder = j.at("songFolder").get<std::string>();
+                metadata->songFolder = Utf8StringToPath(j.at("songFolder").get<std::string>());
                 metadata->audioFile = j.at("audioFile").get<std::string>();
                 metadata->coverFile = j.at("coverFile").get<std::string>();
 
                 for (const auto& d : j.at("difficulties")) {
                     metadata->difficulties.push_back(SongDifficulty{
                         .name = d.at("name").get<std::string>(),
-                        .chartPath = d.at("chartPath").get<std::string>(),
+                        .chartPath = Utf8StringToPath(d.at("chartPath").get<std::string>()),
                         .level = d.at("level").get<int>()
                     });
                 }
@@ -96,7 +122,7 @@ namespace Game::Song {
                     std::string chartFile = d.contains("chartFile") ? d.at("chartFile").get<std::string>() : d.at("chartPath").get<std::string>();
                     metadata->difficulties.push_back(SongDifficulty{
                         .name = d.at("name").get<std::string>(),
-                        .chartPath = chartFile,
+                        .chartPath = Utf8StringToPath(chartFile),
                         .level = d.value("level", 0)
                     });
                 }
@@ -117,7 +143,7 @@ namespace Game::Song {
         }
 
         // Add to ResourceManager search paths
-        ResourceManager::getInstance().AddSearchPath(songsRoot.string());
+        ResourceManager::getInstance().AddSearchPath(PathToUtf8String(songsRoot));
 
         std::unordered_map<std::string, CacheEntry> cachedEntries;
         const auto cachePath = ResolveCachePath();
@@ -147,7 +173,7 @@ namespace Game::Song {
         for (const auto& entry : std::filesystem::directory_iterator(songsRoot)) {
             if (!entry.is_directory()) continue;
 
-            const auto folderName = entry.path().filename().string();
+            const auto folderName = PathToUtf8String(entry.path().filename());
             const std::int64_t timestampNs = ToTimestampNs(std::filesystem::last_write_time(entry.path()));
 
             if (cachedEntries.contains(folderName) && cachedEntries[folderName].timestampNs == timestampNs) {
@@ -202,14 +228,32 @@ namespace Game::Song {
 
     std::filesystem::path SongManager::ResolveSongsRoot() {
         if (const char* base = SDL_GetBasePath()) {
+#ifdef _WIN32
+            std::wstring wbase;
+            std::string sbase(base);
+            int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
+            wbase.resize(size_needed);
+            MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
+            return (std::filesystem::path(wbase) / "songs").lexically_normal();
+#else
             return (std::filesystem::path(base) / "songs").lexically_normal();
+#endif
         }
         return "songs";
     }
 
     std::filesystem::path SongManager::ResolveCachePath() {
         if (const char* base = SDL_GetBasePath()) {
+#ifdef _WIN32
+            std::wstring wbase;
+            std::string sbase(base);
+            int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
+            wbase.resize(size_needed);
+            MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
+            return (std::filesystem::path(wbase) / "songs_cache.json").lexically_normal();
+#else
             return (std::filesystem::path(base) / "songs_cache.json").lexically_normal();
+#endif
         }
         return "songs_cache.json";
     }

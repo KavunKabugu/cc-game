@@ -17,7 +17,7 @@
 
 namespace Game {
 
-SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance)
+SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance, const std::string& errorMessage)
     : sceneManager(sceneManager),
       game(gameInstance) {
     root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, SDL_Color{18, 22, 32, 255});
@@ -34,6 +34,20 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         return;
     }
     rowFont = *rowFontRes;
+
+    if (!errorMessage.empty()) {
+        auto* errPanel = root->CreateChild<PanelRect>(
+            UnitBounds{{0.10f, 0.015f}, {0.90f, 0.055f}},
+            SDL_Color{180, 40, 40, 220}
+        );
+        auto* errLabel = root->CreateChild<Label>(
+            UnitBounds{{0.10f, 0.015f}, {0.90f, 0.055f}},
+            *rowFontRes,
+            errorMessage
+        );
+        errLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+        errLabel->SetColor(SDL_Color{255, 255, 255, 255});
+    }
 
     auto* title = root->CreateChild<Label>(
         UnitBounds{{0.0f, 0.06f}, {1.0f, 0.16f}},

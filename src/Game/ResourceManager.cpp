@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include "ResourceManager.h"
 
 #include <algorithm>
@@ -7,12 +14,40 @@
 #include "SDL3/SDL_log.h"
 #include "SDL3_image/SDL_image.h"
 
+#ifdef _WIN32
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    auto u8 = p.u8string();
+    return std::string(u8.begin(), u8.end());
+}
+
+static std::filesystem::path Utf8StringToPath(const std::string& str) {
+    return std::filesystem::path(std::u8string(str.begin(), str.end()));
+}
+#else
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    return p.string();
+}
+
+static std::filesystem::path Utf8StringToPath(const std::string& str) {
+    return std::filesystem::path(str);
+}
+#endif
+
 void ResourceManager::Init(const SDL_Renderer *r) {
     this->renderer = r;
     this->textures.clear();
     this->searchPaths.clear();
     if (const char* base = SDL_GetBasePath()) {
+#ifdef _WIN32
+        std::wstring wbase;
+        std::string sbase(base);
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
+        wbase.resize(size_needed);
+        MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
+        this->basePath = wbase;
+#else
         this->basePath = std::string(base);
+#endif
     }
     
     if (!TTF_Init()) {
@@ -64,9 +99,9 @@ std::expected<std::shared_ptr<MIX_Audio>, ResourceError> ResourceManager::GetAud
         return std::unexpected(ResourceError::MixerNotInitialized);
     }
 
-    MIX_Audio* rawAudio = MIX_LoadAudio(mixer, canonicalPath.string().c_str(), true);
+    MIX_Audio* rawAudio = MIX_LoadAudio(mixer, PathToUtf8String(canonicalPath).c_str(), true);
     if (!rawAudio) {
-        SDL_Log("Failed to load audio (%s): %s", canonicalPath.string().c_str(), SDL_GetError());
+        SDL_Log("Failed to load audio (%s): %s", PathToUtf8String(canonicalPath).c_str(), SDL_GetError());
         return std::unexpected(ResourceError::SDLError);
     }
 
@@ -79,7 +114,15 @@ std::expected<std::shared_ptr<MIX_Audio>, ResourceError> ResourceManager::GetAud
 }
 
 void ResourceManager::AddSearchPath(const std::string& path) {
+#ifdef _WIN32
+    std::wstring wpath;
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), NULL, 0);
+    wpath.resize(size_needed);
+    MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), &wpath[0], size_needed);
+    std::filesystem::path searchPath(wpath);
+#else
     std::filesystem::path searchPath(path);
+#endif
     if (searchPath.is_relative() && !this->basePath.empty()) {
         searchPath = this->basePath / searchPath;
     }
@@ -93,7 +136,7 @@ void ResourceManager::AddSearchPath(const std::string& path) {
 }
 
 std::expected<std::filesystem::path, ResourceError> ResourceManager::ResolveCanonicalPath(const std::string_view rawPath) const {
-    const std::filesystem::path input(rawPath);
+    const std::filesystem::path input = Utf8StringToPath(std::string(rawPath));
     if (input.is_absolute()) {
         if (std::error_code e; std::filesystem::exists(input, e) && !e) {
             return std::filesystem::canonical(input, e);
@@ -142,9 +185,9 @@ std::expected<std::shared_ptr<SDL_Texture>, ResourceError> ResourceManager::GetT
         return std::unexpected(ResourceError::RendererNotInitialized);
     }
 
-    SDL_Texture* rawTexture = IMG_LoadTexture(const_cast<SDL_Renderer*>(renderer), canonicalPath.string().c_str());
+    SDL_Texture* rawTexture = IMG_LoadTexture(const_cast<SDL_Renderer*>(renderer), PathToUtf8String(canonicalPath).c_str());
     if (!rawTexture) {
-        SDL_Log("Failed to load image (%s): %s", canonicalPath.string().c_str(), SDL_GetError());
+        SDL_Log("Failed to load image (%s): %s", PathToUtf8String(canonicalPath).c_str(), SDL_GetError());
         return std::unexpected(ResourceError::SDLError);
     }
 
@@ -170,7 +213,7 @@ std::expected<std::shared_ptr<TTF_Font>, ResourceError> ResourceManager::GetFont
     if (!canonicalRes) {
         return std::unexpected(canonicalRes.error());
     }
-    const std::string canonicalPath = canonicalRes->string();
+    const std::string canonicalPath = PathToUtf8String(*canonicalRes);
     const float effectiveSize = std::max(fontSize * uiFontScale, 1.0f);
     const std::string key =
         canonicalPath + ":" + std::to_string(std::lround(fontSize * 1000)) +
@@ -215,8 +258,8 @@ std::expected<std::shared_ptr<Game::AudioBuffer>, ResourceError> ResourceManager
     Uint8* audioBuf = nullptr;
     Uint32 audioLen = 0;
 
-    if (!SDL_LoadWAV(canonicalPath.string().c_str(), &spec, &audioBuf, &audioLen)) {
-        SDL_Log("Failed to load audio (%s): %s", canonicalPath.string().c_str(), SDL_GetError());
+    if (!SDL_LoadWAV(PathToUtf8String(canonicalPath).c_str(), &spec, &audioBuf, &audioLen)) {
+        SDL_Log("Failed to load audio (%s): %s", PathToUtf8String(canonicalPath).c_str(), SDL_GetError());
         return std::unexpected(ResourceError::SDLError);
     }
 

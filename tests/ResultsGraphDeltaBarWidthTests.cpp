@@ -41,7 +41,7 @@ void TestChordPlusJack() {
 }
 
 void TestEmptyAndSingle() {
-    constexpr std::vector<float> empty{};
+    const std::vector<float> empty{};
     constexpr float base = 4.0f;
     constexpr float plotW = 200.0f;
     float w = ResultsGraphDeltaBarWidthPx(

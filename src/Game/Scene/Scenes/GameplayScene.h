@@ -73,7 +73,7 @@ private:
     void ResumeFromPause();
     void FinishResumeGrace();
     void EnterResults();
-    void ReturnToSongSelect() const;
+    void ReturnToSongSelect(const std::string& errorMessage = "") const;
 
     [[nodiscard]] double AccuracyPercent() const;
     // Mean (t_input - t_note) in ms over hit judgements only, 0 when none.
@@ -135,6 +135,8 @@ private:
     double frozenSongTime = 0.0;
     bool sessionEnded = false;
     bool simulationReady = false;
+    bool initFailed = false;
+    std::string initErrorMessage;
 };
 
 } // namespace Game

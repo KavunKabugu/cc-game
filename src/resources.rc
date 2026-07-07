@@ -1,7 +1,7 @@
 #include <windows.h>
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     0,1,1,0
-PRODUCTVERSION  0,1,1,0
+FILEVERSION     0,1,2
+PRODUCTVERSION  0,1,2
 FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 FILEFLAGS       0
 FILEOS          VOS_NT_WINDOWS32
@@ -14,12 +14,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "KavunKabugu"
             VALUE "FileDescription",  "cc-game: 2D Rhythm Game"
-            VALUE "FileVersion",      "0.1.1alpha"
+            VALUE "FileVersion",      "0.1.2alpha"
             VALUE "InternalName",     "cc_game"
             VALUE "LegalCopyright",   "Copyright (C) 2026 KavunKabugu"
             VALUE "OriginalFilename", "cc_game.exe"
             VALUE "ProductName",      "cc-game"
-            VALUE "ProductVersion",   "0.1.1alpha"
+            VALUE "ProductVersion",   "0.1.2alpha"
         END
     END
     BLOCK "VarFileInfo"

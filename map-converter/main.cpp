@@ -1,3 +1,9 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <cctype>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -22,7 +29,35 @@
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-// --- App State & Thread Safety ---
+#ifdef _WIN32
+#include <windows.h>
+
+std::wstring Utf8ToWstring(const std::string& str) {
+    if (str.empty()) return L"";
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring wstrTo(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+    return wstrTo;
+}
+
+std::string WstringToUtf8(const std::wstring& wstr) {
+    if (wstr.empty()) return "";
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
+    return strTo;
+}
+
+std::string AnsiToUtf8(const std::string& str) {
+    if (str.empty()) return "";
+    int size_needed = MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring wstrTo(size_needed, 0);
+    MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+    return WstringToUtf8(wstrTo);
+}
+#endif
+
+// App State
 struct AppState {
     std::mutex mutex;
     std::string inputPath;
@@ -42,7 +77,7 @@ void Log(const std::string& message) {
     std::cout << message << std::endl;
 }
 
-// --- Helper Functions ---
+// Helper Functions
 std::string Trim(std::string_view str) {
     if (str.empty()) return "";
     size_t first = str.find_first_not_of(" \t\r\n");
@@ -66,7 +101,12 @@ std::string MakeSafeFilename(const std::string& name) {
     safe.erase(std::remove_if(safe.begin(), safe.end(), [](char c) {
         return c == '\\' || c == '/' || c == '*' || c == '?' || c == ':' || c == '"' || c == '<' || c == '>' || c == '|';
     }), safe.end());
-    return Trim(safe);
+    safe = Trim(safe);
+    while (!safe.empty() && safe.back() == '.') {
+        safe.pop_back();
+        safe = Trim(safe);
+    }
+    return safe;
 }
 
 // --- ZIP Extraction Wrapper using miniz ---
@@ -74,8 +114,20 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
     mz_zip_archive zip_archive;
     memset(&zip_archive, 0, sizeof(zip_archive));
 
-    if (!mz_zip_reader_init_file(&zip_archive, zipPath.string().c_str(), 0)) {
+    FILE* pFile = nullptr;
+#ifdef _WIN32
+    pFile = _wfopen(zipPath.c_str(), L"rb");
+#else
+    pFile = fopen(zipPath.c_str(), "rb");
+#endif
+    if (!pFile) {
+        Log("Failed to open zip file: " + zipPath.string());
+        return false;
+    }
+
+    if (!mz_zip_reader_init_cfile(&zip_archive, pFile, 0, 0)) {
         Log("Failed to initialize zip reader for: " + zipPath.string());
+        fclose(pFile);
         return false;
     }
 
@@ -85,27 +137,64 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
             Log("Failed to get file info for index " + std::to_string(i));
             mz_zip_reader_end(&zip_archive);
+            fclose(pFile);
             return false;
         }
 
+#ifdef _WIN32
+        fs::path entryPath = destDir / Utf8ToWstring(file_stat.m_filename);
+#else
         fs::path entryPath = destDir / file_stat.m_filename;
+#endif
+
         if (mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-            fs::create_directories(entryPath);
-        } else {
-            fs::create_directories(entryPath.parent_path());
-            if (!mz_zip_reader_extract_to_file(&zip_archive, i, entryPath.string().c_str(), 0)) {
-                Log("Failed to extract file: " + std::string(file_stat.m_filename));
+            std::error_code ec;
+            fs::create_directories(entryPath, ec);
+            if (ec) {
+                Log("Failed to create directory: " + entryPath.string() + " (" + ec.message() + ")");
                 mz_zip_reader_end(&zip_archive);
+                fclose(pFile);
                 return false;
             }
+        } else {
+            std::error_code ec;
+            fs::create_directories(entryPath.parent_path(), ec);
+            if (ec) {
+                Log("Failed to create parent directory: " + entryPath.parent_path().string() + " (" + ec.message() + ")");
+                mz_zip_reader_end(&zip_archive);
+                fclose(pFile);
+                return false;
+            }
+
+            size_t size = 0;
+            void* pData = mz_zip_reader_extract_to_heap(&zip_archive, i, &size, 0);
+            if (!pData) {
+                Log("Failed to extract file from zip: " + std::string(file_stat.m_filename));
+                mz_zip_reader_end(&zip_archive);
+                fclose(pFile);
+                return false;
+            }
+
+            std::ofstream out(entryPath, std::ios::binary);
+            if (!out.is_open()) {
+                Log("Failed to open output file for writing: " + entryPath.string());
+                mz_free(pData);
+                mz_zip_reader_end(&zip_archive);
+                fclose(pFile);
+                return false;
+            }
+            out.write(static_cast<const char*>(pData), size);
+            out.close();
+            mz_free(pData);
         }
     }
 
     mz_zip_reader_end(&zip_archive);
+    fclose(pFile);
     return true;
 }
 
-// --- .osu Parser Data Structures ---
+// .osu Parser Data Structures
 struct TimingPoint {
     int timeMs;
     double bpm;
@@ -280,225 +369,302 @@ std::optional<OsuChart> ParseOsu(const fs::path& filePath) {
 
 // Main conversion logic
 void RunConversion(const std::string& inputPath, const std::string& outputPath) {
-    {
-        std::lock_guard<std::mutex> lock(g_state.mutex);
-        g_state.isConverting = true;
-        g_state.conversionFinished = false;
-        g_state.conversionSuccess = false;
-        g_state.conversionMessage = "";
-    }
+    try {
+        {
+            std::lock_guard<std::mutex> lock(g_state.mutex);
+            g_state.isConverting = true;
+            g_state.conversionFinished = false;
+            g_state.conversionSuccess = false;
+            g_state.conversionMessage = "";
+        }
 
-    Log("Preparing input path: " + inputPath);
-    fs::path inPath = fs::absolute(fs::path(inputPath));
-    fs::path outRoot = fs::absolute(fs::path(outputPath));
-    fs::path tempDir;
+        Log("Preparing input path: " + inputPath);
+#ifdef _WIN32
+        fs::path inPath = fs::absolute(fs::path(Utf8ToWstring(inputPath)));
+        fs::path outRoot = fs::absolute(fs::path(Utf8ToWstring(outputPath)));
+#else
+        fs::path inPath = fs::absolute(fs::path(inputPath));
+        fs::path outRoot = fs::absolute(fs::path(outputPath));
+#endif
+        fs::path tempDir;
 
-    // 1. Prepare source directory
-    fs::path sourceDir;
-    if (fs::is_regular_file(inPath) && (inPath.extension() == ".osz" || inPath.extension() == ".zip")) {
-        std::error_code ec;
-        tempDir = fs::temp_directory_path(ec) / ("cc_game_conv_" + std::to_string(SDL_GetTicks()));
-        if (ec) {
-            Log("Error: Could not retrieve temporary directory path.");
+        // Determine if input is a valid .osz/.zip archive case-insensitively
+        std::error_code isFileEc, isDirEc;
+        bool isFile = fs::is_regular_file(inPath, isFileEc);
+        bool isDir = fs::is_directory(inPath, isDirEc);
+
+        std::string ext = inPath.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
+        bool isArchive = (ext == ".osz" || ext == ".zip");
+
+        // Prepare source directory
+        fs::path sourceDir;
+        if (isFile && isArchive) {
+            std::error_code ec;
+            tempDir = fs::temp_directory_path(ec) / ("cc_game_conv_" + std::to_string(SDL_GetTicks()));
+            if (ec) {
+                Log("Error: Could not retrieve temporary directory path.");
+                std::lock_guard<std::mutex> lock(g_state.mutex);
+                g_state.isConverting = false;
+                g_state.conversionFinished = true;
+                g_state.conversionMessage = "Could not locate system temp directory.";
+                return;
+            }
+
+            fs::create_directories(tempDir, ec);
+            if (ec) {
+                Log("Error: Could not create temporary directory: " + tempDir.string());
+                std::lock_guard<std::mutex> lock(g_state.mutex);
+                g_state.isConverting = false;
+                g_state.conversionFinished = true;
+                g_state.conversionMessage = "Failed to create temp directory.";
+                return;
+            }
+
+            Log("Extracting " + inPath.string() + " to temporary directory...");
+            if (!ExtractZip(inPath, tempDir)) {
+                Log("Error: Failed to extract ZIP archive.");
+                std::error_code cleanEc;
+                fs::remove_all(tempDir, cleanEc);
+                std::lock_guard<std::mutex> lock(g_state.mutex);
+                g_state.isConverting = false;
+                g_state.conversionFinished = true;
+                g_state.conversionMessage = "Failed to extract ZIP/OSZ archive.";
+                return;
+            }
+            sourceDir = tempDir;
+        } else if (isDir) {
+            sourceDir = inPath;
+        } else {
+            Log("Error: " + inPath.string() + " is not a valid file or directory.");
             std::lock_guard<std::mutex> lock(g_state.mutex);
             g_state.isConverting = false;
             g_state.conversionFinished = true;
-            g_state.conversionMessage = "Could not locate system temp directory.";
+            g_state.conversionMessage = "Invalid input file or folder.";
             return;
         }
 
-        fs::create_directories(tempDir);
-        Log("Extracting " + inPath.string() + " to temporary directory...");
-        if (!ExtractZip(inPath, tempDir)) {
-            Log("Error: Failed to extract ZIP archive.");
-            fs::remove_all(tempDir);
-            std::lock_guard<std::mutex> lock(g_state.mutex);
-            g_state.isConverting = false;
-            g_state.conversionFinished = true;
-            g_state.conversionMessage = "Failed to extract ZIP/OSZ archive.";
-            return;
-        }
-        sourceDir = tempDir;
-    } else if (fs::is_directory(inPath)) {
-        sourceDir = inPath;
-    } else {
-        Log("Error: " + inPath.string() + " is not a valid file or directory.");
-        std::lock_guard<std::mutex> lock(g_state.mutex);
-        g_state.isConverting = false;
-        g_state.conversionFinished = true;
-        g_state.conversionMessage = "Invalid input file or folder.";
-        return;
-    }
+        // Find and parse all .osu files
+        Log("Searching for .osu files in: " + sourceDir.string());
+        std::vector<OsuChart> parsedCharts;
+        std::error_code dirIterEc;
+        for (const auto& entry : fs::directory_iterator(sourceDir, dirIterEc)) {
+            std::error_code checkEc;
+            std::string entryExt = entry.path().extension().string();
+            std::transform(entryExt.begin(), entryExt.end(), entryExt.begin(), [](unsigned char c) { return std::tolower(c); });
 
-    // 2. Find and parse all .osu files
-    Log("Searching for .osu files in: " + sourceDir.string());
-    std::vector<OsuChart> parsedCharts;
-    std::error_code ec;
-    for (const auto& entry : fs::directory_iterator(sourceDir, ec)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".osu") {
-            Log("Parsing chart file: " + entry.path().filename().string());
-            if (auto chart = ParseOsu(entry.path())) {
-                parsedCharts.push_back(*chart);
+            if (entry.is_regular_file(checkEc) && entryExt == ".osu") {
+                Log("Parsing chart file: " + entry.path().filename().string());
+                if (auto chart = ParseOsu(entry.path())) {
+                    parsedCharts.push_back(*chart);
+                }
             }
         }
-    }
 
-    if (parsedCharts.empty()) {
-        Log("Error: No valid osu!mania charts found.");
-        if (!tempDir.empty()) fs::remove_all(tempDir);
-        std::lock_guard<std::mutex> lock(g_state.mutex);
-        g_state.isConverting = false;
-        g_state.conversionFinished = true;
-        g_state.conversionMessage = "No valid osu!mania (4-8 key Mode 3) charts found.";
-        return;
-    }
-
-    // 3. Group charts by their Audio File
-    std::map<std::string, std::vector<OsuChart>> groups;
-    for (const auto& chart : parsedCharts) {
-        groups[chart.metadata.audioFile].push_back(chart);
-    }
-
-    // 4. Process each group as a separate map entry
-    int convertedCount = 0;
-    for (const auto& [audioFile, charts] : groups) {
-        if (charts.empty()) continue;
-
-        const auto& main = charts[0].metadata;
-        std::string folderName;
-        if (groups.size() > 1) {
-            folderName = main.artist + " - " + main.title + " [" + main.version + "]";
-        } else {
-            folderName = main.artist + " - " + main.title;
+        if (parsedCharts.empty()) {
+            Log("Error: No valid osu!mania charts found.");
+            if (!tempDir.empty()) {
+                std::error_code cleanEc;
+                fs::remove_all(tempDir, cleanEc);
+            }
+            std::lock_guard<std::mutex> lock(g_state.mutex);
+            g_state.isConverting = false;
+            g_state.conversionFinished = true;
+            g_state.conversionMessage = "No valid osu!mania (4-8 key Mode 3) charts found.";
+            return;
         }
 
-        folderName = MakeSafeFilename(folderName);
-        fs::path finalOutputPath = outRoot / folderName;
-        fs::path chartsDir = finalOutputPath / "charts";
-        fs::create_directories(chartsDir);
+        // Group charts by their Audio File
+        std::map<std::string, std::vector<OsuChart>> groups;
+        for (const auto& chart : parsedCharts) {
+            groups[chart.metadata.audioFile].push_back(chart);
+        }
 
-        json songMetadata = {
-            {"title", main.title},
-            {"artist", main.artist},
-            {"bpm", main.bpm},
-            {"audioFile", main.audioFile},
-            {"thumbnailPath", main.bgFile},
-            {"difficulties", json::array()}
-        };
+        // Process each group as a separate map entry
+        int convertedCount = 0;
+        for (const auto& [audioFile, charts] : groups) {
+            if (charts.empty()) continue;
 
-        // Save individual charts
-        for (const auto& chart : charts) {
-            std::string diffName = chart.metadata.version;
-            std::string safeDiffName = MakeSafeFilename(diffName);
-            std::string chartFilename = safeDiffName + ".json";
+            const auto& main = charts[0].metadata;
+            std::string folderName;
+            if (groups.size() > 1) {
+                folderName = main.artist + " - " + main.title + " [" + main.version + "]";
+            } else {
+                folderName = main.artist + " - " + main.title;
+            }
 
-            songMetadata["difficulties"].push_back({
-                {"name", diffName},
-                {"chartFile", "charts/" + chartFilename}
-            });
+            folderName = MakeSafeFilename(folderName);
+#ifdef _WIN32
+            fs::path finalOutputPath = outRoot / Utf8ToWstring(folderName);
+#else
+            fs::path finalOutputPath = outRoot / folderName;
+#endif
+            fs::path chartsDir = finalOutputPath / "charts";
+            
+            std::error_code createChartsEc;
+            fs::create_directories(chartsDir, createChartsEc);
+            if (createChartsEc) {
+                Log("Error: Failed to create charts directory: " + chartsDir.string() + " (" + createChartsEc.message() + ")");
+                continue;
+            }
 
-            json chartJson;
-            chartJson["formatVersion"] = 1;
-            chartJson["song"] = {
-                {"title", chart.metadata.title},
-                {"difficulty", diffName},
-                {"bpm", chart.metadata.bpm},
-                {"offsetMs", 0}
+            json songMetadata = {
+                {"title", main.title},
+                {"artist", main.artist},
+                {"bpm", main.bpm},
+                {"audioFile", main.audioFile},
+                {"thumbnailPath", main.bgFile},
+                {"difficulties", json::array()}
             };
 
-            json timingPointsJ = json::array();
-            for (const auto& tp : chart.timingPoints) {
-                timingPointsJ.push_back({
-                    {"timeMs", tp.timeMs},
-                    {"bpm", tp.bpm}
+            // Save individual charts
+            for (const auto& chart : charts) {
+                std::string diffName = chart.metadata.version;
+                std::string safeDiffName = MakeSafeFilename(diffName);
+                std::string chartFilename = safeDiffName + ".json";
+
+                songMetadata["difficulties"].push_back({
+                    {"name", diffName},
+                    {"chartFile", "charts/" + chartFilename}
                 });
-            }
-            chartJson["timingPoints"] = timingPointsJ;
 
-            json notesJ = json::array();
-            for (const auto& note : chart.notes) {
-                json noteJ = {
-                    {"timeMs", note.timeMs},
-                    {"lane", note.lane},
-                    {"type", note.type}
+                json chartJson;
+                chartJson["formatVersion"] = 1;
+                chartJson["song"] = {
+                    {"title", chart.metadata.title},
+                    {"difficulty", diffName},
+                    {"bpm", chart.metadata.bpm},
+                    {"offsetMs", 0}
                 };
-                if (note.type == "hold") {
-                    noteJ["durationMs"] = note.durationMs;
+
+                json timingPointsJ = json::array();
+                for (const auto& tp : chart.timingPoints) {
+                    timingPointsJ.push_back({
+                        {"timeMs", tp.timeMs},
+                        {"bpm", tp.bpm}
+                    });
                 }
-                notesJ.push_back(noteJ);
+                chartJson["timingPoints"] = timingPointsJ;
+
+                json notesJ = json::array();
+                for (const auto& note : chart.notes) {
+                    json noteJ = {
+                        {"timeMs", note.timeMs},
+                        {"lane", note.lane},
+                        {"type", note.type}
+                    };
+                    if (note.type == "hold") {
+                        noteJ["durationMs"] = note.durationMs;
+                    }
+                    notesJ.push_back(noteJ);
+                }
+                chartJson["notes"] = notesJ;
+
+#ifdef _WIN32
+                fs::path chartFilePath = chartsDir / Utf8ToWstring(chartFilename);
+#else
+                fs::path chartFilePath = chartsDir / chartFilename;
+#endif
+                std::ofstream out(chartFilePath);
+                if (out.is_open()) {
+                    // Safe JSON dump to prevent crash on invalid UTF-8 bytes
+                    out << chartJson.dump(2, ' ', false, json::error_handler_t::replace);
+                } else {
+                    Log("Failed to write chart: " + chartFilePath.string());
+                }
             }
-            chartJson["notes"] = notesJ;
 
-            fs::path chartFilePath = chartsDir / chartFilename;
-            std::ofstream out(chartFilePath);
-            if (out.is_open()) {
-                out << chartJson.dump(2);
-            } else {
-                Log("Failed to write chart: " + chartFilePath.string());
+            // Save master metadata
+            std::ofstream outMeta(finalOutputPath / "song_metadata.json");
+            if (outMeta.is_open()) {
+                // Safe JSON dump to prevent crash on invalid UTF-8 bytes
+                outMeta << songMetadata.dump(2, ' ', false, json::error_handler_t::replace);
             }
-        }
 
-        // Save master metadata
-        std::ofstream outMeta(finalOutputPath / "song_metadata.json");
-        if (outMeta.is_open()) {
-            outMeta << songMetadata.dump(2);
-        }
+            // Copy assets
+            std::set<std::string> assetsToCopy;
+            if (!main.audioFile.empty()) assetsToCopy.insert(main.audioFile);
+            if (!main.bgFile.empty()) assetsToCopy.insert(main.bgFile);
 
-        // Copy assets (case-insensitive check for Linux)
-        std::set<std::string> assetsToCopy;
-        if (!main.audioFile.empty()) assetsToCopy.insert(main.audioFile);
-        if (!main.bgFile.empty()) assetsToCopy.insert(main.bgFile);
-
-        for (const auto& asset : assetsToCopy) {
-            fs::path srcPath = sourceDir / asset;
-            // Case-insensitive search on disk for Linux matching
-            if (!fs::exists(srcPath)) {
-                for (const auto& entry : fs::directory_iterator(sourceDir)) {
-                    if (entry.is_regular_file()) {
-                        std::string entryName = entry.path().filename().string();
-                        if (SDL_strcasecmp(entryName.c_str(), asset.c_str()) == 0) {
-                            srcPath = entry.path();
-                            break;
+            for (const auto& asset : assetsToCopy) {
+#ifdef _WIN32
+                fs::path srcPath = sourceDir / Utf8ToWstring(asset);
+#else
+                fs::path srcPath = sourceDir / asset;
+#endif
+                // Case-insensitive search on disk for Linux matching
+                std::error_code existsEc;
+                if (!fs::exists(srcPath, existsEc)) {
+                    std::error_code assetDirEc;
+                    for (const auto& entry : fs::directory_iterator(sourceDir, assetDirEc)) {
+                        std::error_code checkEc;
+                        if (entry.is_regular_file(checkEc)) {
+#ifdef _WIN32
+                            std::string entryName = WstringToUtf8(entry.path().filename().wstring());
+#else
+                            std::string entryName = entry.path().filename().string();
+#endif
+                            if (SDL_strcasecmp(entryName.c_str(), asset.c_str()) == 0) {
+                                srcPath = entry.path();
+                                break;
+                            }
                         }
                     }
                 }
+
+                std::error_code existsCheckEc;
+                if (fs::exists(srcPath, existsCheckEc)) {
+                    fs::path destPath = finalOutputPath / srcPath.filename();
+                    std::error_code parentDirEc;
+                    fs::create_directories(destPath.parent_path(), parentDirEc);
+                    std::error_code copyEc;
+                    fs::copy_file(srcPath, destPath, fs::copy_options::overwrite_existing, copyEc);
+                    if (copyEc) {
+                        Log("Warning: Failed to copy asset " + asset + ": " + copyEc.message());
+                    } else {
+                        Log("Copied asset: " + srcPath.filename().string());
+                    }
+                } else {
+                    Log("Warning: Asset not found: " + asset);
+                }
             }
 
-            if (fs::exists(srcPath)) {
-                fs::path destPath = finalOutputPath / srcPath.filename();
-                fs::create_directories(destPath.parent_path());
-                std::error_code copyEc;
-                fs::copy_file(srcPath, destPath, fs::copy_options::overwrite_existing, copyEc);
-                if (copyEc) {
-                    Log("Warning: Failed to copy asset " + asset + ": " + copyEc.message());
-                } else {
-                    Log("Copied asset: " + srcPath.filename().string());
-                }
-            } else {
-                Log("Warning: Asset not found: " + asset);
-            }
+            Log("Converted group: " + folderName + " (" + std::to_string(charts.size()) + " difficulties)");
+            convertedCount++;
         }
 
-        Log("Converted group: " + folderName + " (" + std::to_string(charts.size()) + " difficulties)");
-        convertedCount++;
+        // Cleanup temp dir
+        if (!tempDir.empty()) {
+            std::error_code cleanEc;
+            fs::remove_all(tempDir, cleanEc);
+        }
+
+        Log("All conversions complete! Saved in: " + outRoot.string());
+
+        std::lock_guard<std::mutex> lock(g_state.mutex);
+        g_state.isConverting = false;
+        g_state.conversionFinished = true;
+        g_state.conversionSuccess = true;
+        g_state.conversionMessage = "Successfully converted " + std::to_string(convertedCount) + " song groups.";
+        
+    } catch (const std::exception& e) {
+        Log("Exception caught during conversion: " + std::string(e.what()));
+        std::lock_guard<std::mutex> lock(g_state.mutex);
+        g_state.isConverting = false;
+        g_state.conversionFinished = true;
+        g_state.conversionSuccess = false;
+        g_state.conversionMessage = "Critical Error: " + std::string(e.what());
+    } catch (...) {
+        Log("Unknown exception caught during conversion.");
+        std::lock_guard<std::mutex> lock(g_state.mutex);
+        g_state.isConverting = false;
+        g_state.conversionFinished = true;
+        g_state.conversionSuccess = false;
+        g_state.conversionMessage = "Critical Error: An unknown exception occurred.";
     }
-
-    // Cleanup temp dir
-    if (!tempDir.empty()) {
-        std::error_code cleanEc;
-        fs::remove_all(tempDir, cleanEc);
-    }
-
-    Log("All conversions complete! Saved in: " + outRoot.string());
-
-    std::lock_guard<std::mutex> lock(g_state.mutex);
-    g_state.isConverting = false;
-    g_state.conversionFinished = true;
-    g_state.conversionSuccess = true;
-    g_state.conversionMessage = "Successfully converted " + std::to_string(convertedCount) + " song groups.";
 }
 
-// --- SDL3 Font Drawing Helper ---
+// SDL3 Font Drawing Helper
 void DrawText8x8(SDL_Renderer* renderer, const std::string& text, float x, float y, float scale, SDL_Color color) {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     float startX = x;
@@ -525,7 +691,7 @@ void DrawText8x8(SDL_Renderer* renderer, const std::string& text, float x, float
     }
 }
 
-// --- SDL3 File Dialog Callbacks ---
+// SDL3 File Dialog Callbacks
 void SDLCALL InputFileCallback(void* userdata, const char* const* filelist, int filter) {
     if (!filelist) {
         Log("File dialog error: " + std::string(SDL_GetError()));
@@ -572,14 +738,18 @@ void SDLCALL OutputFolderCallback(void* userdata, const char* const* filelist, i
 }
 
 
-// --- Main Program Entry ---
+// Main Program Entry
 int main(int argc, char* argv[]) {
     // Determine default output path relative to executable
     std::string exeDir = ".";
     if (const char* basePath = SDL_GetBasePath()) {
         exeDir = basePath;
     }
+#ifdef _WIN32
+    std::string defaultOutputPath = WstringToUtf8((fs::path(Utf8ToWstring(exeDir)) / "songs").lexically_normal().wstring());
+#else
     std::string defaultOutputPath = (fs::path(exeDir) / "songs").lexically_normal().string();
+#endif
     {
         std::lock_guard<std::mutex> lock(g_state.mutex);
         g_state.outputPath = defaultOutputPath;
@@ -587,8 +757,13 @@ int main(int argc, char* argv[]) {
 
     // CLI MODE: if arguments are passed
     if (argc > 1) {
+#ifdef _WIN32
+        std::string input = AnsiToUtf8(argv[1]);
+        std::string output = (argc > 2) ? AnsiToUtf8(argv[2]) : defaultOutputPath;
+#else
         std::string input = argv[1];
         std::string output = (argc > 2) ? argv[2] : defaultOutputPath;
+#endif
         
         std::cout << "CC Map Converter - Headless Console Mode" << std::endl;
         std::cout << "Input: " << input << std::endl;
@@ -724,7 +899,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // --- Render UI ---
+        // Render UI
+
         // Background
         SDL_SetRenderDrawColor(renderer, 26, 26, 36, 255); // Dark blue-gray
         SDL_RenderClear(renderer);
@@ -760,7 +936,7 @@ int main(int argc, char* argv[]) {
         if (displayOut.length() > 70) displayOut = "..." + displayOut.substr(displayOut.length() - 67);
         DrawText8x8(renderer, displayOut, 40.0f, 185.0f, 1.0f, { 200, 200, 255, 255 });
 
-        // Draw buttons (only if not active converting)
+        // Draw buttons (only if not actively converting)
         for (const auto& btn : buttons) {
             // "CONVERT MAP(S)" is disabled if converting
             if (convertingSnapshot && btn.label == "CONVERT MAP(S)") {

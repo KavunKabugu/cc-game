@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include "GameplayScene.h"
 
 #include <SDL3/SDL_keycode.h>
@@ -8,6 +15,25 @@
 #include <filesystem>
 #include <format>
 #include <functional>
+
+#ifdef _WIN32
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    auto u8 = p.u8string();
+    return std::string(u8.begin(), u8.end());
+}
+
+static std::filesystem::path Utf8StringToPath(const std::string& str) {
+    return std::filesystem::path(std::u8string(str.begin(), str.end()));
+}
+#else
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    return p.string();
+}
+
+static std::filesystem::path Utf8StringToPath(const std::string& str) {
+    return std::filesystem::path(str);
+}
+#endif
 
 #include "Game/AudioManager.h"
 #include "Game/Events/Interfaces.h"
@@ -29,6 +55,20 @@
 #include "Game/Profile.h"
 
 namespace Game {
+
+static std::string ResourceErrorToString(ResourceError err) {
+    switch (err) {
+        case ResourceError::FileNotFound: return "FileNotFound";
+        case ResourceError::InvalidFormat: return "InvalidFormat";
+        case ResourceError::RendererNotInitialized: return "RendererNotInitialized";
+        case ResourceError::SDLError: return "SDLError";
+        case ResourceError::UnknownType: return "UnknownType";
+        case ResourceError::TTFNotInitialized: return "TTFNotInitialized";
+        case ResourceError::AudioNotLoaded: return "AudioNotLoaded";
+        case ResourceError::MixerNotInitialized: return "MixerNotInitialized";
+        default: return "UnknownError";
+    }
+}
 
 namespace {
 
@@ -108,10 +148,14 @@ GameplayScene::GameplayScene(
 
     if (!titleFontRes || !textFontRes || !resultScoreFontRes || !resultBodyFontRes || !buttonFontRes) {
         SDL_Log("GameplayScene: missing required fonts");
+        initFailed = true;
+        initErrorMessage = "Missing required gameplay fonts.";
         return;
     }
     if (!arcTextureRes) {
         SDL_Log("GameplayScene: missing arc-quarter.png");
+        initFailed = true;
+        initErrorMessage = "Missing required textures.";
         return;
     }
 
@@ -119,6 +163,8 @@ GameplayScene::GameplayScene(
         selectedDifficultyIndex < 0 ||
         selectedDifficultyIndex >= static_cast<int>(this->selectedSong->difficulties.size())) {
         SDL_Log("GameplayScene: invalid song / difficulty selection");
+        initFailed = true;
+        initErrorMessage = "Invalid song or difficulty selection.";
         return;
     }
 
@@ -128,20 +174,27 @@ GameplayScene::GameplayScene(
 
     auto chartRes = Gameplay::LoadChartFromFile(chartPath);
     if (!chartRes) {
-        SDL_Log("GameplayScene: failed to load chart '%s'", chartPath.string().c_str());
+        SDL_Log("GameplayScene: failed to load chart '%s'", PathToUtf8String(chartPath).c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load chart file: " + PathToUtf8String(chartPath.filename());
         return;
     }
 
     if (this->selectedSong->audioFile.empty()) {
         SDL_Log("GameplayScene: song has no audio file");
+        initFailed = true;
+        initErrorMessage = "Selected song has no audio file.";
         return;
     }
 
     const std::filesystem::path audioPath =
-        Song::SongManager::ResolveSongFile(*this->selectedSong, this->selectedSong->audioFile);
-    auto audioRes = ResourceManager::getInstance().Get<MIX_Audio>(audioPath.string());
+        Song::SongManager::ResolveSongFile(*this->selectedSong, Utf8StringToPath(this->selectedSong->audioFile));
+    auto audioRes = ResourceManager::getInstance().Get<MIX_Audio>(PathToUtf8String(audioPath));
     if (!audioRes || !*audioRes) {
-        SDL_Log("GameplayScene: failed to load audio '%s'", audioPath.string().c_str());
+        std::string errStr = audioRes ? "Unknown" : ResourceErrorToString(audioRes.error());
+        SDL_Log("GameplayScene: failed to load audio '%s' (Error: %s)", PathToUtf8String(audioPath).c_str(), errStr.c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load audio file: " + PathToUtf8String(audioPath.filename()) + " (Error: " + errStr + ")";
         return;
     }
 
@@ -290,6 +343,10 @@ GameplayScene::~GameplayScene() {
 
 void GameplayScene::Update(const double dt) {
     CC_PROFILE("GameplayScene.Update");
+    if (initFailed) {
+        ReturnToSongSelect(initErrorMessage);
+        return;
+    }
     if (clock && simulationReady) {
         const bool clockShouldAdvance =
             !sessionEnded && phase != Phase::Paused && phase != Phase::ResumeGrace;
@@ -660,11 +717,11 @@ void GameplayScene::EnterResults() {
     phase = Phase::Results;
 }
 
-void GameplayScene::ReturnToSongSelect() const {
+void GameplayScene::ReturnToSongSelect(const std::string& errorMessage) const {
     if (clock) {
         clock->Stop();
     }
-    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game));
+    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game), errorMessage);
 }
 
 double GameplayScene::AccuracyPercent() const {

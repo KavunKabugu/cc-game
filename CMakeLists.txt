@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(cc_game VERSION 0.1.1)
+project(cc_game VERSION 0.1.2)
 
 set(CMAKE_CXX_STANDARD 23)
 include(CTest)

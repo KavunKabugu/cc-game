@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include "ChartLoader.h"
 
 #include <SDL3/SDL_log.h>
@@ -9,19 +16,30 @@
 namespace Game::Gameplay {
 using json = nlohmann::json;
 
+#ifdef _WIN32
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    auto u8 = p.u8string();
+    return std::string(u8.begin(), u8.end());
+}
+#else
+static std::string PathToUtf8String(const std::filesystem::path& p) {
+    return p.string();
+}
+#endif
+
 namespace {
 constexpr int kSupportedFormatVersion = 1;
 } // namespace
 
 std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem::path& path) {
     if (!std::filesystem::exists(path)) {
-        SDL_Log("ChartLoader: file not found: %s", path.string().c_str());
+        SDL_Log("ChartLoader: file not found: %s", PathToUtf8String(path).c_str());
         return std::unexpected(ChartLoadError::FileNotFound);
     }
 
     std::ifstream in(path);
     if (!in.is_open()) {
-        SDL_Log("ChartLoader: failed to open: %s", path.string().c_str());
+        SDL_Log("ChartLoader: failed to open: %s", PathToUtf8String(path).c_str());
         return std::unexpected(ChartLoadError::FileNotFound);
     }
 
@@ -29,7 +47,7 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
     try {
         in >> j;
     } catch (const std::exception& e) {
-        SDL_Log("ChartLoader: invalid JSON in %s: %s", path.string().c_str(), e.what());
+        SDL_Log("ChartLoader: invalid JSON in %s: %s", PathToUtf8String(path).c_str(), e.what());
         return std::unexpected(ChartLoadError::InvalidJson);
     }
 
@@ -38,7 +56,7 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
         chart.formatVersion = j.value("formatVersion", 0);
         if (chart.formatVersion != kSupportedFormatVersion) {
             SDL_Log("ChartLoader: unsupported formatVersion %d in %s",
-                    chart.formatVersion, path.string().c_str());
+                    chart.formatVersion, PathToUtf8String(path).c_str());
             return std::unexpected(ChartLoadError::UnsupportedVersion);
         }
 
@@ -72,7 +90,7 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
             });
         }
     } catch (const std::exception& e) {
-        SDL_Log("ChartLoader: malformed chart %s: %s", path.string().c_str(), e.what());
+        SDL_Log("ChartLoader: malformed chart %s: %s", PathToUtf8String(path).c_str(), e.what());
         return std::unexpected(ChartLoadError::InvalidJson);
     }
 

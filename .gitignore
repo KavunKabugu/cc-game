@@ -7,6 +7,8 @@ cmake-build-debug
 cmake-build-release
 cmake-build-debug-mingw
 cmake-build-release-mingw
+cmake-build-debug-msvc
+cmake-build-release-msvc
 cmake-windows-build-debug
 cmake-windows-build-release
 build
@@ -18,6 +20,7 @@ windows-build-release
 
 # Build tool files
 out/
+out_test/
 
 # CTest files
 Testing/
