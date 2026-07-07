@@ -18,6 +18,9 @@ inline constexpr float kSpeedDivisor = 5.0f;
 // Pre-music silent delay so the player can settle.
 inline constexpr double kStartDelaySeconds = 1.0;
 
+// Post-pause settle period before gameplay and audio resume.
+inline constexpr double kResumeGraceSeconds = 1.0;
+
 // Default playfield tuning (options defaults).
 inline constexpr float kDefaultNoteSpeed = 10.0f;
 inline constexpr float kDefaultCrosshairRadius = 150.0f;

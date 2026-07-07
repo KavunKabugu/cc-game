@@ -42,19 +42,28 @@ public:
 
     [[nodiscard]] double AudioOffsetSeconds() const { return audioOffsetSeconds; }
 
+    void Pause();
+    void Resume();
+    [[nodiscard]] bool IsPaused() const { return paused; }
+
     void Stop();
 
 private:
     void StartMusic();
+    [[nodiscard]] std::uint64_t EffectivePausedWallNs() const;
 
     std::shared_ptr<MIX_Audio> audio;
     std::shared_ptr<Sound> sound;
     double delayRemaining;
     double startDelaySeconds;
     double audioOffsetSeconds;
+    double frozenSongTime = 0.0;
     bool musicStarted = false;
+    bool paused = false;
     std::uint64_t sceneWallStartNs = 0;
     std::uint64_t musicWallStartNs = 0;
+    std::uint64_t pauseWallStartNs = 0;
+    std::uint64_t totalPausedWallNs = 0;
 };
 
 } // namespace Game::Gameplay

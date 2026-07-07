@@ -45,6 +45,8 @@ public:
 private:
     enum class Phase {
         Playing,
+        Paused,
+        ResumeGrace,
         EndDelay,
         Results,
     };
@@ -59,7 +61,17 @@ private:
     void ConsumeJudgements();
     void UpdateHud();
     void HandleSongEnd();
-    void HandleUserStop();
+    void HandleEscapeKey();
+    void HandleUserQuit();
+    void ShowStatsOverlay();
+    void HideStatsOverlay();
+    void ShowHud();
+    void HideHud();
+    void ShowPauseUi();
+    void HidePauseUi();
+    void EnterPaused();
+    void ResumeFromPause();
+    void FinishResumeGrace();
     void EnterResults();
     void ReturnToSongSelect() const;
 
@@ -97,6 +109,9 @@ private:
     Label* resultBiasLabel = nullptr;
     Label* resultStdDevLabel = nullptr;
     TextButton* resultsBackButton = nullptr;
+    Label* pauseTitleLabel = nullptr;
+    TextButton* pauseResumeButton = nullptr;
+    TextButton* pauseQuitButton = nullptr;
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
@@ -116,6 +131,7 @@ private:
     Phase phase = Phase::Playing;
     EndReason endReason = EndReason::Completed;
     double resultsDelayRemaining = 0.0;
+    double resumeGraceRemaining = 0.0;
     double frozenSongTime = 0.0;
     bool sessionEnded = false;
     bool simulationReady = false;

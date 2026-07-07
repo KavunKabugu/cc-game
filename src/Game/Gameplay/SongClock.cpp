@@ -22,7 +22,7 @@ SongClock::~SongClock() {
 }
 
 void SongClock::Update(const double deltaTimeSeconds) {
-    if (musicStarted) return;
+    if (paused || musicStarted) return;
 
     delayRemaining -= deltaTimeSeconds;
     if (delayRemaining <= 0.0) {
@@ -42,6 +42,10 @@ void SongClock::StartMusic() {
 }
 
 double SongClock::SongTime() const {
+    if (paused) {
+        return frozenSongTime;
+    }
+
     // Subtract the user audio offset uniformly so the time curve is continuous
     // across the music-start boundary. With offset = 0 this is the raw clock.
     if (!musicStarted) {
@@ -53,20 +57,33 @@ double SongClock::SongTime() const {
     return sound->GetRawPosition() - audioOffsetSeconds;
 }
 
+std::uint64_t SongClock::EffectivePausedWallNs() const {
+    std::uint64_t total = totalPausedWallNs;
+    if (paused && pauseWallStartNs != 0) {
+        const std::uint64_t now = SDL_GetTicksNS();
+        if (now >= pauseWallStartNs) {
+            total += now - pauseWallStartNs;
+        }
+    }
+    return total;
+}
+
 double SongClock::WallTimeSongSecondsAt(const std::uint64_t eventTimeNs) const {
+    const double pausedSec = static_cast<double>(EffectivePausedWallNs()) * 1e-9;
+
     if (musicStarted && musicWallStartNs != 0) {
         double elapsedSec = 0.0;
         if (eventTimeNs >= musicWallStartNs) {
             elapsedSec = static_cast<double>(eventTimeNs - musicWallStartNs) * 1e-9;
         }
-        return elapsedSec - audioOffsetSeconds;
+        return elapsedSec - pausedSec - audioOffsetSeconds;
     }
 
     double elapsedSec = 0.0;
     if (eventTimeNs >= sceneWallStartNs) {
         elapsedSec = static_cast<double>(eventTimeNs - sceneWallStartNs) * 1e-9;
     }
-    return elapsedSec - startDelaySeconds - audioOffsetSeconds;
+    return elapsedSec - pausedSec - startDelaySeconds - audioOffsetSeconds;
 }
 
 bool SongClock::MusicEnded() const {
@@ -76,7 +93,43 @@ bool SongClock::MusicEnded() const {
     return true;
 }
 
+void SongClock::Pause() {
+    if (paused) {
+        return;
+    }
+
+    frozenSongTime = SongTime();
+    pauseWallStartNs = SDL_GetTicksNS();
+    paused = true;
+
+    if (musicStarted && sound) {
+        sound->Pause();
+    }
+}
+
+void SongClock::Resume() {
+    if (!paused) {
+        return;
+    }
+
+    if (pauseWallStartNs != 0) {
+        const std::uint64_t now = SDL_GetTicksNS();
+        if (now >= pauseWallStartNs) {
+            totalPausedWallNs += now - pauseWallStartNs;
+        }
+    }
+    pauseWallStartNs = 0;
+    paused = false;
+
+    if (musicStarted && sound) {
+        sound->Resume();
+    }
+}
+
 void SongClock::Stop() {
+    paused = false;
+    pauseWallStartNs = 0;
+    totalPausedWallNs = 0;
     if (sound) {
         sound->Stop();
         sound.reset();

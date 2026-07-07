@@ -40,9 +40,9 @@ constexpr UnitBounds kHudJudgementsBounds{{0.02f, 0.058f}, {0.92f, 0.098f}};
 constexpr UnitBounds kHudAccuracyBounds{{0.02f, 0.098f}, {0.70f, 0.138f}};
 constexpr UnitBounds kHudTimingBounds{{0.02f, 0.138f}, {0.92f, 0.178f}};
 constexpr UnitBounds kTimingRulerBounds{{0.41f, 0.88f}, {0.59f, 0.93f}};
-// Label::Render still draws at the slot's top-left when width/height are 0; park HUD off-screen.
+// Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kHiddenBounds{{0.0f, 0.0f}, {0.0f, 0.0f}};
-constexpr UnitBounds kHudOffscreenBounds{{2.0f, 2.0f}, {2.01f, 2.01f}};
+constexpr UnitBounds kOffscreenBounds{{2.0f, 2.0f}, {2.01f, 2.01f}};
 
 constexpr UnitBounds kResultsDimBounds{{0.00f, 0.00f}, {1.00f, 1.00f}};
 constexpr UnitBounds kResultsScoreBounds{{0.06f, 0.20f}, {0.48f, 0.28f}};
@@ -54,10 +54,13 @@ constexpr UnitBounds kResultsStdDevBounds{{0.06f, 0.496f}, {0.48f, 0.551f}};
 constexpr UnitBounds kResultsGraphBounds{{0.52f, 0.24f}, {0.94f, 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{{0.52f, 0.17f}, {0.80f, 0.225f}};
 constexpr UnitBounds kResultsBackButtonBounds{{0.38f, 0.88f}, {0.62f, 0.96f}};
+constexpr UnitBounds kPauseTitleBounds{{0.30f, 0.08f}, {0.70f, 0.16f}};
+constexpr UnitBounds kPauseResumeButtonBounds{{0.22f, 0.88f}, {0.48f, 0.96f}};
+constexpr UnitBounds kPauseQuitButtonBounds{{0.52f, 0.88f}, {0.78f, 0.96f}};
 
-class EscapeQuitHandler final : public GameObject, public IKeyHandler {
+class EscapeMenuHandler final : public GameObject, public IKeyHandler {
 public:
-    explicit EscapeQuitHandler(const UnitBounds bounds, std::function<void()> onEscape)
+    explicit EscapeMenuHandler(const UnitBounds bounds, std::function<void()> onEscape)
         : GameObject(bounds), onEscape(std::move(onEscape)) {}
 
     void Update() override {}
@@ -197,42 +200,61 @@ GameplayScene::GameplayScene(
     resultsGraphDisplay = root->CreateChild<Gameplay::ResultsGraphDisplay>(kHiddenBounds);
     resultsGraphDisplay->SetLabelFont(graphLabelFontRes ? *graphLabelFontRes : *textFontRes);
 
-    resultScoreLabel = root->CreateChild<Label>(kHiddenBounds, *resultScoreFontRes, "");
+    resultScoreLabel = root->CreateChild<Label>(kOffscreenBounds, *resultScoreFontRes, "");
     resultScoreLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
-    resultAccuracyLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultAccuracyLabel = root->CreateChild<Label>(kOffscreenBounds, *resultBodyFontRes, "");
     resultAccuracyLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
-    resultJudgementsLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultJudgementsLabel = root->CreateChild<Label>(kOffscreenBounds, *resultBodyFontRes, "");
     resultJudgementsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
-    resultRatioLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultRatioLabel = root->CreateChild<Label>(kOffscreenBounds, *resultBodyFontRes, "");
     resultRatioLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
-    resultBiasLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultBiasLabel = root->CreateChild<Label>(kOffscreenBounds, *resultBodyFontRes, "");
     resultBiasLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
-    resultStdDevLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultStdDevLabel = root->CreateChild<Label>(kOffscreenBounds, *resultBodyFontRes, "");
     resultStdDevLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
         UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
         this->settings.keyBindings);
 
-    root->CreateChild<EscapeQuitHandler>(
+    root->CreateChild<EscapeMenuHandler>(
         UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
-        [this]() { HandleUserStop(); });
+        [this]() { HandleEscapeKey(); });
 
     resultsBackButton = root->CreateChild<TextButton>(
-        kHiddenBounds,
+        kOffscreenBounds,
         *buttonFontRes,
         "Back",
         [this]() { ReturnToSongSelect(); },
         buttonTextureRes ? *buttonTextureRes : nullptr);
     resultsBackButton->SetEnabled(false);
 
+    pauseTitleLabel = root->CreateChild<Label>(kOffscreenBounds, *titleFontRes, "Paused");
+    pauseTitleLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Top);
+
+    pauseResumeButton = root->CreateChild<TextButton>(
+        kOffscreenBounds,
+        *buttonFontRes,
+        "Back",
+        [this]() { ResumeFromPause(); },
+        buttonTextureRes ? *buttonTextureRes : nullptr);
+    pauseResumeButton->SetEnabled(false);
+
+    pauseQuitButton = root->CreateChild<TextButton>(
+        kOffscreenBounds,
+        *buttonFontRes,
+        "Quit",
+        [this]() { HandleUserQuit(); },
+        buttonTextureRes ? *buttonTextureRes : nullptr);
+    pauseQuitButton->SetEnabled(false);
+
     graphToggleButton = root->CreateChild<TextButton>(
-        kHiddenBounds,
+        kOffscreenBounds,
         *buttonFontRes,
         "Graph: Delta",
         [this]() {
@@ -269,7 +291,9 @@ GameplayScene::~GameplayScene() {
 void GameplayScene::Update(const double dt) {
     CC_PROFILE("GameplayScene.Update");
     if (clock && simulationReady) {
-        if (!sessionEnded) {
+        const bool clockShouldAdvance =
+            !sessionEnded && phase != Phase::Paused && phase != Phase::ResumeGrace;
+        if (clockShouldAdvance) {
             clock->Update(dt);
         }
 
@@ -285,6 +309,16 @@ void GameplayScene::Update(const double dt) {
             simulation.Tick(songTime);
             ConsumeJudgements();
             HandleSongEnd();
+            break;
+        case Phase::Paused:
+            DrainLaneInput();
+            break;
+        case Phase::ResumeGrace:
+            DrainLaneInput();
+            resumeGraceRemaining -= dt;
+            if (resumeGraceRemaining <= 0.0) {
+                FinishResumeGrace();
+            }
             break;
         case Phase::EndDelay:
             DrainLaneInput();
@@ -425,7 +459,25 @@ void GameplayScene::HandleSongEnd() {
     }
 }
 
-void GameplayScene::HandleUserStop() {
+void GameplayScene::HandleEscapeKey() {
+    switch (phase) {
+    case Phase::Playing:
+        EnterPaused();
+        break;
+    case Phase::Paused:
+        ResumeFromPause();
+        break;
+    case Phase::ResumeGrace:
+        break;
+    case Phase::EndDelay:
+        EnterResults();
+        break;
+    case Phase::Results:
+        break;
+    }
+}
+
+void GameplayScene::HandleUserQuit() {
     if (phase == Phase::Results) {
         return;
     }
@@ -445,15 +497,27 @@ void GameplayScene::HandleUserStop() {
     EnterResults();
 }
 
-void GameplayScene::EnterResults() {
-    if (scoreLabel) scoreLabel->SetBounds(kHudOffscreenBounds);
-    if (judgementsLabel) judgementsLabel->SetBounds(kHudOffscreenBounds);
-    if (accuracyLabel) accuracyLabel->SetBounds(kHudOffscreenBounds);
-    if (timingStatsLabel) timingStatsLabel->SetBounds(kHudOffscreenBounds);
+void GameplayScene::HideHud() {
+    if (scoreLabel) scoreLabel->SetBounds(kOffscreenBounds);
+    if (judgementsLabel) judgementsLabel->SetBounds(kOffscreenBounds);
+    if (accuracyLabel) accuracyLabel->SetBounds(kOffscreenBounds);
+    if (timingStatsLabel) timingStatsLabel->SetBounds(kOffscreenBounds);
     if (timingRuler) {
-        timingRuler->SetBounds(kHudOffscreenBounds);
+        timingRuler->SetBounds(kOffscreenBounds);
         timingRuler->Clear();
     }
+}
+
+void GameplayScene::ShowHud() {
+    if (scoreLabel) scoreLabel->SetBounds(kHudScoreBounds);
+    if (judgementsLabel) judgementsLabel->SetBounds(kHudJudgementsBounds);
+    if (accuracyLabel) accuracyLabel->SetBounds(kHudAccuracyBounds);
+    if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
+    if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
+}
+
+void GameplayScene::ShowStatsOverlay() {
+    HideHud();
 
     if (dimLayer) dimLayer->SetBounds(kResultsDimBounds);
     if (resultsGraphDisplay) {
@@ -503,11 +567,96 @@ void GameplayScene::EnterResults() {
         resultStdDevLabel->SetBounds(kResultsStdDevBounds);
         resultStdDevLabel->SetText(std::format("Std Dev: {:.2f} ms", TimingStandardDeviationMs()));
     }
+}
+
+void GameplayScene::HideStatsOverlay() {
+    if (dimLayer) dimLayer->SetBounds(kHiddenBounds);
+    if (resultsGraphDisplay) resultsGraphDisplay->SetBounds(kHiddenBounds);
+    if (graphToggleButton) {
+        graphToggleButton->SetBounds(kOffscreenBounds);
+        graphToggleButton->SetEnabled(false);
+    }
+    if (resultScoreLabel) resultScoreLabel->SetBounds(kOffscreenBounds);
+    if (resultAccuracyLabel) resultAccuracyLabel->SetBounds(kOffscreenBounds);
+    if (resultJudgementsLabel) resultJudgementsLabel->SetBounds(kOffscreenBounds);
+    if (resultRatioLabel) resultRatioLabel->SetBounds(kOffscreenBounds);
+    if (resultBiasLabel) resultBiasLabel->SetBounds(kOffscreenBounds);
+    if (resultStdDevLabel) resultStdDevLabel->SetBounds(kOffscreenBounds);
+    if (resultsBackButton) {
+        resultsBackButton->SetBounds(kOffscreenBounds);
+        resultsBackButton->SetEnabled(false);
+    }
+}
+
+void GameplayScene::ShowPauseUi() {
+    if (pauseTitleLabel) pauseTitleLabel->SetBounds(kPauseTitleBounds);
+    if (pauseResumeButton) {
+        pauseResumeButton->SetBounds(kPauseResumeButtonBounds);
+        pauseResumeButton->SetEnabled(true);
+    }
+    if (pauseQuitButton) {
+        pauseQuitButton->SetBounds(kPauseQuitButtonBounds);
+        pauseQuitButton->SetEnabled(true);
+    }
+}
+
+void GameplayScene::HidePauseUi() {
+    if (pauseTitleLabel) pauseTitleLabel->SetBounds(kOffscreenBounds);
+    if (pauseResumeButton) {
+        pauseResumeButton->SetBounds(kOffscreenBounds);
+        pauseResumeButton->SetEnabled(false);
+    }
+    if (pauseQuitButton) {
+        pauseQuitButton->SetBounds(kOffscreenBounds);
+        pauseQuitButton->SetEnabled(false);
+    }
+}
+
+void GameplayScene::EnterPaused() {
+    if (phase != Phase::Playing) {
+        return;
+    }
+
+    if (clock) {
+        clock->Pause();
+    }
+    DrainLaneInput();
+    ConsumeJudgements();
+    ShowStatsOverlay();
+    ShowPauseUi();
+    if (resultsBackButton) {
+        resultsBackButton->SetBounds(kOffscreenBounds);
+        resultsBackButton->SetEnabled(false);
+    }
+    phase = Phase::Paused;
+}
+
+void GameplayScene::ResumeFromPause() {
+    if (phase != Phase::Paused) {
+        return;
+    }
+
+    HidePauseUi();
+    HideStatsOverlay();
+    ShowHud();
+    resumeGraceRemaining = Gameplay::kResumeGraceSeconds;
+    phase = Phase::ResumeGrace;
+}
+
+void GameplayScene::FinishResumeGrace() {
+    if (clock) {
+        clock->Resume();
+    }
+    phase = Phase::Playing;
+}
+
+void GameplayScene::EnterResults() {
+    ShowStatsOverlay();
+    HidePauseUi();
     if (resultsBackButton) {
         resultsBackButton->SetBounds(kResultsBackButtonBounds);
         resultsBackButton->SetEnabled(true);
     }
-
     phase = Phase::Results;
 }
 
