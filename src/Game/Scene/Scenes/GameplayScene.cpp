@@ -47,9 +47,10 @@ constexpr UnitBounds kHudOffscreenBounds{{2.0f, 2.0f}, {2.01f, 2.01f}};
 constexpr UnitBounds kResultsDimBounds{{0.00f, 0.00f}, {1.00f, 1.00f}};
 constexpr UnitBounds kResultsScoreBounds{{0.06f, 0.20f}, {0.48f, 0.28f}};
 constexpr UnitBounds kResultsAccuracyBounds{{0.06f, 0.29f}, {0.48f, 0.345f}};
-constexpr UnitBounds kResultsJudgementsBounds{{0.06f, 0.355f}, {0.48f, 0.42f}};
-constexpr UnitBounds kResultsBiasBounds{{0.06f, 0.43f}, {0.48f, 0.485f}};
-constexpr UnitBounds kResultsStdDevBounds{{0.06f, 0.495f}, {0.48f, 0.55f}};
+constexpr UnitBounds kResultsJudgementsBounds{{0.06f, 0.355f}, {0.48f, 0.405f}};
+constexpr UnitBounds kResultsRatioBounds{{0.06f, 0.405f}, {0.48f, 0.435f}};
+constexpr UnitBounds kResultsBiasBounds{{0.06f, 0.438f}, {0.48f, 0.493f}};
+constexpr UnitBounds kResultsStdDevBounds{{0.06f, 0.496f}, {0.48f, 0.551f}};
 constexpr UnitBounds kResultsGraphBounds{{0.52f, 0.24f}, {0.94f, 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{{0.52f, 0.17f}, {0.80f, 0.225f}};
 constexpr UnitBounds kResultsBackButtonBounds{{0.38f, 0.88f}, {0.62f, 0.96f}};
@@ -204,6 +205,9 @@ GameplayScene::GameplayScene(
 
     resultJudgementsLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
     resultJudgementsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
+    resultRatioLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
+    resultRatioLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     resultBiasLabel = root->CreateChild<Label>(kHiddenBounds, *resultBodyFontRes, "");
     resultBiasLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
@@ -487,6 +491,10 @@ void GameplayScene::EnterResults() {
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Bad)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Miss)]));
     }
+    if (resultRatioLabel) {
+        resultRatioLabel->SetBounds(kResultsRatioBounds);
+        resultRatioLabel->SetText(PerfectGreatRatioText());
+    }
     if (resultBiasLabel) {
         resultBiasLabel->SetBounds(kResultsBiasBounds);
         resultBiasLabel->SetText(std::format("Bias: {:+.2f} ms", MeanSignedTimingErrorMs()));
@@ -536,6 +544,16 @@ double GameplayScene::TimingStandardDeviationMs() const {
     const double mean = sumTimingDeltaMs / n;
     const double var = sumTimingDeltaSqMs / n - mean * mean;
     return std::sqrt(std::max(0.0, var));
+}
+
+std::string GameplayScene::PerfectGreatRatioText() const {
+    const int perfect = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)];
+    const int great = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)];
+    if (great == 0) {
+        return std::format("Ratio: —  ({} / 0)", perfect);
+    }
+    const double ratio = static_cast<double>(perfect) / static_cast<double>(great);
+    return std::format("Ratio: {:.2f}  ({} / {})", ratio, perfect, great);
 }
 
 } // namespace Game

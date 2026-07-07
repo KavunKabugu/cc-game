@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -67,6 +68,7 @@ private:
     [[nodiscard]] double MeanSignedTimingErrorMs() const;
     // Population deviation of timing errors over hit judgements, 0 when none or one hit.
     [[nodiscard]] double TimingStandardDeviationMs() const;
+    [[nodiscard]] std::string PerfectGreatRatioText() const;
 
     SceneManager& sceneManager;
     GameInstance& game;
@@ -91,6 +93,7 @@ private:
     Label* resultScoreLabel = nullptr;
     Label* resultAccuracyLabel = nullptr;
     Label* resultJudgementsLabel = nullptr;
+    Label* resultRatioLabel = nullptr;
     Label* resultBiasLabel = nullptr;
     Label* resultStdDevLabel = nullptr;
     TextButton* resultsBackButton = nullptr;
