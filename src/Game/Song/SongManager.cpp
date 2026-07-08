@@ -1,12 +1,6 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
 #include "SongManager.h"
 #include "ThirdParty/json.hpp"
+#include "Game/PathUtf8.h"
 #include "Game/ResourceManager.h"
 #include <SDL3/SDL.h>
 #include <fstream>
@@ -16,25 +10,9 @@
 
 namespace Game::Song {
     using json = nlohmann::json;
-
-#ifdef _WIN32
-    static std::string PathToUtf8String(const std::filesystem::path& p) {
-        auto u8 = p.u8string();
-        return std::string(u8.begin(), u8.end());
-    }
-
-    static std::filesystem::path Utf8StringToPath(const std::string& str) {
-        return std::filesystem::path(std::u8string(str.begin(), str.end()));
-    }
-#else
-    static std::string PathToUtf8String(const std::filesystem::path& p) {
-        return p.string();
-    }
-
-    static std::filesystem::path Utf8StringToPath(const std::string& str) {
-        return std::filesystem::path(str);
-    }
-#endif
+    using Game::PathFromSdlBasePath;
+    using Game::PathToUtf8String;
+    using Game::Utf8StringToPath;
 
     namespace {
         constexpr int kCacheVersion = 2;
@@ -227,33 +205,15 @@ namespace Game::Song {
     }
 
     std::filesystem::path SongManager::ResolveSongsRoot() {
-        if (const char* base = SDL_GetBasePath()) {
-#ifdef _WIN32
-            std::wstring wbase;
-            std::string sbase(base);
-            int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
-            wbase.resize(size_needed);
-            MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
-            return (std::filesystem::path(wbase) / "songs").lexically_normal();
-#else
-            return (std::filesystem::path(base) / "songs").lexically_normal();
-#endif
+        if (const auto base = PathFromSdlBasePath()) {
+            return (*base / "songs").lexically_normal();
         }
         return "songs";
     }
 
     std::filesystem::path SongManager::ResolveCachePath() {
-        if (const char* base = SDL_GetBasePath()) {
-#ifdef _WIN32
-            std::wstring wbase;
-            std::string sbase(base);
-            int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
-            wbase.resize(size_needed);
-            MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
-            return (std::filesystem::path(wbase) / "songs_cache.json").lexically_normal();
-#else
-            return (std::filesystem::path(base) / "songs_cache.json").lexically_normal();
-#endif
+        if (const auto base = PathFromSdlBasePath()) {
+            return (*base / "songs_cache.json").lexically_normal();
         }
         return "songs_cache.json";
     }

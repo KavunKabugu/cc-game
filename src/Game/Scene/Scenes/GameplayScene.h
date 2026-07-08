@@ -40,6 +40,11 @@ public:
         Gameplay::GameplaySettings settings = {});
     ~GameplayScene() override;
 
+    void OnEnter() override;
+    void OnExit() override;
+    void OnPause() override;
+    void OnResume() override;
+
     void Update(double dt) override;
 
 private:

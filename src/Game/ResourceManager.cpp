@@ -1,53 +1,22 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
 #include "ResourceManager.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include "SDL3/SDL_filesystem.h"
+#include "Game/PathUtf8.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3_image/SDL_image.h"
 
-#ifdef _WIN32
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    auto u8 = p.u8string();
-    return std::string(u8.begin(), u8.end());
-}
-
-static std::filesystem::path Utf8StringToPath(const std::string& str) {
-    return std::filesystem::path(std::u8string(str.begin(), str.end()));
-}
-#else
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    return p.string();
-}
-
-static std::filesystem::path Utf8StringToPath(const std::string& str) {
-    return std::filesystem::path(str);
-}
-#endif
+using Game::PathFromSdlBasePath;
+using Game::PathToUtf8String;
+using Game::Utf8StringToPath;
 
 void ResourceManager::Init(const SDL_Renderer *r) {
     this->renderer = r;
     this->textures.clear();
     this->searchPaths.clear();
-    if (const char* base = SDL_GetBasePath()) {
-#ifdef _WIN32
-        std::wstring wbase;
-        std::string sbase(base);
-        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), NULL, 0);
-        wbase.resize(size_needed);
-        MultiByteToWideChar(CP_UTF8, 0, &sbase[0], (int)sbase.size(), &wbase[0], size_needed);
-        this->basePath = wbase;
-#else
-        this->basePath = std::string(base);
-#endif
+    if (const auto base = PathFromSdlBasePath()) {
+        this->basePath = *base;
     }
     
     if (!TTF_Init()) {
@@ -114,15 +83,7 @@ std::expected<std::shared_ptr<MIX_Audio>, ResourceError> ResourceManager::GetAud
 }
 
 void ResourceManager::AddSearchPath(const std::string& path) {
-#ifdef _WIN32
-    std::wstring wpath;
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), NULL, 0);
-    wpath.resize(size_needed);
-    MultiByteToWideChar(CP_UTF8, 0, &path[0], (int)path.size(), &wpath[0], size_needed);
-    std::filesystem::path searchPath(wpath);
-#else
-    std::filesystem::path searchPath(path);
-#endif
+    std::filesystem::path searchPath = Utf8StringToPath(path);
     if (searchPath.is_relative() && !this->basePath.empty()) {
         searchPath = this->basePath / searchPath;
     }

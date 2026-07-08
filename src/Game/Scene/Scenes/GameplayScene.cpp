@@ -1,14 +1,8 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
 #include "GameplayScene.h"
 
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_log.h>
+#include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_timer.h>
 #include <algorithm>
 #include <cmath>
@@ -16,24 +10,10 @@
 #include <format>
 #include <functional>
 
-#ifdef _WIN32
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    auto u8 = p.u8string();
-    return std::string(u8.begin(), u8.end());
-}
+#include "Game/PathUtf8.h"
 
-static std::filesystem::path Utf8StringToPath(const std::string& str) {
-    return std::filesystem::path(std::u8string(str.begin(), str.end()));
-}
-#else
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    return p.string();
-}
-
-static std::filesystem::path Utf8StringToPath(const std::string& str) {
-    return std::filesystem::path(str);
-}
-#endif
+using Game::PathToUtf8String;
+using Game::Utf8StringToPath;
 
 #include "Game/AudioManager.h"
 #include "Game/Events/Interfaces.h"
@@ -341,6 +321,33 @@ GameplayScene::~GameplayScene() {
     }
 }
 
+void GameplayScene::OnEnter() {
+    if (!SDL_HideCursor()) {
+        SDL_Log("GameplayScene: failed to hide cursor on enter: %s", SDL_GetError());
+    }
+}
+
+void GameplayScene::OnExit() {
+    if (!SDL_ShowCursor()) {
+        SDL_Log("GameplayScene: failed to show cursor on exit: %s", SDL_GetError());
+    }
+}
+
+void GameplayScene::OnPause() {
+    if (!SDL_ShowCursor()) {
+        SDL_Log("GameplayScene: failed to show cursor on pause: %s", SDL_GetError());
+    }
+}
+
+void GameplayScene::OnResume() {
+    if (phase == Phase::Playing || phase == Phase::ResumeGrace) {
+        if (!SDL_HideCursor()) {
+            SDL_Log("GameplayScene: failed to hide cursor on resume: %s", SDL_GetError());
+        }
+    }
+}
+
+
 void GameplayScene::Update(const double dt) {
     CC_PROFILE("GameplayScene.Update");
     if (initFailed) {
@@ -535,23 +542,8 @@ void GameplayScene::HandleEscapeKey() {
 }
 
 void GameplayScene::HandleUserQuit() {
-    if (phase == Phase::Results) {
-        return;
-    }
-    if (phase == Phase::EndDelay) {
-        EnterResults();
-        return;
-    }
-
-    if (clock) {
-        frozenSongTime = clock->SongTime();
-        clock->Stop();
-    }
-    sessionEnded = true;
-    endReason = EndReason::Stopped;
     DrainLaneInput();
-    ConsumeJudgements();
-    EnterResults();
+    ReturnToSongSelect();
 }
 
 void GameplayScene::HideHud() {
@@ -686,6 +678,10 @@ void GameplayScene::EnterPaused() {
         resultsBackButton->SetEnabled(false);
     }
     phase = Phase::Paused;
+
+    if (!SDL_ShowCursor()) {
+        SDL_Log("GameplayScene: failed to show cursor on pause menu entry: %s", SDL_GetError());
+    }
 }
 
 void GameplayScene::ResumeFromPause() {
@@ -698,6 +694,10 @@ void GameplayScene::ResumeFromPause() {
     ShowHud();
     resumeGraceRemaining = Gameplay::kResumeGraceSeconds;
     phase = Phase::ResumeGrace;
+
+    if (!SDL_HideCursor()) {
+        SDL_Log("GameplayScene: failed to hide cursor on resume from pause: %s", SDL_GetError());
+    }
 }
 
 void GameplayScene::FinishResumeGrace() {
@@ -715,6 +715,10 @@ void GameplayScene::EnterResults() {
         resultsBackButton->SetEnabled(true);
     }
     phase = Phase::Results;
+
+    if (!SDL_ShowCursor()) {
+        SDL_Log("GameplayScene: failed to show cursor on results entry: %s", SDL_GetError());
+    }
 }
 
 void GameplayScene::ReturnToSongSelect(const std::string& errorMessage) const {

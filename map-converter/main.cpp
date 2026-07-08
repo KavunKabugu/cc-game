@@ -2,12 +2,15 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <windows.h>
+#include <shellapi.h>
 #endif
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <map>
 #include <set>
@@ -22,40 +25,16 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include "Game/PathUtf8.h"
 #include "miniz.h"
 #include "ThirdParty/json.hpp"
 #include "font8x8.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
-
-#ifdef _WIN32
-#include <windows.h>
-
-std::wstring Utf8ToWstring(const std::string& str) {
-    if (str.empty()) return L"";
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
-    std::wstring wstrTo(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
-    return wstrTo;
-}
-
-std::string WstringToUtf8(const std::wstring& wstr) {
-    if (wstr.empty()) return "";
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
-    std::string strTo(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
-    return strTo;
-}
-
-std::string AnsiToUtf8(const std::string& str) {
-    if (str.empty()) return "";
-    int size_needed = MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), NULL, 0);
-    std::wstring wstrTo(size_needed, 0);
-    MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
-    return WstringToUtf8(wstrTo);
-}
-#endif
+using Game::PathFromSdlBasePath;
+using Game::PathToUtf8String;
+using Game::Utf8StringToPath;
 
 // App State
 struct AppState {
@@ -76,6 +55,16 @@ void Log(const std::string& message) {
     g_state.logs.push_back(message);
     std::cout << message << std::endl;
 }
+
+void LogPath(std::string_view prefix, const fs::path& path) {
+    Log(std::string(prefix) + PathToUtf8String(path));
+}
+
+#ifdef _WIN32
+std::string WideArgToUtf8(const wchar_t* warg) {
+    return PathToUtf8String(fs::path(warg));
+}
+#endif
 
 // Helper Functions
 std::string Trim(std::string_view str) {
@@ -109,7 +98,7 @@ std::string MakeSafeFilename(const std::string& name) {
     return safe;
 }
 
-// --- ZIP Extraction Wrapper using miniz ---
+// ZIP Extraction Wrapper
 bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
     mz_zip_archive zip_archive;
     memset(&zip_archive, 0, sizeof(zip_archive));
@@ -121,12 +110,12 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
     pFile = fopen(zipPath.c_str(), "rb");
 #endif
     if (!pFile) {
-        Log("Failed to open zip file: " + zipPath.string());
+        LogPath("Failed to open zip file: ", zipPath);
         return false;
     }
 
     if (!mz_zip_reader_init_cfile(&zip_archive, pFile, 0, 0)) {
-        Log("Failed to initialize zip reader for: " + zipPath.string());
+        LogPath("Failed to initialize zip reader for: ", zipPath);
         fclose(pFile);
         return false;
     }
@@ -142,7 +131,7 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
         }
 
 #ifdef _WIN32
-        fs::path entryPath = destDir / Utf8ToWstring(file_stat.m_filename);
+        fs::path entryPath = destDir / Utf8StringToPath(file_stat.m_filename);
 #else
         fs::path entryPath = destDir / file_stat.m_filename;
 #endif
@@ -151,7 +140,8 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
             std::error_code ec;
             fs::create_directories(entryPath, ec);
             if (ec) {
-                Log("Failed to create directory: " + entryPath.string() + " (" + ec.message() + ")");
+                LogPath("Failed to create directory: ", entryPath);
+                Log("(" + ec.message() + ")");
                 mz_zip_reader_end(&zip_archive);
                 fclose(pFile);
                 return false;
@@ -160,7 +150,8 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
             std::error_code ec;
             fs::create_directories(entryPath.parent_path(), ec);
             if (ec) {
-                Log("Failed to create parent directory: " + entryPath.parent_path().string() + " (" + ec.message() + ")");
+                LogPath("Failed to create parent directory: ", entryPath.parent_path());
+                Log("(" + ec.message() + ")");
                 mz_zip_reader_end(&zip_archive);
                 fclose(pFile);
                 return false;
@@ -177,7 +168,7 @@ bool ExtractZip(const fs::path& zipPath, const fs::path& destDir) {
 
             std::ofstream out(entryPath, std::ios::binary);
             if (!out.is_open()) {
-                Log("Failed to open output file for writing: " + entryPath.string());
+                LogPath("Failed to open output file for writing: ", entryPath);
                 mz_free(pData);
                 mz_zip_reader_end(&zip_archive);
                 fclose(pFile);
@@ -226,7 +217,7 @@ struct OsuChart {
 std::optional<OsuChart> ParseOsu(const fs::path& filePath) {
     std::ifstream f(filePath);
     if (!f.is_open()) {
-        Log("Failed to open file: " + filePath.string());
+        LogPath("Failed to open file: ", filePath);
         return std::nullopt;
     }
 
@@ -288,8 +279,14 @@ std::optional<OsuChart> ParseOsu(const fs::path& filePath) {
         try {
             colCount = std::stoi(difficulty["CircleSize"]);
         } catch (...) {
-            colCount = 4;
+            Log("Rejected " + PathToUtf8String(filePath.filename()) + ": invalid CircleSize");
+            return std::nullopt;
         }
+    }
+    if (colCount != 4) {
+        Log("Rejected " + PathToUtf8String(filePath.filename()) + ": CircleSize must be 4 (got " +
+            std::to_string(colCount) + ")");
+        return std::nullopt;
     }
 
     // Parse background from events
@@ -379,13 +376,8 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
         }
 
         Log("Preparing input path: " + inputPath);
-#ifdef _WIN32
-        fs::path inPath = fs::absolute(fs::path(Utf8ToWstring(inputPath)));
-        fs::path outRoot = fs::absolute(fs::path(Utf8ToWstring(outputPath)));
-#else
-        fs::path inPath = fs::absolute(fs::path(inputPath));
-        fs::path outRoot = fs::absolute(fs::path(outputPath));
-#endif
+        fs::path inPath = fs::absolute(Utf8StringToPath(inputPath));
+        fs::path outRoot = fs::absolute(Utf8StringToPath(outputPath));
         fs::path tempDir;
 
         // Determine if input is a valid .osz/.zip archive case-insensitively
@@ -413,7 +405,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
 
             fs::create_directories(tempDir, ec);
             if (ec) {
-                Log("Error: Could not create temporary directory: " + tempDir.string());
+                LogPath("Error: Could not create temporary directory: ", tempDir);
                 std::lock_guard<std::mutex> lock(g_state.mutex);
                 g_state.isConverting = false;
                 g_state.conversionFinished = true;
@@ -421,7 +413,8 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
                 return;
             }
 
-            Log("Extracting " + inPath.string() + " to temporary directory...");
+            LogPath("Extracting ", inPath);
+            Log(" to temporary directory...");
             if (!ExtractZip(inPath, tempDir)) {
                 Log("Error: Failed to extract ZIP archive.");
                 std::error_code cleanEc;
@@ -436,7 +429,8 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
         } else if (isDir) {
             sourceDir = inPath;
         } else {
-            Log("Error: " + inPath.string() + " is not a valid file or directory.");
+            LogPath("Error: ", inPath);
+            Log(" is not a valid file or directory.");
             std::lock_guard<std::mutex> lock(g_state.mutex);
             g_state.isConverting = false;
             g_state.conversionFinished = true;
@@ -445,7 +439,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
         }
 
         // Find and parse all .osu files
-        Log("Searching for .osu files in: " + sourceDir.string());
+        LogPath("Searching for .osu files in: ", sourceDir);
         std::vector<OsuChart> parsedCharts;
         std::error_code dirIterEc;
         for (const auto& entry : fs::directory_iterator(sourceDir, dirIterEc)) {
@@ -454,7 +448,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
             std::transform(entryExt.begin(), entryExt.end(), entryExt.begin(), [](unsigned char c) { return std::tolower(c); });
 
             if (entry.is_regular_file(checkEc) && entryExt == ".osu") {
-                Log("Parsing chart file: " + entry.path().filename().string());
+                Log("Parsing chart file: " + PathToUtf8String(entry.path().filename()));
                 if (auto chart = ParseOsu(entry.path())) {
                     parsedCharts.push_back(*chart);
                 }
@@ -470,7 +464,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
             std::lock_guard<std::mutex> lock(g_state.mutex);
             g_state.isConverting = false;
             g_state.conversionFinished = true;
-            g_state.conversionMessage = "No valid osu!mania (4-8 key Mode 3) charts found.";
+            g_state.conversionMessage = "No valid 4-key osu!mania (Mode 3) charts found.";
             return;
         }
 
@@ -494,17 +488,14 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
             }
 
             folderName = MakeSafeFilename(folderName);
-#ifdef _WIN32
-            fs::path finalOutputPath = outRoot / Utf8ToWstring(folderName);
-#else
-            fs::path finalOutputPath = outRoot / folderName;
-#endif
+            fs::path finalOutputPath = outRoot / Utf8StringToPath(folderName);
             fs::path chartsDir = finalOutputPath / "charts";
             
             std::error_code createChartsEc;
             fs::create_directories(chartsDir, createChartsEc);
             if (createChartsEc) {
-                Log("Error: Failed to create charts directory: " + chartsDir.string() + " (" + createChartsEc.message() + ")");
+                LogPath("Error: Failed to create charts directory: ", chartsDir);
+                Log("(" + createChartsEc.message() + ")");
                 continue;
             }
 
@@ -560,17 +551,13 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
                 }
                 chartJson["notes"] = notesJ;
 
-#ifdef _WIN32
-                fs::path chartFilePath = chartsDir / Utf8ToWstring(chartFilename);
-#else
-                fs::path chartFilePath = chartsDir / chartFilename;
-#endif
+                fs::path chartFilePath = chartsDir / Utf8StringToPath(chartFilename);
                 std::ofstream out(chartFilePath);
                 if (out.is_open()) {
                     // Safe JSON dump to prevent crash on invalid UTF-8 bytes
                     out << chartJson.dump(2, ' ', false, json::error_handler_t::replace);
                 } else {
-                    Log("Failed to write chart: " + chartFilePath.string());
+                    LogPath("Failed to write chart: ", chartFilePath);
                 }
             }
 
@@ -587,11 +574,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
             if (!main.bgFile.empty()) assetsToCopy.insert(main.bgFile);
 
             for (const auto& asset : assetsToCopy) {
-#ifdef _WIN32
-                fs::path srcPath = sourceDir / Utf8ToWstring(asset);
-#else
-                fs::path srcPath = sourceDir / asset;
-#endif
+                fs::path srcPath = sourceDir / Utf8StringToPath(asset);
                 // Case-insensitive search on disk for Linux matching
                 std::error_code existsEc;
                 if (!fs::exists(srcPath, existsEc)) {
@@ -599,11 +582,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
                     for (const auto& entry : fs::directory_iterator(sourceDir, assetDirEc)) {
                         std::error_code checkEc;
                         if (entry.is_regular_file(checkEc)) {
-#ifdef _WIN32
-                            std::string entryName = WstringToUtf8(entry.path().filename().wstring());
-#else
-                            std::string entryName = entry.path().filename().string();
-#endif
+                            const std::string entryName = PathToUtf8String(entry.path().filename());
                             if (SDL_strcasecmp(entryName.c_str(), asset.c_str()) == 0) {
                                 srcPath = entry.path();
                                 break;
@@ -622,7 +601,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
                     if (copyEc) {
                         Log("Warning: Failed to copy asset " + asset + ": " + copyEc.message());
                     } else {
-                        Log("Copied asset: " + srcPath.filename().string());
+                        Log("Copied asset: " + PathToUtf8String(srcPath.filename()));
                     }
                 } else {
                     Log("Warning: Asset not found: " + asset);
@@ -639,7 +618,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
             fs::remove_all(tempDir, cleanEc);
         }
 
-        Log("All conversions complete! Saved in: " + outRoot.string());
+        LogPath("All conversions complete. Saved in: ", outRoot);
 
         std::lock_guard<std::mutex> lock(g_state.mutex);
         g_state.isConverting = false;
@@ -740,38 +719,49 @@ void SDLCALL OutputFolderCallback(void* userdata, const char* const* filelist, i
 
 // Main Program Entry
 int main(int argc, char* argv[]) {
-    // Determine default output path relative to executable
-    std::string exeDir = ".";
-    if (const char* basePath = SDL_GetBasePath()) {
-        exeDir = basePath;
+    std::string defaultOutputPath;
+    if (const auto base = PathFromSdlBasePath()) {
+        defaultOutputPath = PathToUtf8String((*base / "songs").lexically_normal());
+    } else {
+        defaultOutputPath = "songs";
     }
-#ifdef _WIN32
-    std::string defaultOutputPath = WstringToUtf8((fs::path(Utf8ToWstring(exeDir)) / "songs").lexically_normal().wstring());
-#else
-    std::string defaultOutputPath = (fs::path(exeDir) / "songs").lexically_normal().string();
-#endif
     {
         std::lock_guard<std::mutex> lock(g_state.mutex);
         g_state.outputPath = defaultOutputPath;
     }
 
     // CLI MODE: if arguments are passed
-    if (argc > 1) {
 #ifdef _WIN32
-        std::string input = AnsiToUtf8(argv[1]);
-        std::string output = (argc > 2) ? AnsiToUtf8(argv[2]) : defaultOutputPath;
-#else
-        std::string input = argv[1];
-        std::string output = (argc > 2) ? argv[2] : defaultOutputPath;
-#endif
-        
-        std::cout << "CC Map Converter - Headless Console Mode" << std::endl;
+    int argcW = 0;
+    LPWSTR* argvW = CommandLineToArgvW(GetCommandLineW(), &argcW);
+    if (argvW && argcW > 1) {
+        const std::string input = WideArgToUtf8(argvW[1]);
+        const std::string output = (argcW > 2) ? WideArgToUtf8(argvW[2]) : defaultOutputPath;
+        LocalFree(argvW);
+
+        std::cout << "CC Map Converter - Console Mode" << std::endl;
         std::cout << "Input: " << input << std::endl;
         std::cout << "Output: " << output << std::endl;
-        
+
         RunConversion(input, output);
         return g_state.conversionSuccess ? 0 : 1;
     }
+    if (argvW) {
+        LocalFree(argvW);
+    }
+#else
+    if (argc > 1) {
+        const std::string input = argv[1];
+        const std::string output = (argc > 2) ? argv[2] : defaultOutputPath;
+
+        std::cout << "CC Map Converter - Console Mode" << std::endl;
+        std::cout << "Input: " << input << std::endl;
+        std::cout << "Output: " << output << std::endl;
+
+        RunConversion(input, output);
+        return g_state.conversionSuccess ? 0 : 1;
+    }
+#endif
 
     // GUI MODE: SDL3 Windows/Linux native Dialog loop
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -794,7 +784,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Log("GUI Mode started.");
+    Log("GUI Mode");
     Log("Default output path: " + defaultOutputPath);
 
     struct Button {
@@ -931,7 +921,7 @@ int main(int argc, char* argv[]) {
         DrawText8x8(renderer, displayIn, 40.0f, 85.0f, 1.0f, inputPathSnapshot.empty() ? SDL_Color{ 200, 80, 80, 255 } : SDL_Color{ 200, 200, 255, 255 });
 
         // Output section
-        DrawText8x8(renderer, "OUTPUT FOLDER (saves into dynamic sub-folders):", 40.0f, 160.0f, 1.0f, { 150, 150, 180, 255 });
+        DrawText8x8(renderer, "OUTPUT FOLDER (saves into sub-folders):", 40.0f, 160.0f, 1.0f, { 150, 150, 180, 255 });
         std::string displayOut = outputPathSnapshot.empty() ? "<Please select an output folder>" : outputPathSnapshot;
         if (displayOut.length() > 70) displayOut = "..." + displayOut.substr(displayOut.length() - 67);
         DrawText8x8(renderer, displayOut, 40.0f, 185.0f, 1.0f, { 200, 200, 255, 255 });

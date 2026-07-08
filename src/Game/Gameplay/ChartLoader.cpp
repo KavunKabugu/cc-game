@@ -1,31 +1,15 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
 #include "ChartLoader.h"
 
 #include <SDL3/SDL_log.h>
 #include <algorithm>
 #include <fstream>
 
+#include "Game/PathUtf8.h"
 #include "ThirdParty/json.hpp"
 
 namespace Game::Gameplay {
 using json = nlohmann::json;
-
-#ifdef _WIN32
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    auto u8 = p.u8string();
-    return std::string(u8.begin(), u8.end());
-}
-#else
-static std::string PathToUtf8String(const std::filesystem::path& p) {
-    return p.string();
-}
-#endif
+using Game::PathToUtf8String;
 
 namespace {
 constexpr int kSupportedFormatVersion = 1;

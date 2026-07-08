@@ -7,9 +7,9 @@
 #include <optional>
 #include <string>
 
-#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_keycode.h>
 
+#include "Game/PathUtf8.h"
 #include "ThirdParty/json.hpp"
 
 namespace Game::SettingsStorage {
@@ -27,11 +27,7 @@ constexpr int kLegacyGameplayFileVersion = 1;
 constexpr auto kLegacyGameplayFileName = "gameplay_settings.json";
 
 [[nodiscard]] std::optional<std::filesystem::path> ExecutableDirectory() {
-    const char* raw = SDL_GetBasePath();
-    if (!raw || raw[0] == '\0') {
-        return std::nullopt;
-    }
-    return std::filesystem::path{raw};
+    return Game::PathFromSdlBasePath();
 }
 
 [[nodiscard]] std::optional<std::filesystem::path> SettingsFilePath() {
@@ -43,13 +39,7 @@ constexpr auto kLegacyGameplayFileName = "gameplay_settings.json";
 }
 
 [[nodiscard]] std::optional<std::filesystem::path> LegacyPrefDirectory() {
-    char* raw = SDL_GetPrefPath("com.karp", "cc-game");
-    if (!raw) {
-        return std::nullopt;
-    }
-    std::filesystem::path path{raw};
-    SDL_free(raw);
-    return path;
+    return Game::PathFromSdlPrefPath("com.karp", "cc-game");
 }
 
 void ClampGameplayFields(Gameplay::GameplaySettings& s) {
