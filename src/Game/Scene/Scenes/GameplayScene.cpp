@@ -31,6 +31,7 @@ using Game::Utf8StringToPath;
 #include "Game/Song/SongManager.h"
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
+#include "Game/objects/Sprite.h"
 #include "Game/objects/TextButton.h"
 #include "Game/Profile.h"
 
@@ -114,8 +115,42 @@ GameplayScene::GameplayScene(
       selectedSong(std::move(selectedSong)),
       selectedDifficultyIndex(selectedDifficultyIndex),
       settings(settings) {
-    root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, SDL_Color{14, 20, 30, 255});
-    root->CreateChild<PanelRect>(UnitBounds{{0.04f, 0.06f}, {0.96f, 0.94f}}, SDL_Color{20, 28, 42, 245});
+    root->CreateChild<PanelRect>(
+        UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
+        SDL_Color{settings.backgroundColorR, settings.backgroundColorG, settings.backgroundColorB, 255});
+
+    if (settings.enableBackgroundImage && this->selectedSong && !this->selectedSong->coverFile.empty()) {
+        const std::filesystem::path coverPath =
+            Song::SongManager::ResolveSongFile(*this->selectedSong, Utf8StringToPath(this->selectedSong->coverFile));
+        if (auto coverRes = ResourceManager::getInstance().Get<SDL_Texture>(PathToUtf8String(coverPath))) {
+            auto* coverSprite = root->CreateChild<Sprite>(
+                UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
+                *coverRes);
+            const float opacity = std::clamp(settings.backgroundOpacity, 0.0f, 1.0f);
+            coverSprite->SetAlpha(static_cast<Uint8>(std::lround(opacity * 255.0f)));
+        } else {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "GameplayScene: failed to load cover '%s' (%s)",
+                PathToUtf8String(coverPath).c_str(),
+                ResourceErrorToString(coverRes.error()).c_str());
+        }
+    }
+
+    if (settings.enablePlayfieldBorder && settings.playfieldBorderSize > 0.0f &&
+        settings.playfieldBorderOpacity > 0.0f) {
+        const float t = std::clamp(settings.playfieldBorderSize, 0.0f, 100.0f) / 100.0f * 0.5f;
+        const auto borderAlpha =
+            static_cast<Uint8>(std::lround(std::clamp(settings.playfieldBorderOpacity, 0.0f, 1.0f) * 255.0f));
+        const SDL_Color borderColor{0, 0, 0, borderAlpha};
+        // Full-width top/bottom strips, side strips between them (corners covered by top/bottom).
+        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, t}}, borderColor);
+        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 1.0f - t}, {1.0f, 1.0f}}, borderColor);
+        if (t < 0.5f) {
+            root->CreateChild<PanelRect>(UnitBounds{{0.0f, t}, {t, 1.0f - t}}, borderColor);
+            root->CreateChild<PanelRect>(UnitBounds{{1.0f - t, t}, {1.0f, 1.0f - t}}, borderColor);
+        }
+    }
 
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);

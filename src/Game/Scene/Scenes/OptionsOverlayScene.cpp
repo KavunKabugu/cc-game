@@ -4,6 +4,7 @@
 #include <cmath>
 #include <format>
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -18,9 +19,12 @@
 #include "Game/Scene/SceneManager.h"
 #include "Game/Scene/Scenes/MainMenuScene.h"
 #include "Game/VideoSettings.h"
+#include "Game/Layout/VBoxLayout.h"
+#include "Game/Layout/ViewportMatchLayout.h"
 #include "Game/objects/Container.h"
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
+#include "Game/objects/ScrollContainer.h"
 #include "Game/objects/Slider.h"
 #include "Game/objects/Sprite.h"
 #include "Game/objects/TextButton.h"
@@ -250,7 +254,7 @@ OptionsOverlayScene::OptionsOverlayScene(SceneManager& sceneManager, GameInstanc
         },
         buttonTexture);
 
-    contentContainer = root->CreateChild<Container>(UnitBounds{{0.39f, 0.26f}, {0.82f, 0.82f}});
+    contentContainer = root->CreateChild<ScrollContainer>(UnitBounds{{0.39f, 0.26f}, {0.82f, 0.82f}});
     RebuildContent(currentCategory);
 
     keyCaptureBackdrop =
@@ -329,6 +333,40 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
         // TODO: Why not label the option "Use Wall Clock for Song Timing" instead of doing this weird flip?
         gameplaySongClockTimingCheckbox->SetText(gs.useWallClockForJudgementTiming ? "" : "X");
     }
+    if (gameplayEnableBackgroundCheckbox) {
+        gameplayEnableBackgroundCheckbox->SetText(gs.enableBackgroundImage ? "X" : "");
+    }
+    if (gameplayBackgroundOpacityValueLabel) {
+        gameplayBackgroundOpacityValueLabel->SetText(
+            std::format("{:.0f}%", gs.backgroundOpacity * 100.0f));
+    }
+    if (gameplayBackgroundColorRValueLabel) {
+        gameplayBackgroundColorRValueLabel->SetText(std::to_string(gs.backgroundColorR));
+    }
+    if (gameplayBackgroundColorGValueLabel) {
+        gameplayBackgroundColorGValueLabel->SetText(std::to_string(gs.backgroundColorG));
+    }
+    if (gameplayBackgroundColorBValueLabel) {
+        gameplayBackgroundColorBValueLabel->SetText(std::to_string(gs.backgroundColorB));
+    }
+    if (gameplayBackgroundColorPreview) {
+        gameplayBackgroundColorPreview->SetColor(SDL_Color{
+            gs.backgroundColorR,
+            gs.backgroundColorG,
+            gs.backgroundColorB,
+            255});
+    }
+    if (gameplayEnablePlayfieldBorderCheckbox) {
+        gameplayEnablePlayfieldBorderCheckbox->SetText(gs.enablePlayfieldBorder ? "X" : "");
+    }
+    if (gameplayPlayfieldBorderOpacityValueLabel) {
+        gameplayPlayfieldBorderOpacityValueLabel->SetText(
+            std::format("{:.0f}%", gs.playfieldBorderOpacity * 100.0f));
+    }
+    if (gameplayPlayfieldBorderSizeValueLabel) {
+        gameplayPlayfieldBorderSizeValueLabel->SetText(
+            std::format("{:.0f}", gs.playfieldBorderSize));
+    }
 }
 
 void OptionsOverlayScene::RefreshAudioControlTexts() const {
@@ -404,6 +442,15 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplayCrosshairValueLabel = nullptr;
     gameplayAudioOffsetValueLabel = nullptr;
     gameplaySongClockTimingCheckbox = nullptr;
+    gameplayEnableBackgroundCheckbox = nullptr;
+    gameplayBackgroundOpacityValueLabel = nullptr;
+    gameplayBackgroundColorRValueLabel = nullptr;
+    gameplayBackgroundColorGValueLabel = nullptr;
+    gameplayBackgroundColorBValueLabel = nullptr;
+    gameplayBackgroundColorPreview = nullptr;
+    gameplayEnablePlayfieldBorderCheckbox = nullptr;
+    gameplayPlayfieldBorderOpacityValueLabel = nullptr;
+    gameplayPlayfieldBorderSizeValueLabel = nullptr;
     audioMasterValueLabel = nullptr;
     audioMusicValueLabel = nullptr;
     audioSfxValueLabel = nullptr;
@@ -428,11 +475,236 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         return;
     }
 
+    const std::shared_ptr<TTF_Font> titleFont = *titleFontRes;
+    const std::shared_ptr<TTF_Font> rowFont = *rowFontRes;
     const std::shared_ptr<SDL_Texture> buttonTexture = buttonTextureRes ? *buttonTextureRes : nullptr;
+
+    if (category == Category::Gameplay) {
+        contentContainer->SetLayout(std::make_unique<Layout::VBoxLayout>(6.0f, 8.0f, 52.0f));
+
+        auto makeRow = [this]() -> Container* {
+            return contentContainer->CreateChild<Container>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}});
+        };
+
+        {
+            auto* titleRow = makeRow();
+            auto* sectionLabel = titleRow->CreateChild<Label>(
+                UnitBounds{{0.02f, 0.0f}, {0.98f, 1.0f}},
+                titleFont,
+                std::string(CategoryTitle(category)));
+            sectionLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
+        }
+
+        const Gameplay::GameplaySettings& gs = game.GetGameplaySettings();
+
+        auto addSliderRow = [&](
+            const char* labelText,
+            Label*& valueLabel,
+            const float minV,
+            const float maxV,
+            const float stepV,
+            const float initialV,
+            std::function<void(float)> onChanged,
+            const float sliderMaxX = 0.98f) {
+            auto* row = makeRow();
+            row->CreateChild<Label>(
+                UnitBounds{{0.02f, 0.1f}, {0.34f, 0.9f}},
+                rowFont,
+                labelText);
+            valueLabel = row->CreateChild<Label>(
+                UnitBounds{{0.34f, 0.1f}, {0.48f, 0.9f}},
+                rowFont,
+                "");
+            valueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
+            auto* slider = row->CreateChild<Slider>(
+                UnitBounds{{0.50f, 0.2f}, {sliderMaxX, 0.8f}},
+                minV,
+                maxV,
+                stepV,
+                initialV);
+            slider->SetOnChanged(std::move(onChanged));
+            return row;
+        };
+
+        auto addCheckboxRow = [&](const char* labelText, TextButton*& outCheckbox, const bool checked, std::function<void()> onClick) {
+            auto* row = makeRow();
+            row->CreateChild<Label>(
+                UnitBounds{{0.02f, 0.1f}, {0.78f, 0.9f}},
+                rowFont,
+                labelText);
+            outCheckbox = row->CreateChild<TextButton>(
+                UnitBounds{{0.82f, 0.15f}, {0.94f, 0.85f}},
+                rowFont,
+                checked ? "X" : "",
+                std::move(onClick),
+                buttonTexture);
+        };
+
+        addSliderRow(
+            "Scroll speed",
+            gameplayScrollSpeedValueLabel,
+            Gameplay::kGameplayScrollSpeedMin,
+            Gameplay::kGameplayScrollSpeedMax,
+            0.1f,
+            gs.noteSpeed,
+            [this](const float v) {
+                game.SetNoteSpeed(v);
+                RefreshGameplayControlTexts();
+            });
+
+        addSliderRow(
+            "Crosshair size",
+            gameplayCrosshairValueLabel,
+            Gameplay::kGameplayCrosshairRadiusMin,
+            Gameplay::kGameplayCrosshairRadiusMax,
+            1.0f,
+            gs.crosshairRadius,
+            [this](const float v) {
+                game.SetCrosshairRadius(v);
+                RefreshGameplayControlTexts();
+            });
+
+        addSliderRow(
+            "Audio offset",
+            gameplayAudioOffsetValueLabel,
+            Gameplay::kGameplayAudioOffsetMsMin,
+            Gameplay::kGameplayAudioOffsetMsMax,
+            0.1f,
+            static_cast<float>(gs.audioOffsetSeconds * 1000.0),
+            [this](const float v) {
+                game.SetAudioOffsetSeconds(static_cast<double>(v) * 1e-3);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Use song clock for timing",
+            gameplaySongClockTimingCheckbox,
+            !gs.useWallClockForJudgementTiming,
+            [this]() {
+                const bool cur = game.GetGameplaySettings().useWallClockForJudgementTiming;
+                game.SetUseWallClockForJudgementTiming(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Enable background",
+            gameplayEnableBackgroundCheckbox,
+            gs.enableBackgroundImage,
+            [this]() {
+                const bool cur = game.GetGameplaySettings().enableBackgroundImage;
+                game.SetEnableBackgroundImage(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addSliderRow(
+            "Background opacity",
+            gameplayBackgroundOpacityValueLabel,
+            Gameplay::kGameplayOpacityMin,
+            Gameplay::kGameplayOpacityMax,
+            0.01f,
+            gs.backgroundOpacity,
+            [this](const float v) {
+                game.SetBackgroundOpacity(v);
+                RefreshGameplayControlTexts();
+            });
+
+        {
+            auto* row = addSliderRow(
+                "Background R",
+                gameplayBackgroundColorRValueLabel,
+                0.0f,
+                255.0f,
+                1.0f,
+                static_cast<float>(gs.backgroundColorR),
+                [this](const float v) {
+                    game.SetBackgroundColorR(static_cast<unsigned char>(std::lround(v)));
+                    RefreshGameplayControlTexts();
+                },
+                0.82f);
+            gameplayBackgroundColorPreview = row->CreateChild<PanelRect>(
+                UnitBounds{{0.86f, 0.15f}, {0.98f, 0.85f}},
+                SDL_Color{gs.backgroundColorR, gs.backgroundColorG, gs.backgroundColorB, 255});
+        }
+
+        addSliderRow(
+            "Background G",
+            gameplayBackgroundColorGValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            static_cast<float>(gs.backgroundColorG),
+            [this](const float v) {
+                game.SetBackgroundColorG(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addSliderRow(
+            "Background B",
+            gameplayBackgroundColorBValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            static_cast<float>(gs.backgroundColorB),
+            [this](const float v) {
+                game.SetBackgroundColorB(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addCheckboxRow(
+            "Enable playfield border",
+            gameplayEnablePlayfieldBorderCheckbox,
+            gs.enablePlayfieldBorder,
+            [this]() {
+                const bool cur = game.GetGameplaySettings().enablePlayfieldBorder;
+                game.SetEnablePlayfieldBorder(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addSliderRow(
+            "Border opacity",
+            gameplayPlayfieldBorderOpacityValueLabel,
+            Gameplay::kGameplayOpacityMin,
+            Gameplay::kGameplayOpacityMax,
+            0.01f,
+            gs.playfieldBorderOpacity,
+            [this](const float v) {
+                game.SetPlayfieldBorderOpacity(v);
+                RefreshGameplayControlTexts();
+            });
+
+        addSliderRow(
+            "Border size",
+            gameplayPlayfieldBorderSizeValueLabel,
+            Gameplay::kGameplayBorderSizeMin,
+            Gameplay::kGameplayBorderSizeMax,
+            1.0f,
+            gs.playfieldBorderSize,
+            [this](const float v) {
+                game.SetPlayfieldBorderSize(v);
+                RefreshGameplayControlTexts();
+            });
+
+        {
+            auto* noteRow = makeRow();
+            auto* gameplayNote = noteRow->CreateChild<Label>(
+                UnitBounds{{0.02f, 0.1f}, {0.98f, 0.9f}},
+                font,
+                "Changes apply on the next chart.");
+            gameplayNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
+        }
+
+        contentContainer->UpdateLayout();
+        RefreshGameplayControlTexts();
+        return;
+    }
+
+    contentContainer->SetLayout(std::make_unique<Layout::ViewportMatchLayout>());
 
     auto* sectionLabel = contentContainer->CreateChild<Label>(
         UnitBounds{{0.05f, 0.05f}, {0.95f, 0.14f}},
-        *titleFontRes,
+        titleFont,
         std::string(CategoryTitle(category)));
     sectionLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
 
@@ -440,11 +712,11 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         auto addRow = [&](const float yMin, const float yMax, const char* leftText, TextButton*& outButton, std::function<void()> onClick) {
             contentContainer->CreateChild<Label>(
                 UnitBounds{{0.05f, yMin}, {0.48f, yMax}},
-                *rowFontRes,
+                rowFont,
                 leftText);
             outButton = contentContainer->CreateChild<TextButton>(
                 UnitBounds{{0.52f, yMin}, {0.95f, yMax}},
-                *rowFontRes,
+                rowFont,
                 "",
                 std::move(onClick),
                 buttonTexture);
@@ -482,11 +754,11 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.48f}, {0.48f, 0.56f}},
-            *rowFontRes,
+            rowFont,
             "Aspect ratio");
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.52f, 0.48f}, {0.95f, 0.56f}},
-            *rowFontRes,
+            rowFont,
             std::string(VideoAspectRatioLabel(game.GetVideoSettings().aspectRatio)) + " (template)");
 
         const VideoSettings& vs = game.GetVideoSettings();
@@ -504,12 +776,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.68f}, {0.34f, 0.76f}},
-            *rowFontRes,
+            rowFont,
             "Framerate limit");
 
         videoFramerateLimitValueLabel = contentContainer->CreateChild<Label>(
             UnitBounds{{0.36f, 0.68f}, {0.50f, 0.76f}},
-            *rowFontRes,
+            rowFont,
             "");
         videoFramerateLimitValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
@@ -536,102 +808,8 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Refresh the window for resolution changes.");
         resLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+        contentContainer->UpdateLayout();
         RefreshVideoControlTexts();
-        return;
-    }
-
-    if (category == Category::Gameplay) {
-        contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.18f}, {0.34f, 0.26f}},
-            *rowFontRes,
-            "Scroll speed");
-
-        gameplayScrollSpeedValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.18f}, {0.50f, 0.26f}},
-            *rowFontRes,
-            "");
-        gameplayScrollSpeedValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
-
-        const Gameplay::GameplaySettings& gs = game.GetGameplaySettings();
-        auto* scrollSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.18f}, {0.95f, 0.26f}},
-            Gameplay::kGameplayScrollSpeedMin,
-            Gameplay::kGameplayScrollSpeedMax,
-            0.1f,
-            gs.noteSpeed);
-        scrollSlider->SetOnChanged([this](const float v) {
-            game.SetNoteSpeed(v);
-            RefreshGameplayControlTexts();
-        });
-
-        contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.28f}, {0.34f, 0.36f}},
-            *rowFontRes,
-            "Crosshair size");
-
-        gameplayCrosshairValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.28f}, {0.50f, 0.36f}},
-            *rowFontRes,
-            "");
-        gameplayCrosshairValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
-
-        auto* crosshairSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.28f}, {0.95f, 0.36f}},
-            Gameplay::kGameplayCrosshairRadiusMin,
-            Gameplay::kGameplayCrosshairRadiusMax,
-            1.0f,
-            gs.crosshairRadius);
-        crosshairSlider->SetOnChanged([this](const float v) {
-            game.SetCrosshairRadius(v);
-            RefreshGameplayControlTexts();
-        });
-
-        contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.38f}, {0.34f, 0.46f}},
-            *rowFontRes,
-            "Audio offset");
-
-        gameplayAudioOffsetValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.38f}, {0.50f, 0.46f}},
-            *rowFontRes,
-            "");
-        gameplayAudioOffsetValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
-
-        const auto offsetMs = static_cast<float>(gs.audioOffsetSeconds * 1000.0);
-        auto* audioSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.38f}, {0.95f, 0.46f}},
-            Gameplay::kGameplayAudioOffsetMsMin,
-            Gameplay::kGameplayAudioOffsetMsMax,
-            0.1f,
-            offsetMs);
-        audioSlider->SetOnChanged([this](const float v) {
-            game.SetAudioOffsetSeconds(static_cast<double>(v) * 1e-3);
-            RefreshGameplayControlTexts();
-        });
-
-        contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.48f}, {0.70f, 0.56f}},
-            *rowFontRes,
-            "Use song clock for timing");
-
-        gameplaySongClockTimingCheckbox = contentContainer->CreateChild<TextButton>(
-            UnitBounds{{0.72f, 0.48f}, {0.82f, 0.56f}},
-            *rowFontRes,
-            gs.useWallClockForJudgementTiming ? "" : "X",
-            [this]() {
-                const bool cur = game.GetGameplaySettings().useWallClockForJudgementTiming;
-                game.SetUseWallClockForJudgementTiming(!cur);
-                RefreshGameplayControlTexts();
-            },
-            buttonTexture);
-
-        auto* gameplayNote = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.62f}, {0.95f, 0.72f}},
-            font,
-            "Changes apply immediately.");
-        gameplayNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
-
-        RefreshGameplayControlTexts();
         return;
     }
 
@@ -644,12 +822,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.16f}, {0.34f, 0.24f}},
-            *rowFontRes,
+            rowFont,
             "Master volume");
 
         audioMasterValueLabel = contentContainer->CreateChild<Label>(
             UnitBounds{{0.36f, 0.16f}, {0.50f, 0.24f}},
-            *rowFontRes,
+            rowFont,
             "");
         audioMasterValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
@@ -666,12 +844,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.26f}, {0.34f, 0.34f}},
-            *rowFontRes,
+            rowFont,
             "Music");
 
         audioMusicValueLabel = contentContainer->CreateChild<Label>(
             UnitBounds{{0.36f, 0.26f}, {0.50f, 0.34f}},
-            *rowFontRes,
+            rowFont,
             "");
         audioMusicValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
@@ -688,12 +866,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.36f}, {0.34f, 0.44f}},
-            *rowFontRes,
+            rowFont,
             "Sound effects");
 
         audioSfxValueLabel = contentContainer->CreateChild<Label>(
             UnitBounds{{0.36f, 0.36f}, {0.50f, 0.44f}},
-            *rowFontRes,
+            rowFont,
             "");
         audioSfxValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
@@ -710,12 +888,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
         contentContainer->CreateChild<Label>(
             UnitBounds{{0.05f, 0.46f}, {0.34f, 0.54f}},
-            *rowFontRes,
+            rowFont,
             "UI sounds");
 
         audioUiValueLabel = contentContainer->CreateChild<Label>(
             UnitBounds{{0.36f, 0.46f}, {0.50f, 0.54f}},
-            *rowFontRes,
+            rowFont,
             "");
         audioUiValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
@@ -736,6 +914,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Changes apply immediately.");
         audioNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+        contentContainer->UpdateLayout();
         RefreshAudioControlTexts();
         return;
     }
@@ -756,7 +935,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
             contentContainer->CreateChild<Label>(
                 UnitBounds{{0.05f, yMin}, {0.18f, yMax}},
-                *rowFontRes,
+                rowFont,
                 kLaneNames[static_cast<size_t>(lane)]);
 
             for (int slot = 0; slot < Gameplay::kKeysPerLane; ++slot) {
@@ -765,7 +944,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
 
                 inputBindButtons[lane][slot] = contentContainer->CreateChild<TextButton>(
                     UnitBounds{{xMin, yMin}, {xMax, yMax}},
-                    *rowFontRes,
+                    rowFont,
                     KeyLabel(gs.keyBindings[static_cast<size_t>(lane)][static_cast<size_t>(slot)]),
                     [this, lane, slot]() {
                         BeginKeyRebind(lane, slot);
@@ -780,6 +959,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Changes apply immediately.");
         inputNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+        contentContainer->UpdateLayout();
         RefreshInputBindButtonTexts();
     }
 }

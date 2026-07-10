@@ -21,6 +21,8 @@ void Sprite::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
             (bounds.max.x - bounds.min.x) * parentRect.w,
             (bounds.max.y - bounds.min.y) * parentRect.h
         };
+        SDL_SetTextureAlphaMod(texture.get(), alpha);
+        SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_BLEND);
         SDL_RenderTexture(renderer, texture.get(), nullptr, &rect);
     }
 }

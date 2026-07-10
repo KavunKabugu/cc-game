@@ -28,6 +28,26 @@ struct GameplaySettings {
     // Note simulation Tick() still uses audio song time in both modes.
     bool useWallClockForJudgementTiming = true;
 
+    // When true, draw the song cover (coverFile / thumbnailPath) over the solid background colour.
+    bool enableBackgroundImage = true;
+
+    // Cover image opacity (0 = transparent, 1 = opaque). Solid colour always draws underneath.
+    float backgroundOpacity = kDefaultBackgroundOpacity;
+
+    // Solid playfield / backdrop colour (RGB). Alpha is unused, fill is always opaque.
+    unsigned char backgroundColorR = kDefaultBackgroundColorR;
+    unsigned char backgroundColorG = kDefaultBackgroundColorG;
+    unsigned char backgroundColorB = kDefaultBackgroundColorB;
+
+    // When true, draw darkened (black) borders around the playfield edges.
+    bool enablePlayfieldBorder = true;
+
+    // Border opacity (0 = transparent, 1 = opaque). Colour is always black.
+    float playfieldBorderOpacity = kDefaultPlayfieldBorderOpacity;
+
+    // Border thickness in UI units: 0 = none, 100 = 50% of half-screen from each edge (full cover).
+    float playfieldBorderSize = kDefaultPlayfieldBorderSize;
+
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
 };

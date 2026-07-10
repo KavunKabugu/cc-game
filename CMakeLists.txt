@@ -59,6 +59,8 @@ set(GAME_SOURCES
         src/Game/objects/Slider.h
         src/Game/Layout/VBoxLayout.cpp
         src/Game/Layout/VBoxLayout.h
+        src/Game/Layout/ViewportMatchLayout.cpp
+        src/Game/Layout/ViewportMatchLayout.h
         src/Game/Layout/ILayoutHelper.h
         src/Game/Scene/IScene.h
         src/Game/Scene/SceneBase.h

@@ -19,8 +19,13 @@ public:
     void Update() override;
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
 
+    // 0 = fully transparent, 255 = fully opaque.
+    void SetAlpha(Uint8 a) { alpha = a; }
+    [[nodiscard]] Uint8 GetAlpha() const { return alpha; }
+
 protected:
     std::shared_ptr<SDL_Texture> texture;
+    Uint8 alpha{255};
 };
 
 } // namespace Game

@@ -46,12 +46,12 @@ void ScrollContainer::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect
     };
 
     if (myRect.w <= 0.0f || myRect.h <= 0.0f) return;
-    
+
+    lastRenderRect = myRect;
+
     if (m_contentHeight <= 0.0f) {
         UpdateLayout();
     }
-
-    lastRenderRect = myRect;
 
     // Save clip rect
     SDL_Rect oldClip{0, 0, 0, 0};
@@ -151,8 +151,15 @@ bool ScrollContainer::HandleEvent(const SDL_Event& event, const UnitPoint parent
         return false;
     }
 
-    // Pass to children
+    // Pass to children (content-space coordinates). Recurse into nested containers so
+    // composite rows (Label + Slider) receive clicks/drags like a normal Container.
     for (auto & child : std::views::reverse(GetChildren())) {
+        if (auto* subContainer = child->AsContainer()) {
+            if (subContainer->HandleEvent(event, contentLocalPos, pressedObject, hoveredObject)) {
+                return true;
+            }
+        }
+
         if (child->Contains(contentLocalPos)) {
             const UnitPoint childLocal = child->GlobalToLocal(contentLocalPos);
 

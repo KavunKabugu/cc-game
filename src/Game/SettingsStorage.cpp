@@ -49,6 +49,12 @@ void ClampGameplayFields(Gameplay::GameplaySettings& s) {
     constexpr double minSec = static_cast<double>(Gameplay::kGameplayAudioOffsetMsMin) * 1e-3;
     constexpr double maxSec = static_cast<double>(Gameplay::kGameplayAudioOffsetMsMax) * 1e-3;
     s.audioOffsetSeconds = std::clamp(s.audioOffsetSeconds, minSec, maxSec);
+    s.backgroundOpacity =
+        std::clamp(s.backgroundOpacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    s.playfieldBorderOpacity =
+        std::clamp(s.playfieldBorderOpacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    s.playfieldBorderSize =
+        std::clamp(s.playfieldBorderSize, Gameplay::kGameplayBorderSizeMin, Gameplay::kGameplayBorderSizeMax);
     Gameplay::NormalizeLaneKeyBindings(s.keyBindings);
 }
 
@@ -152,6 +158,33 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     }
     if (j.contains("useWallClockForJudgementTiming") && j["useWallClockForJudgementTiming"].is_boolean()) {
         settings.useWallClockForJudgementTiming = j["useWallClockForJudgementTiming"].get<bool>();
+    }
+    if (j.contains("enableBackgroundImage") && j["enableBackgroundImage"].is_boolean()) {
+        settings.enableBackgroundImage = j["enableBackgroundImage"].get<bool>();
+    }
+    if (j.contains("backgroundOpacity") && j["backgroundOpacity"].is_number()) {
+        settings.backgroundOpacity = j["backgroundOpacity"].get<float>();
+    }
+    if (j.contains("backgroundColorR") && j["backgroundColorR"].is_number_integer()) {
+        settings.backgroundColorR = static_cast<unsigned char>(
+            std::clamp(j["backgroundColorR"].get<int>(), 0, 255));
+    }
+    if (j.contains("backgroundColorG") && j["backgroundColorG"].is_number_integer()) {
+        settings.backgroundColorG = static_cast<unsigned char>(
+            std::clamp(j["backgroundColorG"].get<int>(), 0, 255));
+    }
+    if (j.contains("backgroundColorB") && j["backgroundColorB"].is_number_integer()) {
+        settings.backgroundColorB = static_cast<unsigned char>(
+            std::clamp(j["backgroundColorB"].get<int>(), 0, 255));
+    }
+    if (j.contains("enablePlayfieldBorder") && j["enablePlayfieldBorder"].is_boolean()) {
+        settings.enablePlayfieldBorder = j["enablePlayfieldBorder"].get<bool>();
+    }
+    if (j.contains("playfieldBorderOpacity") && j["playfieldBorderOpacity"].is_number()) {
+        settings.playfieldBorderOpacity = j["playfieldBorderOpacity"].get<float>();
+    }
+    if (j.contains("playfieldBorderSize") && j["playfieldBorderSize"].is_number()) {
+        settings.playfieldBorderSize = j["playfieldBorderSize"].get<float>();
     }
     if (j.contains("keyBindings") && j["keyBindings"].is_array()) {
         ApplyKeyBindingsJson(j["keyBindings"], settings.keyBindings);
@@ -349,6 +382,14 @@ bool SaveAll(
              {"crosshairRadius", gCopy.crosshairRadius},
              {"audioOffsetSeconds", gCopy.audioOffsetSeconds},
              {"useWallClockForJudgementTiming", gCopy.useWallClockForJudgementTiming},
+             {"enableBackgroundImage", gCopy.enableBackgroundImage},
+             {"backgroundOpacity", gCopy.backgroundOpacity},
+             {"backgroundColorR", gCopy.backgroundColorR},
+             {"backgroundColorG", gCopy.backgroundColorG},
+             {"backgroundColorB", gCopy.backgroundColorB},
+             {"enablePlayfieldBorder", gCopy.enablePlayfieldBorder},
+             {"playfieldBorderOpacity", gCopy.playfieldBorderOpacity},
+             {"playfieldBorderSize", gCopy.playfieldBorderSize},
              {"keyBindings", keyBindingsJson},
          }},
         {"audio",

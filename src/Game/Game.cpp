@@ -438,6 +438,76 @@ void GameInstance::SetUseWallClockForJudgementTiming(const bool useWallClock) {
     PersistAllSettings();
 }
 
+void GameInstance::SetEnableBackgroundImage(const bool enabled) {
+    if (enabled == gameplaySettings.enableBackgroundImage) {
+        return;
+    }
+    gameplaySettings.enableBackgroundImage = enabled;
+    PersistAllSettings();
+}
+
+void GameInstance::SetBackgroundOpacity(const float opacity) {
+    const float clamped =
+        std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    if (clamped == gameplaySettings.backgroundOpacity) {
+        return;
+    }
+    gameplaySettings.backgroundOpacity = clamped;
+    PersistAllSettings();
+}
+
+void GameInstance::SetBackgroundColorR(const unsigned char value) {
+    if (value == gameplaySettings.backgroundColorR) {
+        return;
+    }
+    gameplaySettings.backgroundColorR = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetBackgroundColorG(const unsigned char value) {
+    if (value == gameplaySettings.backgroundColorG) {
+        return;
+    }
+    gameplaySettings.backgroundColorG = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetBackgroundColorB(const unsigned char value) {
+    if (value == gameplaySettings.backgroundColorB) {
+        return;
+    }
+    gameplaySettings.backgroundColorB = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetEnablePlayfieldBorder(const bool enabled) {
+    if (enabled == gameplaySettings.enablePlayfieldBorder) {
+        return;
+    }
+    gameplaySettings.enablePlayfieldBorder = enabled;
+    PersistAllSettings();
+}
+
+void GameInstance::SetPlayfieldBorderOpacity(const float opacity) {
+    const float clamped =
+        std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    if (clamped == gameplaySettings.playfieldBorderOpacity) {
+        return;
+    }
+    gameplaySettings.playfieldBorderOpacity = clamped;
+    PersistAllSettings();
+}
+
+void GameInstance::SetPlayfieldBorderSize(const float size) {
+    const float clamped =
+        std::clamp(size, Gameplay::kGameplayBorderSizeMin, Gameplay::kGameplayBorderSizeMax);
+    if (clamped == gameplaySettings.playfieldBorderSize) {
+        return;
+    }
+    gameplaySettings.playfieldBorderSize = clamped;
+    PersistAllSettings();
+}
+
 void GameInstance::SetGameplayLaneKeyBinding(const int lane, const int slot, const SDL_Keycode key) {
     if (lane < 0 || lane >= Gameplay::kLaneBindingCount) {
         return;

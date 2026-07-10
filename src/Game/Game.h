@@ -47,6 +47,14 @@ public:
     void SetCrosshairRadius(float radius);
     void SetAudioOffsetSeconds(double offsetSeconds);
     void SetUseWallClockForJudgementTiming(bool useWallClock);
+    void SetEnableBackgroundImage(bool enabled);
+    void SetBackgroundOpacity(float opacity);
+    void SetBackgroundColorR(unsigned char value);
+    void SetBackgroundColorG(unsigned char value);
+    void SetBackgroundColorB(unsigned char value);
+    void SetEnablePlayfieldBorder(bool enabled);
+    void SetPlayfieldBorderOpacity(float opacity);
+    void SetPlayfieldBorderSize(float size);
 
     void SetGameplayLaneKeyBinding(int lane, int slot, SDL_Keycode key);
 

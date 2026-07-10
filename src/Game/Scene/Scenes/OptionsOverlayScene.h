@@ -11,11 +11,10 @@
 namespace Game {
 
 class SceneManager;
-class Container;
+class ScrollContainer;
 class Label;
 class TextButton;
 class GameInstance;
-
 class PanelRect;
 
 class OptionsOverlayScene final : public SceneBase {
@@ -52,7 +51,7 @@ private:
     int overlayOpenedLogicalH = 0;
 
     Category currentCategory = Category::Video;
-    Container* contentContainer = nullptr;
+    ScrollContainer* contentContainer = nullptr;
     std::shared_ptr<TTF_Font> font;
 
     TextButton* videoResolutionButton = nullptr;
@@ -65,6 +64,15 @@ private:
     Label* gameplayCrosshairValueLabel = nullptr;
     Label* gameplayAudioOffsetValueLabel = nullptr;
     TextButton* gameplaySongClockTimingCheckbox = nullptr;
+    TextButton* gameplayEnableBackgroundCheckbox = nullptr;
+    Label* gameplayBackgroundOpacityValueLabel = nullptr;
+    Label* gameplayBackgroundColorRValueLabel = nullptr;
+    Label* gameplayBackgroundColorGValueLabel = nullptr;
+    Label* gameplayBackgroundColorBValueLabel = nullptr;
+    PanelRect* gameplayBackgroundColorPreview = nullptr;
+    TextButton* gameplayEnablePlayfieldBorderCheckbox = nullptr;
+    Label* gameplayPlayfieldBorderOpacityValueLabel = nullptr;
+    Label* gameplayPlayfieldBorderSizeValueLabel = nullptr;
 
     Label* audioMasterValueLabel = nullptr;
     Label* audioMusicValueLabel = nullptr;
