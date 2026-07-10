@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "Game/PathUtf8.h"
+#include "LaneRemap.h"
 #include "ThirdParty/json.hpp"
 
 namespace Game::Gameplay {
@@ -12,7 +13,8 @@ using json = nlohmann::json;
 using Game::PathToUtf8String;
 
 namespace {
-constexpr int kSupportedFormatVersion = 1;
+constexpr int kCurrentFormatVersion = 2;
+constexpr int kLegacyOsuColumnFormatVersion = 1;
 } // namespace
 
 std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem::path& path) {
@@ -38,7 +40,8 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
     ChartData chart;
     try {
         chart.formatVersion = j.value("formatVersion", 0);
-        if (chart.formatVersion != kSupportedFormatVersion) {
+        if (chart.formatVersion != kCurrentFormatVersion &&
+            chart.formatVersion != kLegacyOsuColumnFormatVersion) {
             SDL_Log("ChartLoader: unsupported formatVersion %d in %s",
                     chart.formatVersion, PathToUtf8String(path).c_str());
             return std::unexpected(ChartLoadError::UnsupportedVersion);
@@ -80,6 +83,11 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
 
     if (chart.notes.empty()) {
         return std::unexpected(ChartLoadError::NoNotes);
+    }
+
+    // formatVersion 1 stored raw osu!mania column indices, remap to compass lanes.
+    if (chart.formatVersion == kLegacyOsuColumnFormatVersion) {
+        ApplyOsuToCompassRemap(chart.notes);
     }
 
     std::ranges::sort(chart.notes, {}, &ChartNote::hitTime);

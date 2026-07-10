@@ -488,6 +488,14 @@ void GameInstance::SetEnablePlayfieldBorder(const bool enabled) {
     PersistAllSettings();
 }
 
+void GameInstance::SetSwapUpDownLanes(const bool enabled) {
+    if (enabled == gameplaySettings.swapUpDownLanes) {
+        return;
+    }
+    gameplaySettings.swapUpDownLanes = enabled;
+    PersistAllSettings();
+}
+
 void GameInstance::SetPlayfieldBorderOpacity(const float opacity) {
     const float clamped =
         std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);

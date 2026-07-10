@@ -55,6 +55,7 @@ public:
     void SetEnablePlayfieldBorder(bool enabled);
     void SetPlayfieldBorderOpacity(float opacity);
     void SetPlayfieldBorderSize(float size);
+    void SetSwapUpDownLanes(bool enabled);
 
     void SetGameplayLaneKeyBinding(int lane, int slot, SDL_Keycode key);
 

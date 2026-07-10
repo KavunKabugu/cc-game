@@ -22,6 +22,7 @@ using Game::Utf8StringToPath;
 #include "Game/Gameplay/GameplayMath.h"
 #include "Game/Gameplay/HitScoring.h"
 #include "Game/Gameplay/LaneInputHandler.h"
+#include "Game/Gameplay/LaneRemap.h"
 #include "Game/Gameplay/RhythmField.h"
 #include "Game/Gameplay/TimingRuler.h"
 #include "Game/ResourceManager.h"
@@ -193,6 +194,10 @@ GameplayScene::GameplayScene(
         initFailed = true;
         initErrorMessage = "Failed to load chart file: " + PathToUtf8String(chartPath.filename());
         return;
+    }
+
+    if (this->settings.swapUpDownLanes) {
+        Gameplay::ApplySwapUpDownLanes(chartRes->notes);
     }
 
     if (this->selectedSong->audioFile.empty()) {

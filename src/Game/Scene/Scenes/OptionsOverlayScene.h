@@ -71,6 +71,7 @@ private:
     Label* gameplayBackgroundColorBValueLabel = nullptr;
     PanelRect* gameplayBackgroundColorPreview = nullptr;
     TextButton* gameplayEnablePlayfieldBorderCheckbox = nullptr;
+    TextButton* gameplaySwapUpDownLanesCheckbox = nullptr;
     Label* gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     Label* gameplayPlayfieldBorderSizeValueLabel = nullptr;
 

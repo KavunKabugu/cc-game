@@ -359,6 +359,9 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
     if (gameplayEnablePlayfieldBorderCheckbox) {
         gameplayEnablePlayfieldBorderCheckbox->SetText(gs.enablePlayfieldBorder ? "X" : "");
     }
+    if (gameplaySwapUpDownLanesCheckbox) {
+        gameplaySwapUpDownLanesCheckbox->SetText(gs.swapUpDownLanes ? "X" : "");
+    }
     if (gameplayPlayfieldBorderOpacityValueLabel) {
         gameplayPlayfieldBorderOpacityValueLabel->SetText(
             std::format("{:.0f}%", gs.playfieldBorderOpacity * 100.0f));
@@ -449,6 +452,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplayBackgroundColorBValueLabel = nullptr;
     gameplayBackgroundColorPreview = nullptr;
     gameplayEnablePlayfieldBorderCheckbox = nullptr;
+    gameplaySwapUpDownLanesCheckbox = nullptr;
     gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     gameplayPlayfieldBorderSizeValueLabel = nullptr;
     audioMasterValueLabel = nullptr;
@@ -683,6 +687,16 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             gs.playfieldBorderSize,
             [this](const float v) {
                 game.SetPlayfieldBorderSize(v);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Swap Up/Down lanes",
+            gameplaySwapUpDownLanesCheckbox,
+            gs.swapUpDownLanes,
+            [this]() {
+                const bool cur = game.GetGameplaySettings().swapUpDownLanes;
+                game.SetSwapUpDownLanes(!cur);
                 RefreshGameplayControlTexts();
             });
 

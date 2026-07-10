@@ -180,6 +180,9 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     if (j.contains("enablePlayfieldBorder") && j["enablePlayfieldBorder"].is_boolean()) {
         settings.enablePlayfieldBorder = j["enablePlayfieldBorder"].get<bool>();
     }
+    if (j.contains("swapUpDownLanes") && j["swapUpDownLanes"].is_boolean()) {
+        settings.swapUpDownLanes = j["swapUpDownLanes"].get<bool>();
+    }
     if (j.contains("playfieldBorderOpacity") && j["playfieldBorderOpacity"].is_number()) {
         settings.playfieldBorderOpacity = j["playfieldBorderOpacity"].get<float>();
     }
@@ -390,6 +393,7 @@ bool SaveAll(
              {"enablePlayfieldBorder", gCopy.enablePlayfieldBorder},
              {"playfieldBorderOpacity", gCopy.playfieldBorderOpacity},
              {"playfieldBorderSize", gCopy.playfieldBorderSize},
+             {"swapUpDownLanes", gCopy.swapUpDownLanes},
              {"keyBindings", keyBindingsJson},
          }},
         {"audio",

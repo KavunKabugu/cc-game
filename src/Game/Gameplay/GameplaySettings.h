@@ -48,6 +48,10 @@ struct GameplaySettings {
     // Border thickness in UI units: 0 = none, 100 = 50% of half-screen from each edge (full cover).
     float playfieldBorderSize = kDefaultPlayfieldBorderSize;
 
+    // When true, swap Up/Down note lanes after load (visual + hit). Keybinds stay per visual lane.
+    // Useful for my Left/Up/Down/Right column preference (:D).
+    bool swapUpDownLanes = false;
+
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
 };

@@ -26,6 +26,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "Game/PathUtf8.h"
+#include "Game/Gameplay/LaneRemap.h"
 #include "miniz.h"
 #include "ThirdParty/json.hpp"
 #include "font8x8.h"
@@ -340,6 +341,7 @@ std::optional<OsuChart> ParseOsu(const fs::path& filePath) {
 
             int lane = static_cast<int>(std::floor(x * colCount / 512.0));
             lane = std::max(0, std::min(lane, colCount - 1));
+            lane = Game::Gameplay::RemapOsuLaneToCompass(lane);
 
             Note note;
             note.timeMs = timeMs;
@@ -520,7 +522,7 @@ void RunConversion(const std::string& inputPath, const std::string& outputPath) 
                 });
 
                 json chartJson;
-                chartJson["formatVersion"] = 1;
+                chartJson["formatVersion"] = 2;
                 chartJson["song"] = {
                     {"title", chart.metadata.title},
                     {"difficulty", diffName},
