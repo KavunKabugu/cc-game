@@ -38,6 +38,8 @@ set(GAME_SOURCES
         src/Game/objects/Label.h
         src/Game/objects/TextButton.cpp
         src/Game/objects/TextButton.h
+        src/Game/objects/SelectableRow.cpp
+        src/Game/objects/SelectableRow.h
         src/Game/objects/PanelRect.cpp
         src/Game/objects/PanelRect.h
         src/Game/ResourceManager.cpp
@@ -53,6 +55,9 @@ set(GAME_SOURCES
         src/Game/Sound.cpp
         src/Game/Sound.h
         src/Game/Song/SongManager.cpp
+        src/Game/Score/ScoreStore.cpp
+        src/Game/Score/ScoreStore.h
+        src/Game/Score/ScoreTypes.h
         src/Game/objects/ScrollContainer.cpp
         src/Game/objects/ScrollContainer.h
         src/Game/objects/Slider.cpp

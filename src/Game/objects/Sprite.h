@@ -14,10 +14,12 @@ namespace Game {
 
 class Sprite : public Drawable {
 public:
-    Sprite(UnitBounds bounds, std::shared_ptr<SDL_Texture> texture);
+    explicit Sprite(UnitBounds bounds, std::shared_ptr<SDL_Texture> texture = nullptr);
     ~Sprite() override = default;
     void Update() override;
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
+
+    void SetTexture(std::shared_ptr<SDL_Texture> newTexture) { texture = std::move(newTexture); }
 
     // 0 = fully transparent, 255 = fully opaque.
     void SetAlpha(const Uint8 a) { alpha = a; }
