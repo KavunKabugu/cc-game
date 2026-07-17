@@ -17,7 +17,7 @@ void TestBindingsNormalization() {
 
     NormalizeLaneKeyBindings(bindings);
 
-    const LaneKeyBindings defaults = DefaultLaneKeyBindings();
+    [[maybe_unused]] const LaneKeyBindings defaults = DefaultLaneKeyBindings();
     for (int lane = 0; lane < kLaneBindingCount; ++lane) {
         for (int slot = 0; slot < kKeysPerLane; ++slot) {
             assert(bindings[lane][slot] == defaults[lane][slot]);
@@ -61,9 +61,9 @@ void TestMultiLaneBinding() {
     bindings[0][0] = SDLK_SPACE;
     bindings[2][0] = SDLK_SPACE;
 
-    LaneInputHandler handler(Game::UnitBounds{{0,0},{0,0}}, bindings);
+    LaneInputHandler handler(Game::UnitBounds{.min = {.x = 0,.y = 0}, .max = {.x = 0,.y = 0}}, bindings);
 
-    const bool processed = handler.OnKeyDown(SDLK_SPACE, 5000);
+    [[maybe_unused]] const bool processed = handler.OnKeyDown(SDLK_SPACE, 5000);
     assert(processed);
 
     const std::vector<LanePress> events = handler.Drain();
@@ -84,7 +84,7 @@ void TestSetBindings() {
     newBindings[0][1] = SDLK_UNKNOWN; // normalized to defaults[0][1] (which is SDLK_A)
 
     handler.SetBindings(newBindings);
-    const LaneKeyBindings& current = handler.Bindings();
+    [[maybe_unused]] const LaneKeyBindings& current = handler.Bindings();
     assert(current[0][0] == SDLK_K);
     assert(current[0][1] == SDLK_A);
 }

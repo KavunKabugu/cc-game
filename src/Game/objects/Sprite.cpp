@@ -16,10 +16,10 @@ void Sprite::Update() {}
 void Sprite::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     if (texture) {
         const SDL_FRect rect = {
-            parentRect.x + (bounds.min.x * parentRect.w),
-            parentRect.y + (bounds.min.y * parentRect.h),
-            (bounds.max.x - bounds.min.x) * parentRect.w,
-            (bounds.max.y - bounds.min.y) * parentRect.h
+            .x = parentRect.x + bounds.min.x * parentRect.w,
+            .y = parentRect.y + bounds.min.y * parentRect.h,
+            .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+            .h = (bounds.max.y - bounds.min.y) * parentRect.h
         };
         SDL_SetTextureAlphaMod(texture.get(), alpha);
         SDL_SetTextureBlendMode(texture.get(), SDL_BLENDMODE_BLEND);

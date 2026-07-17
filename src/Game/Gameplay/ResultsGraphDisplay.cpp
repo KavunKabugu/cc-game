@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <format>
 #include <map>
 #include <memory>
@@ -72,7 +71,7 @@ namespace {
 [[nodiscard]] SDL_Color BarColor(const ResultsGraphEvent& e) {
     using enum Judgement;
     const double absForGradient =
-        (e.judgement == Perfect || e.judgement == Great || e.judgement == Good || e.judgement == Bad)
+        e.judgement == Perfect || e.judgement == Great || e.judgement == Good || e.judgement == Bad
             ? std::abs(std::clamp(e.deltaMs, -kMissExpireMs, kMissExpireMs))
             : 0.0;
     if (e.judgement == Perfect || e.judgement == Great || e.judgement == Good || e.judgement == Bad) {
@@ -99,10 +98,10 @@ void DrawHorizontalGridLine(
     const Uint8 a) {
     SDL_SetRenderDrawColor(renderer, r, g, b, a);
     const SDL_FRect line = {
-        plot.x,
-        centerY - lineH * 0.5f,
-        plot.w,
-        lineH,
+        .x = plot.x,
+        .y = centerY - lineH * 0.5f,
+        .w = plot.w,
+        .h = lineH,
     };
     SDL_RenderFillRect(renderer, &line);
 }
@@ -132,7 +131,7 @@ void DrawTextRightOf(
     if (!texture) {
         return;
     }
-    const SDL_FRect dst = {rightEdge - tw, centerY - th * 0.5f, tw, th};
+    const SDL_FRect dst = {.x = rightEdge - tw, .y = centerY - th * 0.5f, .w = tw, .h = th};
     SDL_RenderTexture(renderer, texture, nullptr, &dst);
     SDL_DestroyTexture(texture);
 }
@@ -159,7 +158,7 @@ ResultsGraphDisplay::CachedText CreateTextTexture(
     const auto shared = std::shared_ptr<SDL_Texture>(rawTexture, [](SDL_Texture* t) {
         SDL_DestroyTexture(t);
     });
-    return {shared, tw, th};
+    return {.texture = shared, .w = tw, .h = th};
 }
 
 void DrawCachedTextRightOf(
@@ -172,7 +171,7 @@ void DrawCachedTextRightOf(
     }
     const auto tw = static_cast<float>(cached.w);
     const auto th = static_cast<float>(cached.h);
-    const SDL_FRect dst = {rightEdge - tw, centerY - th * 0.5f, tw, th};
+    const SDL_FRect dst = {.x = rightEdge - tw, .y = centerY - th * 0.5f, .w = tw, .h = th};
     SDL_RenderTexture(renderer, cached.texture.get(), nullptr, &dst);
 }
 
@@ -260,7 +259,7 @@ void ResultsGraphDisplay::RebuildCachedLabels(SDL_Renderer* renderer) {
         return;
     }
 
-    constexpr SDL_Color labelColor{210, 220, 235, 255};
+    constexpr SDL_Color labelColor{.r = 210, .g = 220, .b = 235, .a = 255};
 
     // Accuracy mode labels: 100, 90, ..., 0
     cachedAccuracyLabels.push_back(CreateTextTexture(renderer, labelFont, "100", labelColor));
@@ -307,25 +306,25 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
     SDL_RenderClear(renderer);
 
     const SDL_FRect slotRect = {
-        0.0f,
-        0.0f,
-        w,
-        h,
+        .x = 0.0f,
+        .y = 0.0f,
+        .w = w,
+        .h = h,
     };
 
     const float pad = std::max(6.0f, slotRect.w * 0.02f);
     const bool axisLabels = labelFont != nullptr;
     const float leftAxisPad = axisLabels ? 34.0f : 0.0f;
     const float marginTop =
-        (axisLabels && mode == ResultsGraphMode::Delta) ? 12.0f : 0.0f;
+        axisLabels && mode == ResultsGraphMode::Delta ? 12.0f : 0.0f;
     const float marginBottom =
-        (axisLabels && mode == ResultsGraphMode::Delta) ? 12.0f : 0.0f;
+        axisLabels && mode == ResultsGraphMode::Delta ? 12.0f : 0.0f;
 
     const SDL_FRect plot = {
-        slotRect.x + pad + leftAxisPad,
-        slotRect.y + pad + marginTop,
-        std::max(1.0f, slotRect.w - 2.0f * pad - leftAxisPad),
-        std::max(1.0f, slotRect.h - 2.0f * pad - marginTop - marginBottom),
+        .x = slotRect.x + pad + leftAxisPad,
+        .y = slotRect.y + pad + marginTop,
+        .w = std::max(1.0f, slotRect.w - 2.0f * pad - leftAxisPad),
+        .h = std::max(1.0f, slotRect.h - 2.0f * pad - marginTop - marginBottom),
     };
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -344,10 +343,10 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
             const float x1 = plot.x + static_cast<float>(x1n) * plot.w;
             const float hi = static_cast<float>(std::clamp(accPct, 0.0, 100.0)) * 0.01f * plot.h;
             const SDL_FRect band = {
-                std::min(x0, x1),
-                bottom - hi,
-                std::max(1.0f, std::abs(x1 - x0)),
-                std::max(1.0f, hi),
+                .x = std::min(x0, x1),
+                .y = bottom - hi,
+                .w = std::max(1.0f, std::abs(x1 - x0)),
+                .h = std::max(1.0f, hi),
             };
             const auto [r, g, b, a] = ResultsAccuracyGraphFillColor(accPct);
             SDL_SetRenderDrawColor(renderer, r, g, b, a);
@@ -407,7 +406,7 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
         for (size_t i = 0; i < events.size(); ++i) {
             const double nx = NormalizedPlotX(events[i], chartFirstSec, chartLastSec);
             nxForWidth.push_back(static_cast<float>(nx));
-            const auto key = static_cast<std::int64_t>(std::llround(nx * 1.0e6));
+            const auto key = std::llround(nx * 1.0e6);
             PlotItem item{};
             item.nx = static_cast<float>(nx);
             item.sortAbs = std::abs(DisplayDeltaMs(events[i]));
@@ -453,13 +452,13 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
 
                 const float top = std::min(centerY, yEnd);
                 const float barH = std::max(1.0f, std::abs(yEnd - centerY));
-                const SDL_FRect bar = {x0, top, w_bar, barH};
+                const SDL_FRect bar = {.x = x0, .y = top, .w = w_bar, .h = barH};
                 SDL_RenderFillRect(renderer, &bar);
 
                 using enum MissReason;
                 if (e.missReason == EmptyLane) {
                     const float dot = std::max(3.0f, w_bar * 0.5f);
-                    const SDL_FRect dotRect = {cx - dot * 0.5f, centerY - dot * 0.5f, dot, dot};
+                    const SDL_FRect dotRect = {.x = cx - dot * 0.5f, .y = centerY - dot * 0.5f, .w = dot, .h = dot};
                     SDL_RenderFillRect(renderer, &dotRect);
                 }
             }
@@ -492,7 +491,7 @@ void ResultsGraphDisplay::RebuildTexture(SDL_Renderer* renderer, const float w, 
             }
             const auto nx = static_cast<float>(NormalizedPlotX(event, chartFirstSec, chartLastSec));
             const float vx = plot.x + nx * plot.w;
-            const SDL_FRect cue = {vx - 1.0f, plot.y, 3.0f, plot.h};
+            const SDL_FRect cue = {.x = vx - 1.0f, .y = plot.y, .w = 3.0f, .h = plot.h};
             SDL_RenderFillRect(renderer, &cue);
         }
 
@@ -530,10 +529,10 @@ void ResultsGraphDisplay::Render(SDL_Renderer* renderer, const SDL_FRect& parent
     }
 
     const SDL_FRect slotRect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h,
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h,
     };
 
     if (slotRect.w <= 1.0f || slotRect.h <= 1.0f) {

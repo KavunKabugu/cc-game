@@ -14,7 +14,7 @@ namespace Game::Gameplay {
 namespace {
 
 struct TextureState {
-    SDL_Color color{0, 0, 0, 0};
+    SDL_Color color{.r = 0, .g = 0, .b = 0, .a = 0};
     SDL_BlendMode blendMode{SDL_BLENDMODE_NONE};
     bool initialized = false;
 };
@@ -45,10 +45,10 @@ void DrawArcQuarter(SDL_Renderer* renderer, SDL_Texture* texture,
 
     const float diameter = radius * 2.0f;
     const SDL_FRect dst = {
-        centerX - radius,
-        centerY - radius,
-        diameter,
-        diameter,
+        .x = centerX - radius,
+        .y = centerY - radius,
+        .w = diameter,
+        .h = diameter,
     };
 
     SetTextureStateIfNeeded(texture, color, SDL_BLENDMODE_BLEND, state);
@@ -76,10 +76,10 @@ void RhythmField::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     if (!arcTexture || !sim) return;
 
     const SDL_FRect rect = {
-        parentRect.x + bounds.min.x * parentRect.w,
-        parentRect.y + bounds.min.y * parentRect.h,
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h,
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h,
     };
 
     const float centerX = rect.x + rect.w * 0.5f;

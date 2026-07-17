@@ -66,7 +66,8 @@ namespace {
     return false;
 }
 
-bool ResolveLocalForTarget(const std::vector<Container*>& roots, GameObject* target, const UnitPoint rootSpacePos, UnitPoint& outLocal) {
+bool ResolveLocalForTarget(const std::vector<Container*>& roots, GameObject* target, const UnitPoint rootSpacePos,
+                           UnitPoint& outLocal) {
     if (!target) {
         return false;
     }
@@ -140,7 +141,7 @@ void EventManager::ClearQueue() {
     eventQueue.clear();
 }
 
-void EventManager::NotifyObjectDestroyed(GameObject* obj) {
+void EventManager::NotifyObjectDestroyed(const GameObject* obj) {
     if (!obj) {
         return;
     }
@@ -162,7 +163,7 @@ bool EventManager::IsKeyDown(const SDL_Keycode key) const {
 
 Uint64 EventManager::GetKeyTimestamp(const SDL_Keycode key) const {
     const auto it = keyStates.find(key);
-    return (it != keyStates.end()) ? it->second.timestamp : 0;
+    return it != keyStates.end() ? it->second.timestamp : 0;
 }
 
 bool EventManager::IsMouseDown(const int button) const {
@@ -205,7 +206,8 @@ bool EventManager::ProcessInternal(
             const bool isMotion = converted.type == SDL_EVENT_MOUSE_MOTION;
             const bool isUp = converted.type == SDL_EVENT_MOUSE_BUTTON_UP;
 
-            if (const bool matchingButton = isUp && converted.button.button == dragCaptureButton; isMotion || matchingButton) {
+            if (const bool matchingButton = isUp && converted.button.button == dragCaptureButton; isMotion ||
+                matchingButton) {
                 if (UnitPoint local{}; ResolveLocalForTarget(roots, dragCaptureTarget, lastMousePos, local)) {
                     if (auto* drag = dragCaptureTarget->AsMouseDraggable()) {
                         if (isMotion) {
@@ -246,9 +248,9 @@ bool EventManager::ProcessInternal(
     if (updateStates) {
         // Update state AFTER dispatch
         if (event.type == SDL_EVENT_KEY_DOWN) {
-            keyStates[event.key.key] = { true, event.key.timestamp };
+            keyStates[event.key.key] = { .pressed = true, .timestamp = event.key.timestamp };
         } else if (event.type == SDL_EVENT_KEY_UP) {
-            keyStates[event.key.key] = { false, event.key.timestamp };
+            keyStates[event.key.key] = { .pressed = false, .timestamp = event.key.timestamp };
         } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
             mouseButtonStates[event.button.button] = true;
         } else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {

@@ -7,7 +7,6 @@
 #define CC_GAME_VIDEO_SETTINGS_H
 
 #include <array>
-#include <cstddef>
 
 namespace Game {
 
@@ -27,14 +26,14 @@ struct VideoResolutionPreset {
 };
 
 inline constexpr std::array<VideoResolutionPreset, 8> kVideoResolutionPresets = {{
-    {640, 360},
-    {1024, 576},
-    {1280, 720},
-    {1600, 900},
-    {1920, 1080},
-    {2560, 1440},
-    {3840, 2160},
-    {7680, 4320},
+    {.width = 640, .height = 360},
+    {.width = 1024, .height = 576},
+    {.width = 1280, .height = 720},
+    {.width = 1600, .height = 900},
+    {.width = 1920, .height = 1080},
+    {.width = 2560, .height = 1440},
+    {.width = 3840, .height = 2160},
+    // {.width = 7680, .height = 4320},
 }};
 
 struct VideoSettings {

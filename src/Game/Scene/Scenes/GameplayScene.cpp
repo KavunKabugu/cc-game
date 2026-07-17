@@ -38,7 +38,7 @@ using Game::Utf8StringToPath;
 
 namespace Game {
 
-static std::string ResourceErrorToString(ResourceError err) {
+static std::string ResourceErrorToString(const ResourceError err) {
     switch (err) {
         case ResourceError::FileNotFound: return "FileNotFound";
         case ResourceError::InvalidFormat: return "InvalidFormat";
@@ -57,28 +57,28 @@ namespace {
 constexpr double kResultsDelaySeconds = 1.0;
 
 // Top-left HUD stack (unit coordinates, logical 1920×1080).
-constexpr UnitBounds kHudScoreBounds{{0.02f, 0.02f}, {0.70f, 0.058f}};
-constexpr UnitBounds kHudJudgementsBounds{{0.02f, 0.058f}, {0.92f, 0.098f}};
-constexpr UnitBounds kHudAccuracyBounds{{0.02f, 0.098f}, {0.70f, 0.138f}};
-constexpr UnitBounds kHudTimingBounds{{0.02f, 0.138f}, {0.92f, 0.178f}};
-constexpr UnitBounds kTimingRulerBounds{{0.41f, 0.88f}, {0.59f, 0.93f}};
+constexpr UnitBounds kHudScoreBounds{.min = {.x = 0.02f, .y = 0.02f}, .max = {.x = 0.70f, .y = 0.058f}};
+constexpr UnitBounds kHudJudgementsBounds{.min = {.x = 0.02f, .y = 0.058f}, .max = {.x = 0.92f, .y = 0.098f}};
+constexpr UnitBounds kHudAccuracyBounds{.min = {.x = 0.02f, .y = 0.098f}, .max = {.x = 0.70f, .y = 0.138f}};
+constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {.x = 0.92f, .y = 0.178f}};
+constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
-constexpr UnitBounds kHiddenBounds{{0.0f, 0.0f}, {0.0f, 0.0f}};
-constexpr UnitBounds kOffscreenBounds{{2.0f, 2.0f}, {2.01f, 2.01f}};
+constexpr UnitBounds kHiddenBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}};
+constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
 
-constexpr UnitBounds kResultsDimBounds{{0.00f, 0.00f}, {1.00f, 1.00f}};
-constexpr UnitBounds kResultsScoreBounds{{0.06f, 0.20f}, {0.48f, 0.28f}};
-constexpr UnitBounds kResultsAccuracyBounds{{0.06f, 0.29f}, {0.48f, 0.345f}};
-constexpr UnitBounds kResultsJudgementsBounds{{0.06f, 0.355f}, {0.48f, 0.405f}};
-constexpr UnitBounds kResultsRatioBounds{{0.06f, 0.405f}, {0.48f, 0.435f}};
-constexpr UnitBounds kResultsBiasBounds{{0.06f, 0.438f}, {0.48f, 0.493f}};
-constexpr UnitBounds kResultsStdDevBounds{{0.06f, 0.496f}, {0.48f, 0.551f}};
-constexpr UnitBounds kResultsGraphBounds{{0.52f, 0.24f}, {0.94f, 0.64f}};
-constexpr UnitBounds kResultsGraphToggleBounds{{0.52f, 0.17f}, {0.80f, 0.225f}};
-constexpr UnitBounds kResultsBackButtonBounds{{0.38f, 0.88f}, {0.62f, 0.96f}};
-constexpr UnitBounds kPauseTitleBounds{{0.30f, 0.08f}, {0.70f, 0.16f}};
-constexpr UnitBounds kPauseResumeButtonBounds{{0.22f, 0.88f}, {0.48f, 0.96f}};
-constexpr UnitBounds kPauseQuitButtonBounds{{0.52f, 0.88f}, {0.78f, 0.96f}};
+constexpr UnitBounds kResultsDimBounds{.min = {.x = 0.00f, .y = 0.00f}, .max = {.x = 1.00f, .y = 1.00f}};
+constexpr UnitBounds kResultsScoreBounds{.min = {.x = 0.06f, .y = 0.20f}, .max = {.x = 0.48f, .y = 0.28f}};
+constexpr UnitBounds kResultsAccuracyBounds{.min = {.x = 0.06f, .y = 0.29f}, .max = {.x = 0.48f, .y = 0.345f}};
+constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.355f}, .max = {.x = 0.48f, .y = 0.405f}};
+constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.405f}, .max = {.x = 0.48f, .y = 0.435f}};
+constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.438f}, .max = {.x = 0.48f, .y = 0.493f}};
+constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.496f}, .max = {.x = 0.48f, .y = 0.551f}};
+constexpr UnitBounds kResultsGraphBounds{.min = {.x = 0.52f, .y = 0.24f}, .max = {.x = 0.94f, .y = 0.64f}};
+constexpr UnitBounds kResultsGraphToggleBounds{.min = {.x = 0.52f, .y = 0.17f}, .max = {.x = 0.80f, .y = 0.225f}};
+constexpr UnitBounds kResultsBackButtonBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
+constexpr UnitBounds kPauseTitleBounds{.min = {.x = 0.30f, .y = 0.08f}, .max = {.x = 0.70f, .y = 0.16f}};
+constexpr UnitBounds kPauseResumeButtonBounds{.min = {.x = 0.22f, .y = 0.88f}, .max = {.x = 0.48f, .y = 0.96f}};
+constexpr UnitBounds kPauseQuitButtonBounds{.min = {.x = 0.52f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}};
 
 class EscapeMenuHandler final : public GameObject, public IKeyHandler {
 public:
@@ -117,15 +117,17 @@ GameplayScene::GameplayScene(
       selectedDifficultyIndex(selectedDifficultyIndex),
       settings(settings) {
     root->CreateChild<PanelRect>(
-        UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
-        SDL_Color{settings.backgroundColorR, settings.backgroundColorG, settings.backgroundColorB, 255});
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
+        SDL_Color{
+            .r = settings.backgroundColorR, .g = settings.backgroundColorG, .b = settings.backgroundColorB, .a = 255
+        });
 
     if (settings.enableBackgroundImage && this->selectedSong && !this->selectedSong->coverFile.empty()) {
         const std::filesystem::path coverPath =
             Song::SongManager::ResolveSongFile(*this->selectedSong, Utf8StringToPath(this->selectedSong->coverFile));
         if (auto coverRes = ResourceManager::getInstance().Get<SDL_Texture>(PathToUtf8String(coverPath))) {
             auto* coverSprite = root->CreateChild<Sprite>(
-                UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
+                UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
                 *coverRes);
             const float opacity = std::clamp(settings.backgroundOpacity, 0.0f, 1.0f);
             coverSprite->SetAlpha(static_cast<Uint8>(std::lround(opacity * 255.0f)));
@@ -143,13 +145,17 @@ GameplayScene::GameplayScene(
         const float t = std::clamp(settings.playfieldBorderSize, 0.0f, 100.0f) / 100.0f * 0.5f;
         const auto borderAlpha =
             static_cast<Uint8>(std::lround(std::clamp(settings.playfieldBorderOpacity, 0.0f, 1.0f) * 255.0f));
-        const SDL_Color borderColor{0, 0, 0, borderAlpha};
+        const SDL_Color borderColor{.r = 0, .g = 0, .b = 0, .a = borderAlpha};
         // Full-width top/bottom strips, side strips between them (corners covered by top/bottom).
-        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, t}}, borderColor);
-        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 1.0f - t}, {1.0f, 1.0f}}, borderColor);
+        root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = t}},
+                                     borderColor);
+        root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 1.0f - t}, .max = {.x = 1.0f, .y = 1.0f}},
+                                     borderColor);
         if (t < 0.5f) {
-            root->CreateChild<PanelRect>(UnitBounds{{0.0f, t}, {t, 1.0f - t}}, borderColor);
-            root->CreateChild<PanelRect>(UnitBounds{{1.0f - t, t}, {1.0f, 1.0f - t}}, borderColor);
+            root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = t}, .max = {.x = t, .y = 1.0f - t}},
+                                         borderColor);
+            root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 1.0f - t, .y = t}, .max = {.x = 1.0f, .y = 1.0f - t}},
+                                         borderColor);
         }
     }
 
@@ -212,9 +218,11 @@ GameplayScene::GameplayScene(
     auto audioRes = ResourceManager::getInstance().Get<MIX_Audio>(PathToUtf8String(audioPath));
     if (!audioRes || !*audioRes) {
         std::string errStr = audioRes ? "Unknown" : ResourceErrorToString(audioRes.error());
-        SDL_Log("GameplayScene: failed to load audio '%s' (Error: %s)", PathToUtf8String(audioPath).c_str(), errStr.c_str());
+        SDL_Log("GameplayScene: failed to load audio '%s' (Error: %s)", PathToUtf8String(audioPath).c_str(),
+                errStr.c_str());
         initFailed = true;
-        initErrorMessage = "Failed to load audio file: " + PathToUtf8String(audioPath.filename()) + " (Error: " + errStr + ")";
+        initErrorMessage = "Failed to load audio file: " + PathToUtf8String(audioPath.filename()) + " (Error: " + errStr
+            + ")";
         return;
     }
 
@@ -239,7 +247,7 @@ GameplayScene::GameplayScene(
     }
 
     rhythmField = root->CreateChild<Gameplay::RhythmField>(
-        UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
         *arcTextureRes,
         &simulation);
 
@@ -269,7 +277,7 @@ GameplayScene::GameplayScene(
 
     timingRuler = root->CreateChild<Gameplay::TimingRuler>(kTimingRulerBounds);
 
-    dimLayer = root->CreateChild<PanelRect>(kHiddenBounds, SDL_Color{0, 0, 0, 170});
+    dimLayer = root->CreateChild<PanelRect>(kHiddenBounds, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 170});
     resultsGraphDisplay = root->CreateChild<Gameplay::ResultsGraphDisplay>(kHiddenBounds);
     resultsGraphDisplay->SetLabelFont(graphLabelFontRes ? *graphLabelFontRes : *textFontRes);
 
@@ -292,18 +300,18 @@ GameplayScene::GameplayScene(
     resultStdDevLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
-        UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         this->settings.keyBindings);
 
     root->CreateChild<EscapeMenuHandler>(
-        UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
-        [this]() { HandleEscapeKey(); });
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
+        [this] { HandleEscapeKey(); });
 
     resultsBackButton = root->CreateChild<TextButton>(
         kOffscreenBounds,
         *buttonFontRes,
         "Back",
-        [this]() { ReturnToSongSelect(); },
+        [this] { ReturnToSongSelect(); },
         buttonTextureRes ? *buttonTextureRes : nullptr);
     resultsBackButton->SetEnabled(false);
 
@@ -314,7 +322,7 @@ GameplayScene::GameplayScene(
         kOffscreenBounds,
         *buttonFontRes,
         "Back",
-        [this]() { ResumeFromPause(); },
+        [this] { ResumeFromPause(); },
         buttonTextureRes ? *buttonTextureRes : nullptr);
     pauseResumeButton->SetEnabled(false);
 
@@ -322,7 +330,7 @@ GameplayScene::GameplayScene(
         kOffscreenBounds,
         *buttonFontRes,
         "Quit",
-        [this]() { HandleUserQuit(); },
+        [this] { HandleUserQuit(); },
         buttonTextureRes ? *buttonTextureRes : nullptr);
     pauseQuitButton->SetEnabled(false);
 
@@ -330,7 +338,7 @@ GameplayScene::GameplayScene(
         kOffscreenBounds,
         *buttonFontRes,
         "Graph: Delta",
-        [this]() {
+        [this] {
             if (!resultsGraphDisplay || !graphToggleButton) {
                 return;
             }
@@ -486,7 +494,8 @@ void GameplayScene::ConsumeJudgements() {
         if (result.missReason != Gameplay::MissReason::EmptyLane) {
             ++chartNotesProcessed;
         }
-        if (result.judgement == Perfect || result.judgement == Great || result.judgement == Good || result.judgement == Bad) {
+        if (result.judgement == Perfect || result.judgement == Great || result.judgement == Good || result.judgement ==
+            Bad) {
             ++timingHitCount;
             sumTimingDeltaMs += result.deltaMs;
             sumTimingDeltaSqMs += result.deltaMs * result.deltaMs;
@@ -508,7 +517,8 @@ void GameplayScene::ConsumeJudgements() {
 
         const double nx = Gameplay::NormalizedPlotXForHit(result, chartDomainFirst, chartDomainLast);
         const double accPct = AccuracyPercent();
-        if (constexpr double kNxEps = 1e-7; !accuracySteps.empty() && std::abs(nx - accuracySteps.back().first) <= kNxEps) {
+        if (constexpr double kNxEps = 1e-7; !accuracySteps.empty() && std::abs(nx - accuracySteps.back().first) <=
+            kNxEps) {
             accuracySteps.back().second = accPct;
         } else {
             accuracySteps.emplace_back(nx, accPct);
@@ -581,12 +591,12 @@ void GameplayScene::HandleEscapeKey() {
     }
 }
 
-void GameplayScene::HandleUserQuit() {
+void GameplayScene::HandleUserQuit() const {
     DrainLaneInput();
     ReturnToSongSelect();
 }
 
-void GameplayScene::HideHud() {
+void GameplayScene::HideHud() const {
     if (scoreLabel) scoreLabel->SetBounds(kOffscreenBounds);
     if (judgementsLabel) judgementsLabel->SetBounds(kOffscreenBounds);
     if (accuracyLabel) accuracyLabel->SetBounds(kOffscreenBounds);
@@ -597,7 +607,7 @@ void GameplayScene::HideHud() {
     }
 }
 
-void GameplayScene::ShowHud() {
+void GameplayScene::ShowHud() const {
     if (scoreLabel) scoreLabel->SetBounds(kHudScoreBounds);
     if (judgementsLabel) judgementsLabel->SetBounds(kHudJudgementsBounds);
     if (accuracyLabel) accuracyLabel->SetBounds(kHudAccuracyBounds);
@@ -658,7 +668,7 @@ void GameplayScene::ShowStatsOverlay() {
     }
 }
 
-void GameplayScene::HideStatsOverlay() {
+void GameplayScene::HideStatsOverlay() const {
     if (dimLayer) dimLayer->SetBounds(kHiddenBounds);
     if (resultsGraphDisplay) resultsGraphDisplay->SetBounds(kHiddenBounds);
     if (graphToggleButton) {
@@ -677,7 +687,7 @@ void GameplayScene::HideStatsOverlay() {
     }
 }
 
-void GameplayScene::ShowPauseUi() {
+void GameplayScene::ShowPauseUi() const {
     if (pauseTitleLabel) pauseTitleLabel->SetBounds(kPauseTitleBounds);
     if (pauseResumeButton) {
         pauseResumeButton->SetBounds(kPauseResumeButtonBounds);
@@ -689,7 +699,7 @@ void GameplayScene::ShowPauseUi() {
     }
 }
 
-void GameplayScene::HidePauseUi() {
+void GameplayScene::HidePauseUi() const {
     if (pauseTitleLabel) pauseTitleLabel->SetBounds(kOffscreenBounds);
     if (pauseResumeButton) {
         pauseResumeButton->SetBounds(kOffscreenBounds);

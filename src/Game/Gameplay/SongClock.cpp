@@ -60,8 +60,7 @@ double SongClock::SongTime() const {
 std::uint64_t SongClock::EffectivePausedWallNs() const {
     std::uint64_t total = totalPausedWallNs;
     if (paused && pauseWallStartNs != 0) {
-        const std::uint64_t now = SDL_GetTicksNS();
-        if (now >= pauseWallStartNs) {
+        if (const std::uint64_t now = SDL_GetTicksNS(); now >= pauseWallStartNs) {
             total += now - pauseWallStartNs;
         }
     }
@@ -113,8 +112,7 @@ void SongClock::Resume() {
     }
 
     if (pauseWallStartNs != 0) {
-        const std::uint64_t now = SDL_GetTicksNS();
-        if (now >= pauseWallStartNs) {
+        if (const std::uint64_t now = SDL_GetTicksNS(); now >= pauseWallStartNs) {
             totalPausedWallNs += now - pauseWallStartNs;
         }
     }

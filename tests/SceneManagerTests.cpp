@@ -7,47 +7,49 @@
 
 namespace Game {
 
-class FakeScene final : public IScene {
-public:
-    FakeScene(
-        std::string name,
-        std::vector<std::string>& lifecycleLog,
-        const bool blocksLowerInput = true,
-        const bool blocksLowerRendering = true,
-        const bool blocksLowerUpdates = true
-    )
-        : name(std::move(name)),
-          lifecycleLog(lifecycleLog),
-          blocksLowerInput(blocksLowerInput),
-          blocksLowerRendering(blocksLowerRendering),
-          blocksLowerUpdates(blocksLowerUpdates) {}
+namespace {
+    class FakeScene final : public IScene {
+    public:
+        FakeScene(
+            std::string name,
+            std::vector<std::string>& lifecycleLog,
+            const bool blocksLowerInput = true,
+            const bool blocksLowerRendering = true,
+            const bool blocksLowerUpdates = true
+        )
+            : name(std::move(name)),
+              lifecycleLog(lifecycleLog),
+              blocksLowerInput(blocksLowerInput),
+              blocksLowerRendering(blocksLowerRendering),
+              blocksLowerUpdates(blocksLowerUpdates) {}
 
-    void OnEnter() override { lifecycleLog.push_back(name + ":Enter"); }
-    void OnPause() override { lifecycleLog.push_back(name + ":Pause"); }
-    void OnResume() override { lifecycleLog.push_back(name + ":Resume"); }
-    void OnExit() override { lifecycleLog.push_back(name + ":Exit"); }
-    void Update(const double dt) override {
-        (void)dt;
-        lifecycleLog.push_back(name + ":Update");
-    }
-    void Render(SDL_Renderer* renderer, const SDL_FRect& logicalViewport) override {
-        (void)renderer;
-        (void)logicalViewport;
-        lifecycleLog.push_back(name + ":Render");
-    }
+        void OnEnter() override { lifecycleLog.push_back(name + ":Enter"); }
+        void OnPause() override { lifecycleLog.push_back(name + ":Pause"); }
+        void OnResume() override { lifecycleLog.push_back(name + ":Resume"); }
+        void OnExit() override { lifecycleLog.push_back(name + ":Exit"); }
+        void Update(const double dt) override {
+            (void)dt;
+            lifecycleLog.push_back(name + ":Update");
+        }
+        void Render(SDL_Renderer* renderer, const SDL_FRect& logicalViewport) override {
+            (void)renderer;
+            (void)logicalViewport;
+            lifecycleLog.push_back(name + ":Render");
+        }
 
-    [[nodiscard]] Container* GetRoot() const override { return nullptr; }
-    [[nodiscard]] bool BlocksLowerInput() const override { return blocksLowerInput; }
-    [[nodiscard]] bool BlocksLowerRendering() const override { return blocksLowerRendering; }
-    [[nodiscard]] bool BlocksLowerUpdates() const override { return blocksLowerUpdates; }
+        [[nodiscard]] Container* GetRoot() const override { return nullptr; }
+        [[nodiscard]] bool BlocksLowerInput() const override { return blocksLowerInput; }
+        [[nodiscard]] bool BlocksLowerRendering() const override { return blocksLowerRendering; }
+        [[nodiscard]] bool BlocksLowerUpdates() const override { return blocksLowerUpdates; }
 
-private:
-    std::string name;
-    std::vector<std::string>& lifecycleLog;
-    bool blocksLowerInput;
-    bool blocksLowerRendering;
-    bool blocksLowerUpdates;
-};
+    private:
+        std::string name;
+        std::vector<std::string>& lifecycleLog;
+        bool blocksLowerInput;
+        bool blocksLowerRendering;
+        bool blocksLowerUpdates;
+    };
+}
 
 static void AssertSequence(const std::vector<std::string>& actual, const std::vector<std::string>& expected) {
     assert(actual == expected);
@@ -111,7 +113,7 @@ static void TestUpdateAndRenderBlocking() {
     AssertSequence(log, {"B:Update", "C:Update"});
 
     log.clear();
-    constexpr SDL_FRect logicalViewport{0.0f, 0.0f, 1920.0f, 1080.0f};
+    constexpr SDL_FRect logicalViewport{.x = 0.0f, .y = 0.0f, .w = 1920.0f, .h = 1080.0f};
     manager.RenderScenes(nullptr, logicalViewport);
     AssertSequence(log, {"B:Render", "C:Render"});
 }

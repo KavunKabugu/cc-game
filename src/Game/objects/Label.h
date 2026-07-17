@@ -18,7 +18,8 @@ enum class VerticalAlignment { Top, Middle, Bottom };
 
 class Label : public Drawable {
 public:
-    Label(UnitBounds bounds, std::shared_ptr<TTF_Font> font, std::string text = "", SDL_Color color = {255, 255, 255, 255});
+    Label(UnitBounds bounds, std::shared_ptr<TTF_Font> font, std::string text = "",
+          SDL_Color color = {.r = 255, .g = 255, .b = 255, .a = 255});
     ~Label() override = default;
 
     void Update() override {}

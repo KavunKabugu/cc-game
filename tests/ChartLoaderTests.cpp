@@ -1,10 +1,8 @@
 #include <cassert>
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 
 #include "Game/Gameplay/ChartLoader.h"
-#include "Game/Gameplay/LaneRemap.h"
 
 namespace {
 
@@ -100,7 +98,7 @@ void TestValidFormatVersion1RemapsLanes() {
     CleanupTempFile();
 
     assert(res.has_value());
-    const auto& [formatVersion, offsetSeconds, notes] = *res;
+    [[maybe_unused]] const auto& [formatVersion, offsetSeconds, notes] = *res;
 
     assert(offsetSeconds == 0.1);
     assert(formatVersion == 1);

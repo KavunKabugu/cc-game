@@ -20,7 +20,7 @@ void VBoxLayout::Apply(Container& container) const {
 
         // X is 0 to 1 normally.
         // TODO: Respect horizontal padding if needed.
-        child->SetBounds(UnitBounds{{0.0f, normYMin}, {1.0f, normYMax}});
+        child->SetBounds(UnitBounds{.min = {.x = 0.0f, .y = normYMin}, .max = {.x = 1.0f, .y = normYMax}});
 
         currentY += m_fixedItemHeight + m_spacing;
     }
@@ -28,14 +28,14 @@ void VBoxLayout::Apply(Container& container) const {
 
 UnitPoint VBoxLayout::CalculateTotalSize(const Container& container) const {
     const auto& children = container.GetChildren();
-    if (children.empty()) return {0.0f, 0.0f};
+    if (children.empty()) return {.x = 0.0f, .y = 0.0f};
 
     float totalHeight = m_padding * 2.0f;
     totalHeight += static_cast<float>(children.size()) * m_fixedItemHeight;
     totalHeight += static_cast<float>(children.size() - 1) * m_spacing;
 
     // Width should be parent width
-    return {container.GetLastRenderRect().w, totalHeight};
+    return {.x = container.GetLastRenderRect().w, .y = totalHeight};
 }
 
 } // namespace Game::Layout

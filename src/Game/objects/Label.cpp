@@ -71,14 +71,14 @@ void Label::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
 
     // Calculate the available area in pixels
     const SDL_FRect slotRect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h
     };
 
     // Align the text within that slot
-    SDL_FRect destRect = { 0, 0, static_cast<float>(textW), static_cast<float>(textH) };
+    SDL_FRect destRect = { .x = 0, .y = 0, .w = static_cast<float>(textW), .h = static_cast<float>(textH) };
 
     switch (hAlign) {
         case HorizontalAlignment::Left:   destRect.x = slotRect.x; break;

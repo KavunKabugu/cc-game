@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include "Game/PathUtf8.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3_image/SDL_image.h"
@@ -96,7 +95,8 @@ void ResourceManager::AddSearchPath(const std::string& path) {
     this->searchPaths.push_back(std::move(searchPath));
 }
 
-std::expected<std::filesystem::path, ResourceError> ResourceManager::ResolveCanonicalPath(const std::string_view rawPath) const {
+std::expected<std::filesystem::path, ResourceError> ResourceManager::ResolveCanonicalPath(
+    const std::string_view rawPath) const {
     const std::filesystem::path input = Utf8StringToPath(std::string(rawPath));
     if (input.is_absolute()) {
         if (std::error_code e; std::filesystem::exists(input, e) && !e) {
@@ -146,7 +146,8 @@ std::expected<std::shared_ptr<SDL_Texture>, ResourceError> ResourceManager::GetT
         return std::unexpected(ResourceError::RendererNotInitialized);
     }
 
-    SDL_Texture* rawTexture = IMG_LoadTexture(const_cast<SDL_Renderer*>(renderer), PathToUtf8String(canonicalPath).c_str());
+    SDL_Texture* rawTexture = IMG_LoadTexture(const_cast<SDL_Renderer*>(renderer),
+                                              PathToUtf8String(canonicalPath).c_str());
     if (!rawTexture) {
         SDL_Log("Failed to load image (%s): %s", PathToUtf8String(canonicalPath).c_str(), SDL_GetError());
         return std::unexpected(ResourceError::SDLError);
@@ -169,7 +170,8 @@ void ResourceManager::SetUiFontScale(const float scale) {
     fonts.clear();
 }
 
-std::expected<std::shared_ptr<TTF_Font>, ResourceError> ResourceManager::GetFont(const std::string_view &path, const float fontSize) {
+std::expected<std::shared_ptr<TTF_Font>, ResourceError> ResourceManager::GetFont(
+    const std::string_view& path, const float fontSize) {
     auto canonicalRes = ResolveCanonicalPath(path);
     if (!canonicalRes) {
         return std::unexpected(canonicalRes.error());
@@ -201,7 +203,8 @@ std::expected<std::shared_ptr<TTF_Font>, ResourceError> ResourceManager::GetFont
     return shared;
 }
 
-std::expected<std::shared_ptr<Game::AudioBuffer>, ResourceError> ResourceManager::GetAudioBuffer(const std::string_view &path) {
+std::expected<std::shared_ptr<Game::AudioBuffer>, ResourceError> ResourceManager::GetAudioBuffer(
+    const std::string_view& path) {
     auto canonicalRes = ResolveCanonicalPath(path);
     if (!canonicalRes) {
         return std::unexpected(canonicalRes.error());

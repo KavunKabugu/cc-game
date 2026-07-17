@@ -52,8 +52,8 @@ public:
     [[nodiscard]] UnitPoint GlobalToLocal(const UnitPoint p) const {
         const float w = bounds.max.x - bounds.min.x;
         const float h = bounds.max.y - bounds.min.y;
-        if (w <= 0.0f || h <= 0.0f) return {0.0f, 0.0f};
-        return { (p.x - bounds.min.x) / w, (p.y - bounds.min.y) / h };
+        if (w <= 0.0f || h <= 0.0f) return {.x = 0.0f, .y = 0.0f};
+        return { .x = (p.x - bounds.min.x) / w, .y = (p.y - bounds.min.y) / h };
     }
 
     [[nodiscard]] UnitBounds GetBounds() const { return bounds; }

@@ -20,7 +20,7 @@ public:
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
 
     // 0 = fully transparent, 255 = fully opaque.
-    void SetAlpha(Uint8 a) { alpha = a; }
+    void SetAlpha(const Uint8 a) { alpha = a; }
     [[nodiscard]] Uint8 GetAlpha() const { return alpha; }
 
 protected:

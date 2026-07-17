@@ -18,7 +18,7 @@ struct LanePress {
 };
 
 // Four lanes, two physical key slots per lane. The same keycode may appear on
-// multiple lanes, a single key press triggers every matching lane once.
+// multiple lanes, a single key press triggers every matching lane once (Intralism behaviour).
 inline constexpr int kLaneBindingCount = 4;
 inline constexpr int kKeysPerLane = 2;
 using LaneKeyBindings = std::array<std::array<SDL_Keycode, kKeysPerLane>, kLaneBindingCount>;
@@ -31,7 +31,7 @@ void NormalizeLaneKeyBindings(LaneKeyBindings& bindings) noexcept;
 class LaneInputHandler final : public GameObject, public IKeyHandler {
 public:
     explicit LaneInputHandler(
-        UnitBounds bounds = UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
+        UnitBounds bounds = UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         const LaneKeyBindings &bindings = DefaultLaneKeyBindings());
 
     void Update() override {}

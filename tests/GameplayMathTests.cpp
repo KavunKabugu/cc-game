@@ -1,6 +1,4 @@
 #include <cassert>
-#include <cmath>
-#include <numbers>
 
 #include "Game/Gameplay/GameplayMath.h"
 #include "Game/Gameplay/GameplayConstants.h"
@@ -30,7 +28,7 @@ void TestCrosshairZLocation() {
     assert(CrosshairZLocation(0.0f, 1920) == 0.0f);
     assert(CrosshairZLocation(-1.0f, 1920) == 0.0f);
 
-    constexpr float expectedZ = (kArcReferenceWidth / 100.0f) * (1920.0f * 0.5f);
+    [[maybe_unused]] constexpr float expectedZ = kArcReferenceWidth / 100.0f * (1920.0f * 0.5f);
     assert(std::abs(CrosshairZLocation(100.0f, 1920) - expectedZ) < 1e-5f);
 }
 
@@ -46,7 +44,7 @@ void TestZLocation() {
     assert(std::abs(ZLocation(1000.0, 1000.0, speedZ, crosshairZ) - crosshairZ) < 1e-5f);
 
     // 100ms before hit, depth should be smaller than crosshairZ
-    constexpr float zBefore = ZLocation(900.0, 1000.0, speedZ, crosshairZ);
+    [[maybe_unused]] constexpr float zBefore = ZLocation(900.0, 1000.0, speedZ, crosshairZ);
     assert(zBefore < crosshairZ);
     assert(std::abs(zBefore - (-100.0f * speedZ + crosshairZ)) < 1e-5f);
 }
@@ -55,7 +53,7 @@ void TestArcRadius() {
     assert(ArcRadius(0.0f, 1920) == 0.0f);
     assert(ArcRadius(-5.0f, 1920) == 0.0f);
 
-    constexpr float z = CrosshairZLocation(150.0f, 1920);
+    [[maybe_unused]] constexpr float z = CrosshairZLocation(150.0f, 1920);
     // At crosshairZ, radius should be exactly crosshairRadius (150.0f)
     assert(std::abs(ArcRadius(z, 1920) - 150.0f) < 1e-4f);
 }
@@ -66,7 +64,7 @@ void TestSpawnTimeSeconds() {
     constexpr double noteTime = 2.0;
 
     constexpr double leadMs = static_cast<double>(crosshairZ) / static_cast<double>(speedZ);
-    constexpr double expectedSpawn = noteTime - leadMs * 1e-3;
+    [[maybe_unused]] constexpr double expectedSpawn = noteTime - leadMs * 1e-3;
 
     assert(std::abs(SpawnTimeSeconds(noteTime, speedZ, crosshairZ) - expectedSpawn) < 1e-6);
     assert(SpawnTimeSeconds(noteTime, 0.0f, crosshairZ) == noteTime);

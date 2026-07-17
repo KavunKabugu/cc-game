@@ -2,7 +2,6 @@
 #define CC_GAME_HIT_SCORING_H
 
 #include <algorithm>
-#include <cmath>
 
 #include "GameplayConstants.h"
 #include "Judgement.h"
@@ -50,7 +49,11 @@ inline constexpr int kGreatScore = 100;
         }
         return kBadPenaltyCap;
     }
+    default: {
+            return kMissScore;
+        }
     }
+    // We should never land here, just in case
     return kMissScore;
 }
 
@@ -76,7 +79,10 @@ inline constexpr int kGreatScore = 100;
     case Good:
     case Bad:
         return static_cast<std::int32_t>(std::ceil(ContinuousRawScore(result)));
+    default:
+        return kMissScore;
     }
+    // We should never land here, just in case
     return kMissScore;
 }
 

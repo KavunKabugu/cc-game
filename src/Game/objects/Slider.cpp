@@ -62,10 +62,10 @@ void Slider::ApplyLocalToValue(const UnitPoint localPos) {
 
 void Slider::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const SDL_FRect rect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h,
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h,
     };
 
     if (rect.w <= 0.0f || rect.h <= 0.0f) {
@@ -77,15 +77,15 @@ void Slider::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     SDL_SetRenderDrawColor(renderer, trackColor.r, trackColor.g, trackColor.b, trackColor.a);
     const float trackH = std::max(4.0f, rect.h * 0.22f);
     const SDL_FRect trackRect = {
-        rect.x,
-        rect.y + (rect.h - trackH) * 0.5f,
-        rect.w,
-        trackH,
+        .x = rect.x,
+        .y = rect.y + (rect.h - trackH) * 0.5f,
+        .w = rect.w,
+        .h = trackH,
     };
     SDL_RenderFillRect(renderer, &trackRect);
 
     const float tNorm =
-        (maxValue > minValue) ? (value - minValue) / (maxValue - minValue) : 0.0f;
+        maxValue > minValue ? (value - minValue) / (maxValue - minValue) : 0.0f;
     const float thumbCenterNorm = ThumbCenterNorm(tNorm);
     const float thumbRadiusPx = std::max(6.0f, rect.w * kThumbHalfNorm);
     const float cx = rect.x + thumbCenterNorm * rect.w;
@@ -93,10 +93,10 @@ void Slider::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const auto&[r, g, b, a] = hovered ? thumbHoverColor : thumbColor;
     SDL_SetRenderDrawColor(renderer, r, g, b, a);
     const SDL_FRect thumbDst = {
-        cx - thumbRadiusPx,
-        rect.y + rect.h * 0.5f - thumbRadiusPx,
-        thumbRadiusPx * 2.0f,
-        thumbRadiusPx * 2.0f,
+        .x = cx - thumbRadiusPx,
+        .y = rect.y + rect.h * 0.5f - thumbRadiusPx,
+        .w = thumbRadiusPx * 2.0f,
+        .h = thumbRadiusPx * 2.0f,
     };
     SDL_RenderFillRect(renderer, &thumbDst);
 }

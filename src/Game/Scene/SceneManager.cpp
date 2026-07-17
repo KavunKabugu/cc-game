@@ -3,11 +3,13 @@
 namespace Game {
 
 void SceneManager::QueuePop() {
-    queue.emplace_back(SceneCommand{CommandType::Pop, nullptr});
+    queue.emplace_back(SceneCommand{.type = CommandType::Pop, .createScene = nullptr});
 }
 
 void SceneManager::QueueClear(const bool allowEmptyStack) {
-    queue.emplace_back(SceneCommand{CommandType::Clear, nullptr, allowEmptyStack});
+    queue.emplace_back(SceneCommand{
+            .type = CommandType::Clear, .createScene = nullptr, .allowEmptyStack = allowEmptyStack
+        });
 }
 
 void SceneManager::UpdateActiveScenes(const double dt) const {

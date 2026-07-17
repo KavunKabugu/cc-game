@@ -19,17 +19,17 @@ TextButton::TextButton(
 
 void TextButton::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const SDL_FRect rect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h
     };
 
     const SDL_Color activeNormal = selected ? selectedNormalColor : normalColor;
     const SDL_Color activeHover = selected ? selectedHoverColor : hoverColor;
     const SDL_Color activePressed = selected ? selectedPressedColor : pressedColor;
-    const auto [r, g, b, a] = !enabled ? SDL_Color{80, 80, 80, 255}
-                                  : (pressed ? activePressed : (hovered ? activeHover : activeNormal));
+    const auto [r, g, b, a] = !enabled ? SDL_Color{.r = 80, .g = 80, .b = 80, .a = 255}
+                                  : pressed ? activePressed : hovered ? activeHover : activeNormal;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, r, g, b, a);
     SDL_RenderFillRect(renderer, &rect);
@@ -51,10 +51,10 @@ void TextButton::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     }
 
     const SDL_FRect textRect = {
-        rect.x + (rect.w - static_cast<float>(textW)) * 0.5f,
-        rect.y + (rect.h - static_cast<float>(textH)) * 0.5f,
-        static_cast<float>(textW),
-        static_cast<float>(textH)
+        .x = rect.x + (rect.w - static_cast<float>(textW)) * 0.5f,
+        .y = rect.y + (rect.h - static_cast<float>(textH)) * 0.5f,
+        .w = static_cast<float>(textW),
+        .h = static_cast<float>(textH)
     };
     SDL_RenderTexture(renderer, textTexture.get(), nullptr, &textRect);
 }
@@ -122,7 +122,8 @@ void TextButton::SetEnabled(const bool value) {
     }
 }
 
-void TextButton::SetColors(const SDL_Color normal, const SDL_Color hover, const SDL_Color pressCol, const SDL_Color textCol) {
+void TextButton::SetColors(const SDL_Color normal, const SDL_Color hover, const SDL_Color pressCol,
+                           const SDL_Color textCol) {
     normalColor = normal;
     hoverColor = hover;
     pressedColor = pressCol;
@@ -130,7 +131,8 @@ void TextButton::SetColors(const SDL_Color normal, const SDL_Color hover, const 
     textDirty = true;
 }
 
-void TextButton::SetSelectedColors(const SDL_Color selectedNormal, const SDL_Color selectedHover, const SDL_Color selectedPressed) {
+void TextButton::SetSelectedColors(const SDL_Color selectedNormal, const SDL_Color selectedHover,
+                                   const SDL_Color selectedPressed) {
     selectedNormalColor = selectedNormal;
     selectedHoverColor = selectedHover;
     selectedPressedColor = selectedPressed;

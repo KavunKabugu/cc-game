@@ -18,12 +18,14 @@ MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInsta
     : sceneManager(sceneManager),
       game(gameInstance) {
     if (auto bgRes = ResourceManager::getInstance().Get<SDL_Texture>("background.png")) {
-        root->CreateChild<Sprite>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, *bgRes);
+        root->CreateChild<Sprite>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}}, *bgRes);
     } else {
-        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, SDL_Color{20, 22, 35, 255});
+        root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
+                                     SDL_Color{.r = 20, .g = 22, .b = 35, .a = 255});
     }
 
-    root->CreateChild<PanelRect>(UnitBounds{{0.3f, 0.12f}, {0.7f, 0.88f}}, SDL_Color{10, 10, 18, 180});
+    root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.3f, .y = 0.12f}, .max = {.x = 0.7f, .y = 0.88f}},
+                                 SDL_Color{.r = 10, .g = 10, .b = 18, .a = 180});
 
     const auto buttonTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("button.png");
     std::shared_ptr<SDL_Texture> buttonTexture = buttonTextureRes ? *buttonTextureRes : nullptr;
@@ -35,54 +37,54 @@ MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInsta
     }
 
     auto* title = root->CreateChild<Label>(
-        UnitBounds{{0.0f, 0.14f}, {1.0f, 0.28f}},
+        UnitBounds{.min = {.x = 0.0f, .y = 0.14f}, .max = {.x = 1.0f, .y = 0.28f}},
         *titleFontRes,
         "CC GAME");
     title->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
 
     auto* playButton = root->CreateChild<TextButton>(
-        UnitBounds{{0.38f, 0.38f}, {0.62f, 0.48f}},
+        UnitBounds{.min = {.x = 0.38f, .y = 0.38f}, .max = {.x = 0.62f, .y = 0.48f}},
         *buttonFontRes,
         "Play",
-        [this]() {
+        [this] {
             this->sceneManager.QueueReplace<SongSelectScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
     playButton->SetColors(
-        SDL_Color{40, 90, 140, 255},
-        SDL_Color{60, 120, 180, 255},
-        SDL_Color{28, 65, 105, 255},
-        SDL_Color{245, 245, 245, 255});
+        SDL_Color{.r = 40, .g = 90, .b = 140, .a = 255},
+        SDL_Color{.r = 60, .g = 120, .b = 180, .a = 255},
+        SDL_Color{.r = 28, .g = 65, .b = 105, .a = 255},
+        SDL_Color{.r = 245, .g = 245, .b = 245, .a = 255});
 
     auto* optionsButton = root->CreateChild<TextButton>(
-        UnitBounds{{0.38f, 0.52f}, {0.62f, 0.62f}},
+        UnitBounds{.min = {.x = 0.38f, .y = 0.52f}, .max = {.x = 0.62f, .y = 0.62f}},
         *buttonFontRes,
         "Options",
-        [this]() {
+        [this] {
             this->sceneManager.QueuePush<OptionsOverlayScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
     optionsButton->SetColors(
-        SDL_Color{90, 80, 130, 255},
-        SDL_Color{120, 102, 175, 255},
-        SDL_Color{70, 60, 102, 255},
-        SDL_Color{245, 245, 245, 255});
+        SDL_Color{.r = 90, .g = 80, .b = 130, .a = 255},
+        SDL_Color{.r = 120, .g = 102, .b = 175, .a = 255},
+        SDL_Color{.r = 70, .g = 60, .b = 102, .a = 255},
+        SDL_Color{.r = 245, .g = 245, .b = 245, .a = 255});
 
     auto* quitButton = root->CreateChild<TextButton>(
-        UnitBounds{{0.38f, 0.66f}, {0.62f, 0.76f}},
+        UnitBounds{.min = {.x = 0.38f, .y = 0.66f}, .max = {.x = 0.62f, .y = 0.76f}},
         *buttonFontRes,
         "Quit",
-        []() {
+        [] {
             SDL_Event quitEvent{};
             quitEvent.type = SDL_EVENT_QUIT;
             SDL_PushEvent(&quitEvent);
         },
         buttonTexture);
     quitButton->SetColors(
-        SDL_Color{135, 60, 70, 255},
-        SDL_Color{170, 80, 92, 255},
-        SDL_Color{100, 45, 52, 255},
-        SDL_Color{245, 245, 245, 255});
+        SDL_Color{.r = 135, .g = 60, .b = 70, .a = 255},
+        SDL_Color{.r = 170, .g = 80, .b = 92, .a = 255},
+        SDL_Color{.r = 100, .g = 45, .b = 52, .a = 255},
+        SDL_Color{.r = 245, .g = 245, .b = 245, .a = 255});
 }
 
 } // namespace Game

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CC_GAME_PATH_UTF8_H
+#define CC_GAME_PATH_UTF8_H
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -53,7 +54,7 @@ inline std::filesystem::path PathFromSdlUtf8(const char* raw) {
 }
 #endif
 
-// SDL3: SDL_GetBasePath returns const char* owned by SDL, DO NOT SDL_free.
+// SDL3 SDL_GetBasePath returns const char* owned by SDL, DO NOT SDL_free.
 inline std::optional<std::filesystem::path> PathFromSdlBasePath() {
     const char* raw = SDL_GetBasePath();
     if (!raw || raw[0] == '\0') {
@@ -84,3 +85,5 @@ inline std::optional<std::filesystem::path> PathFromSdlPrefPath(const char* org,
 }
 
 } // namespace Game
+
+#endif

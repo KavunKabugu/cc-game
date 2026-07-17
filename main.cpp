@@ -64,13 +64,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         if (Uint64 elapsed = now - lastFrameTimeNs; elapsed < targetIntervalNs) {
             // If remaining time is significant (> 0.7ms), sleep to yield CPU.
             // Leave a 0.4ms buffer to account for OS timer resolution limits.
+            // TODO: Buffering seems to be redundant, SDL should already be handling it, check and confirm
             if (const Uint64 remaining = targetIntervalNs - elapsed; remaining > 700'000ULL) {
                 SDL_DelayNS(remaining - 300'000ULL);
                 now = SDL_GetTicksNS();
                 elapsed = now - lastFrameTimeNs;
             }
 
-            // High-precision busy wait for the final portion
+            // Busy wait for the final portion
             while (elapsed < targetIntervalNs) {
                 now = SDL_GetTicksNS();
                 elapsed = now - lastFrameTimeNs;

@@ -8,7 +8,7 @@ void ViewportMatchLayout::Apply(Container& /*container*/) const {}
 
 UnitPoint ViewportMatchLayout::CalculateTotalSize(const Container& container) const {
     const SDL_FRect r = container.GetLastRenderRect();
-    return {r.w, r.h};
+    return {.x = r.w, .y = r.h};
 }
 
 } // namespace Game::Layout

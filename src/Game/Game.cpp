@@ -531,7 +531,7 @@ void GameInstance::SetGameplayLaneKeyBinding(const int lane, const int slot, con
 void GameInstance::Update() {
     CC_PROFILE("Game.Update");
     const Uint64 nowNs = SDL_GetTicksNS();
-    const double dt = (lastTickNs == 0) ? 0.0 : static_cast<double>(nowNs - lastTickNs) / 1'000'000'000.0;
+    const double dt = lastTickNs == 0 ? 0.0 : static_cast<double>(nowNs - lastTickNs) / 1'000'000'000.0;
     lastTickNs = nowNs;
 
     AudioManager::getInstance().Update();
@@ -559,10 +559,10 @@ void GameInstance::Render() const {
     SDL_RenderClear(renderer);
 
     const SDL_FRect logicalViewport = {
-        0.0f,
-        0.0f,
-        static_cast<float>(videoSettings.logicalWidth),
-        static_cast<float>(videoSettings.logicalHeight),
+        .x = 0.0f,
+        .y = 0.0f,
+        .w = static_cast<float>(videoSettings.logicalWidth),
+        .h = static_cast<float>(videoSettings.logicalHeight),
     };
     sceneManager.RenderScenes(renderer, logicalViewport);
 

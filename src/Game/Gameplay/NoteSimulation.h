@@ -1,7 +1,6 @@
 #ifndef CC_GAME_NOTE_SIMULATION_H
 #define CC_GAME_NOTE_SIMULATION_H
 
-#include <cstddef>
 #include <span>
 #include <vector>
 

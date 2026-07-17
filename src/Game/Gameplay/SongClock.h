@@ -1,7 +1,6 @@
 #ifndef CC_GAME_SONG_CLOCK_H
 #define CC_GAME_SONG_CLOCK_H
 
-#include <cstdint>
 #include <memory>
 
 #include <SDL3_mixer/SDL_mixer.h>

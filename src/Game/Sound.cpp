@@ -99,7 +99,7 @@ float Sound::GetPitch() const {
         return 1.0f;
     }
     const float ratio = MIX_GetTrackFrequencyRatio(track);
-    return (ratio <= 0.0f) ? 1.0f : ratio;
+    return ratio <= 0.0f ? 1.0f : ratio;
 }
 
 bool Sound::IsPlaying() const {
@@ -129,7 +129,7 @@ double Sound::GetRawPosition() const {
     if (duration > 0.0 && looping.load()) {
         return std::fmod(pos, duration);
     }
-    return (duration > 0.0) ? std::min(pos, duration) : pos;
+    return duration > 0.0 ? std::min(pos, duration) : pos;
 }
 
 double Sound::GetPitchAwarePosition() const {

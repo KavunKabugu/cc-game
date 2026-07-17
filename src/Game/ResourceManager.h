@@ -34,7 +34,8 @@ public:
     void Shutdown();
 
     void AddSearchPath(const std::string& path);
-    std::expected<std::filesystem::path, ResourceError> ResolveCanonicalPath(std::string_view rawPath) const;
+    [[nodiscard]] std::expected<std::filesystem::path, ResourceError> ResolveCanonicalPath(
+        std::string_view rawPath) const;
     [[nodiscard]] MIX_Mixer* GetMixer() const { return mixer; }
 
     // Multiplier for TTF font size (sizes passed to Get<TTF_Font> are in reference logical pixels).

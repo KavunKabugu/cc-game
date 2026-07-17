@@ -31,7 +31,7 @@ inline constexpr float kGameplayScrollSpeedMax = 100.0f;
 inline constexpr float kGameplayCrosshairRadiusMin = 50.0f;
 inline constexpr float kGameplayCrosshairRadiusMax = 250.0f;
 
-// Audio hardware latency UI uses milliseconds; stored as seconds in GameplaySettings::audioOffsetSeconds.
+// Audio hardware latency UI uses milliseconds, stored as seconds in GameplaySettings::audioOffsetSeconds.
 inline constexpr float kGameplayAudioOffsetMsMin = -100.0f;
 inline constexpr float kGameplayAudioOffsetMsMax = 100.0f;
 
@@ -52,7 +52,7 @@ inline constexpr double kPerfectWindowMs = 18.0;
 inline constexpr double kGreatWindowMs = 60.0;
 inline constexpr double kGoodWindowMs = 135.0;
 
-// How long after its hit time an unhit note stays hittable; past this it is
+// How long after its hit time an unhit note stays hittable, past this it is
 // auto-resolved as Miss and despawned.
 inline constexpr double kMissExpireMs = 230.0;
 inline constexpr double kMissExpireSeconds = kMissExpireMs * 1e-3;
@@ -93,12 +93,12 @@ inline constexpr float kArcRotationLeftDegrees = 315.0f;   // 180°
 inline constexpr float kCrosshairAngles[4] = {0.0f, 90.0f, 180.0f, 270.0f};
 
 // Crosshair appearance.
-inline constexpr SDL_Color kCrosshairColor{255, 255, 255, 125};
+inline constexpr SDL_Color kCrosshairColor{.r = 255, .g = 255, .b = 255, .a = 125};
 
 // Note colors per state.
-inline constexpr SDL_Color kNoteColorDefault{255, 255, 255, 255};
-inline constexpr SDL_Color kNoteColorHit{100, 255, 100, 255};
-inline constexpr SDL_Color kNoteColorMiss{255, 100, 100, 255};
+inline constexpr SDL_Color kNoteColorDefault{.r = 255, .g = 255, .b = 255, .a = 255};
+inline constexpr SDL_Color kNoteColorHit{.r = 100, .g = 255, .b = 100, .a = 255};
+inline constexpr SDL_Color kNoteColorMiss{.r = 255, .g = 100, .b = 100, .a = 255};
 
 } // namespace Game::Gameplay
 

@@ -1,5 +1,4 @@
 #include <cassert>
-#include <cmath>
 #include <vector>
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/GameplayConstants.h"
@@ -66,7 +65,7 @@ void TestExpiration() {
     assert(sim.ActiveNotes().empty());
     assert(sim.AllNotesResolved());
 
-    const auto& events = sim.DrainEvents();
+    [[maybe_unused]] const auto& events = sim.DrainEvents();
     assert(events.size() == 1);
     assert(events[0].judgement == Judgement::Miss);
     assert(events[0].missReason == MissReason::NoteExpired);
@@ -86,7 +85,7 @@ void TestTryHitPerfect() {
     sim.Tick(1.0); // Exactly at note time
     assert(sim.ActiveNotes().size() == 1);
 
-    const HitResult res = sim.TryHit(0, 1.0);
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0);
     assert(res.judgement == Judgement::Perfect);
     assert(res.missReason == MissReason::None);
     assert(res.lane == 0);
@@ -107,7 +106,7 @@ void TestTryHitGreat() {
     sim.Tick(1.0); // Exactly at note time
     assert(sim.ActiveNotes().size() == 1);
 
-    const HitResult res = sim.TryHit(0, 1.0 + 0.045); // 45ms after note time
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0 + 0.045); // 45ms after note time
     assert(res.judgement == Judgement::Great);
     assert(res.missReason == MissReason::None);
     assert(res.lane == 0);
@@ -133,7 +132,7 @@ void TestTryHitGoodAndBad() {
 
     // Good window: (kGreatWindowMs, kGoodWindowMs]
     constexpr double kGoodTestDeltaMs = kGreatWindowMs + 5.0;
-    const HitResult res1 = sim.TryHit(0, 1.0 + kGoodTestDeltaMs * 1e-3);
+    [[maybe_unused]] const HitResult res1 = sim.TryHit(0, 1.0 + kGoodTestDeltaMs * 1e-3);
     assert(res1.judgement == Judgement::Good);
     assert(std::abs(res1.deltaMs - kGoodTestDeltaMs) < 1e-6);
 
@@ -142,7 +141,7 @@ void TestTryHitGoodAndBad() {
 
     // Bad window: > kGoodWindowMs but within hit threshold
     constexpr double kBadTestDeltaMs = 200.0;
-    const HitResult res2 = sim.TryHit(1, 2.0 + kBadTestDeltaMs * 1e-3);
+    [[maybe_unused]] const HitResult res2 = sim.TryHit(1, 2.0 + kBadTestDeltaMs * 1e-3);
     assert(res2.judgement == Judgement::Bad);
     assert(std::abs(res2.deltaMs - kBadTestDeltaMs) < 1e-6);
 }
@@ -161,18 +160,18 @@ void TestEmptyLaneAndChords() {
     sim.Tick(1.0);
 
     // Try hit empty lane
-    const HitResult resEmpty = sim.TryHit(1, 1.0);
+    [[maybe_unused]] const HitResult resEmpty = sim.TryHit(1, 1.0);
     assert(resEmpty.judgement == Judgement::Miss);
     assert(resEmpty.missReason == MissReason::EmptyLane);
     assert(resEmpty.lane == 1);
 
     // Try hit lane 0: should hit the first note (1.0) because it's closest to hit time
-    const HitResult resFirst = sim.TryHit(0, 0.99);
+    [[maybe_unused]] const HitResult resFirst = sim.TryHit(0, 0.99);
     assert(resFirst.judgement == Judgement::Perfect);
     assert(resFirst.noteTargetTimeSeconds.has_value() && *resFirst.noteTargetTimeSeconds == 1.0);
 
     // Try hit lane 0 again: should hit the second note (1.01)
-    const HitResult resSecond = sim.TryHit(0, 1.01);
+    [[maybe_unused]] const HitResult resSecond = sim.TryHit(0, 1.01);
     assert(resSecond.judgement == Judgement::Perfect);
     assert(resSecond.noteTargetTimeSeconds.has_value() && *resSecond.noteTargetTimeSeconds == 1.01);
 }

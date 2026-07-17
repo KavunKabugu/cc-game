@@ -39,7 +39,7 @@ public:
 
 protected:
     std::vector<std::unique_ptr<GameObject>> children;
-    SDL_FRect lastRenderRect{0, 0, 0, 0};
+    SDL_FRect lastRenderRect{.x = 0, .y = 0, .w = 0, .h = 0};
 };
 
 } // namespace Game

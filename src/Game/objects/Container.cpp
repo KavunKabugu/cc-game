@@ -16,10 +16,10 @@ void Container::Update() {
 
 void Container::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const SDL_FRect myRect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h
     };
 
     if (myRect.w <= 0.0f || myRect.h <= 0.0f) return;

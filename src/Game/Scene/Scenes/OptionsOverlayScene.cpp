@@ -40,7 +40,8 @@ std::string KeyLabel(const SDL_Keycode key) {
     return "?";
 }
 
-class KeyBindingCaptureGate final : public GameObject, public IKeyHandler, public IMouseClickable, public IMouseScrollable {
+class KeyBindingCaptureGate final : public GameObject, public IKeyHandler, public IMouseClickable,
+                                    public IMouseScrollable {
 public:
     KeyBindingCaptureGate(
         const UnitBounds bounds,
@@ -54,9 +55,9 @@ public:
 
     void Update() override {}
 
-    IKeyHandler* AsKeyHandler() override { return (capturing && capturing()) ? this : nullptr; }
-    IMouseClickable* AsMouseClickable() override { return (capturing && capturing()) ? this : nullptr; }
-    IMouseScrollable* AsMouseScrollable() override { return (capturing && capturing()) ? this : nullptr; }
+    IKeyHandler* AsKeyHandler() override { return capturing && capturing() ? this : nullptr; }
+    IMouseClickable* AsMouseClickable() override { return capturing && capturing() ? this : nullptr; }
+    IMouseScrollable* AsMouseScrollable() override { return capturing && capturing() ? this : nullptr; }
 
     bool OnKeyDown(const SDL_Keycode key, const Uint64 timestamp) override {
         (void)timestamp;
@@ -180,7 +181,8 @@ OptionsOverlayScene::OptionsOverlayScene(SceneManager& sceneManager, GameInstanc
     overlayOpenedLogicalW = vOpen.logicalWidth;
     overlayOpenedLogicalH = vOpen.logicalHeight;
 
-    root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, SDL_Color{0, 0, 0, 150});
+    root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
+                                 SDL_Color{.r = 0, .g = 0, .b = 0, .a = 150});
 
     auto overlayTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("overlay_bg.png");
     const auto buttonTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("button.png");
@@ -192,94 +194,101 @@ OptionsOverlayScene::OptionsOverlayScene(SceneManager& sceneManager, GameInstanc
     }
     font = *bodyFontRes;
 
-    root->CreateChild<PanelRect>(UnitBounds{{0.12f, 0.1f}, {0.88f, 0.9f}}, SDL_Color{22, 24, 34, 235});
+    root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.12f, .y = 0.1f}, .max = {.x = 0.88f, .y = 0.9f}},
+                                 SDL_Color{.r = 22, .g = 24, .b = 34, .a = 235});
     if (overlayTextureRes) {
-        root->CreateChild<Sprite>(UnitBounds{{0.12f, 0.1f}, {0.88f, 0.9f}}, *overlayTextureRes);
+        root->CreateChild<Sprite>(UnitBounds{.min = {.x = 0.12f, .y = 0.1f}, .max = {.x = 0.88f, .y = 0.9f}},
+                                  *overlayTextureRes);
     }
 
     auto* title = root->CreateChild<Label>(
-        UnitBounds{{0.16f, 0.13f}, {0.84f, 0.22f}},
+        UnitBounds{.min = {.x = 0.16f, .y = 0.13f}, .max = {.x = 0.84f, .y = 0.22f}},
         *titleFontRes,
         "Options");
     title->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
 
-    root->CreateChild<PanelRect>(UnitBounds{{0.16f, 0.24f}, {0.35f, 0.84f}}, SDL_Color{32, 36, 53, 235});
-    root->CreateChild<PanelRect>(UnitBounds{{0.37f, 0.24f}, {0.84f, 0.84f}}, SDL_Color{28, 32, 46, 235});
+    root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.16f, .y = 0.24f}, .max = {.x = 0.35f, .y = 0.84f}},
+                                 SDL_Color{.r = 32, .g = 36, .b = 53, .a = 235});
+    root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.37f, .y = 0.24f}, .max = {.x = 0.84f, .y = 0.84f}},
+                                 SDL_Color{.r = 28, .g = 32, .b = 46, .a = 235});
 
     const std::shared_ptr<SDL_Texture> buttonTexture = buttonTextureRes ? *buttonTextureRes : nullptr;
 
     root->CreateChild<TextButton>(
-        UnitBounds{{0.17f, 0.27f}, {0.34f, 0.35f}},
+        UnitBounds{.min = {.x = 0.17f, .y = 0.27f}, .max = {.x = 0.34f, .y = 0.35f}},
         *sectionFontRes,
         "Video",
-        [this]() {
+        [this] {
             currentCategory = Category::Video;
             RebuildContent(currentCategory);
         },
         buttonTexture);
     root->CreateChild<TextButton>(
-        UnitBounds{{0.17f, 0.37f}, {0.34f, 0.45f}},
+        UnitBounds{.min = {.x = 0.17f, .y = 0.37f}, .max = {.x = 0.34f, .y = 0.45f}},
         *sectionFontRes,
         "Audio",
-        [this]() {
+        [this] {
             currentCategory = Category::Audio;
             RebuildContent(currentCategory);
         },
         buttonTexture);
     root->CreateChild<TextButton>(
-        UnitBounds{{0.17f, 0.47f}, {0.34f, 0.55f}},
+        UnitBounds{.min = {.x = 0.17f, .y = 0.47f}, .max = {.x = 0.34f, .y = 0.55f}},
         *sectionFontRes,
         "Input",
-        [this]() {
+        [this] {
             currentCategory = Category::Input;
             RebuildContent(currentCategory);
         },
         buttonTexture);
     root->CreateChild<TextButton>(
-        UnitBounds{{0.17f, 0.57f}, {0.34f, 0.65f}},
+        UnitBounds{.min = {.x = 0.17f, .y = 0.57f}, .max = {.x = 0.34f, .y = 0.65f}},
         *sectionFontRes,
         "Gameplay",
-        [this]() {
+        [this] {
             currentCategory = Category::Gameplay;
             RebuildContent(currentCategory);
         },
         buttonTexture);
 
     root->CreateChild<TextButton>(
-        UnitBounds{{0.77f, 0.13f}, {0.84f, 0.2f}},
+        UnitBounds{.min = {.x = 0.77f, .y = 0.13f}, .max = {.x = 0.84f, .y = 0.2f}},
         *sectionFontRes,
         "X",
-        [this]() {
+        [this] {
             CloseOverlay();
         },
         buttonTexture);
 
-    contentContainer = root->CreateChild<ScrollContainer>(UnitBounds{{0.39f, 0.26f}, {0.82f, 0.82f}});
+    contentContainer = root->CreateChild<ScrollContainer>(UnitBounds{
+            .min = {.x = 0.39f, .y = 0.26f}, .max = {.x = 0.82f, .y = 0.82f}
+        });
     RebuildContent(currentCategory);
 
     keyCaptureBackdrop =
-        root->CreateChild<PanelRect>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}}, SDL_Color{0, 0, 0, 0});
+        root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
+                                     SDL_Color{.r = 0, .g = 0, .b = 0, .a = 0});
     keyCapturePrompt = root->CreateChild<Label>(
-        UnitBounds{{0.1f, 0.42f}, {0.9f, 0.5f}},
+        UnitBounds{.min = {.x = 0.1f, .y = 0.42f}, .max = {.x = 0.9f, .y = 0.5f}},
         *bodyFontRes,
         "");
     keyCapturePrompt->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
 
     root->CreateChild<KeyBindingCaptureGate>(
-        UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}},
-        [this]() {
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
+        [this] {
             return keyCaptureActive;
         },
         [this](const SDL_Keycode key) {
             CompleteKeyRebind(key);
         },
-        [this]() {
+        [this] {
             CancelKeyRebind();
         });
 
     root->CreateChild<OverlayCloseHandler>(
-        UnitBounds{{0.0f, 0.0f}, {0.0f, 0.0f}},
-        [this]() {
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
+        [this] {
             CloseOverlay();
         });
 }
@@ -351,10 +360,10 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
     }
     if (gameplayBackgroundColorPreview) {
         gameplayBackgroundColorPreview->SetColor(SDL_Color{
-            gs.backgroundColorR,
-            gs.backgroundColorG,
-            gs.backgroundColorB,
-            255});
+            .r = gs.backgroundColorR,
+            .g = gs.backgroundColorG,
+            .b = gs.backgroundColorB,
+            .a = 255});
     }
     if (gameplayEnablePlayfieldBorderCheckbox) {
         gameplayEnablePlayfieldBorderCheckbox->SetText(gs.enablePlayfieldBorder ? "X" : "");
@@ -402,7 +411,7 @@ void OptionsOverlayScene::BeginKeyRebind(const int lane, const int slot) {
     keyCaptureLane = lane;
     keyCaptureSlot = slot;
     if (keyCaptureBackdrop != nullptr) {
-        keyCaptureBackdrop->SetColor(SDL_Color{0, 0, 0, 200});
+        keyCaptureBackdrop->SetColor(SDL_Color{.r = 0, .g = 0, .b = 0, .a = 200});
     }
     if (keyCapturePrompt != nullptr) {
         keyCapturePrompt->SetText("Press a key... (ESC to cancel)");
@@ -412,7 +421,7 @@ void OptionsOverlayScene::BeginKeyRebind(const int lane, const int slot) {
 void OptionsOverlayScene::EndKeyRebind() {
     keyCaptureActive = false;
     if (keyCaptureBackdrop != nullptr) {
-        keyCaptureBackdrop->SetColor(SDL_Color{0, 0, 0, 0});
+        keyCaptureBackdrop->SetColor(SDL_Color{.r = 0, .g = 0, .b = 0, .a = 0});
     }
     if (keyCapturePrompt != nullptr) {
         keyCapturePrompt->SetText("");
@@ -479,21 +488,23 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         return;
     }
 
-    const std::shared_ptr<TTF_Font> titleFont = *titleFontRes;
-    const std::shared_ptr<TTF_Font> rowFont = *rowFontRes;
+    const std::shared_ptr<TTF_Font>& titleFont = *titleFontRes;
+    const std::shared_ptr<TTF_Font>& rowFont = *rowFontRes;
     const std::shared_ptr<SDL_Texture> buttonTexture = buttonTextureRes ? *buttonTextureRes : nullptr;
 
     if (category == Category::Gameplay) {
         contentContainer->SetLayout(std::make_unique<Layout::VBoxLayout>(6.0f, 8.0f, 52.0f));
 
         auto makeRow = [this]() -> Container* {
-            return contentContainer->CreateChild<Container>(UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}});
+            return contentContainer->CreateChild<Container>(UnitBounds{
+                    .min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}
+                });
         };
 
         {
             auto* titleRow = makeRow();
             auto* sectionLabel = titleRow->CreateChild<Label>(
-                UnitBounds{{0.02f, 0.0f}, {0.98f, 1.0f}},
+                UnitBounds{.min = {.x = 0.02f, .y = 0.0f}, .max = {.x = 0.98f, .y = 1.0f}},
                 titleFont,
                 std::string(CategoryTitle(category)));
             sectionLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
@@ -512,16 +523,16 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             const float sliderMaxX = 0.98f) {
             auto* row = makeRow();
             row->CreateChild<Label>(
-                UnitBounds{{0.02f, 0.1f}, {0.34f, 0.9f}},
+                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.34f, .y = 0.9f}},
                 rowFont,
                 labelText);
             valueLabel = row->CreateChild<Label>(
-                UnitBounds{{0.34f, 0.1f}, {0.48f, 0.9f}},
+                UnitBounds{.min = {.x = 0.34f, .y = 0.1f}, .max = {.x = 0.48f, .y = 0.9f}},
                 rowFont,
                 "");
             valueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
             auto* slider = row->CreateChild<Slider>(
-                UnitBounds{{0.50f, 0.2f}, {sliderMaxX, 0.8f}},
+                UnitBounds{.min = {.x = 0.50f, .y = 0.2f}, .max = {.x = sliderMaxX, .y = 0.8f}},
                 minV,
                 maxV,
                 stepV,
@@ -530,14 +541,15 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             return row;
         };
 
-        auto addCheckboxRow = [&](const char* labelText, TextButton*& outCheckbox, const bool checked, std::function<void()> onClick) {
+        auto addCheckboxRow = [&](const char* labelText, TextButton*& outCheckbox, const bool checked,
+                                  std::function<void()> onClick) {
             auto* row = makeRow();
             row->CreateChild<Label>(
-                UnitBounds{{0.02f, 0.1f}, {0.78f, 0.9f}},
+                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.78f, .y = 0.9f}},
                 rowFont,
                 labelText);
             outCheckbox = row->CreateChild<TextButton>(
-                UnitBounds{{0.82f, 0.15f}, {0.94f, 0.85f}},
+                UnitBounds{.min = {.x = 0.82f, .y = 0.15f}, .max = {.x = 0.94f, .y = 0.85f}},
                 rowFont,
                 checked ? "X" : "",
                 std::move(onClick),
@@ -584,7 +596,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Use song clock for timing",
             gameplaySongClockTimingCheckbox,
             !gs.useWallClockForJudgementTiming,
-            [this]() {
+            [this] {
                 const bool cur = game.GetGameplaySettings().useWallClockForJudgementTiming;
                 game.SetUseWallClockForJudgementTiming(!cur);
                 RefreshGameplayControlTexts();
@@ -594,7 +606,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Enable background",
             gameplayEnableBackgroundCheckbox,
             gs.enableBackgroundImage,
-            [this]() {
+            [this] {
                 const bool cur = game.GetGameplaySettings().enableBackgroundImage;
                 game.SetEnableBackgroundImage(!cur);
                 RefreshGameplayControlTexts();
@@ -619,15 +631,15 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                 0.0f,
                 255.0f,
                 1.0f,
-                static_cast<float>(gs.backgroundColorR),
+                gs.backgroundColorR,
                 [this](const float v) {
                     game.SetBackgroundColorR(static_cast<unsigned char>(std::lround(v)));
                     RefreshGameplayControlTexts();
                 },
                 0.82f);
             gameplayBackgroundColorPreview = row->CreateChild<PanelRect>(
-                UnitBounds{{0.86f, 0.15f}, {0.98f, 0.85f}},
-                SDL_Color{gs.backgroundColorR, gs.backgroundColorG, gs.backgroundColorB, 255});
+                UnitBounds{.min = {.x = 0.86f, .y = 0.15f}, .max = {.x = 0.98f, .y = 0.85f}},
+                SDL_Color{.r = gs.backgroundColorR, .g = gs.backgroundColorG, .b = gs.backgroundColorB, .a = 255});
         }
 
         addSliderRow(
@@ -636,7 +648,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.0f,
             255.0f,
             1.0f,
-            static_cast<float>(gs.backgroundColorG),
+            gs.backgroundColorG,
             [this](const float v) {
                 game.SetBackgroundColorG(static_cast<unsigned char>(std::lround(v)));
                 RefreshGameplayControlTexts();
@@ -649,7 +661,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.0f,
             255.0f,
             1.0f,
-            static_cast<float>(gs.backgroundColorB),
+            gs.backgroundColorB,
             [this](const float v) {
                 game.SetBackgroundColorB(static_cast<unsigned char>(std::lround(v)));
                 RefreshGameplayControlTexts();
@@ -660,7 +672,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Enable playfield border",
             gameplayEnablePlayfieldBorderCheckbox,
             gs.enablePlayfieldBorder,
-            [this]() {
+            [this] {
                 const bool cur = game.GetGameplaySettings().enablePlayfieldBorder;
                 game.SetEnablePlayfieldBorder(!cur);
                 RefreshGameplayControlTexts();
@@ -694,7 +706,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             "Swap Up/Down lanes",
             gameplaySwapUpDownLanesCheckbox,
             gs.swapUpDownLanes,
-            [this]() {
+            [this] {
                 const bool cur = game.GetGameplaySettings().swapUpDownLanes;
                 game.SetSwapUpDownLanes(!cur);
                 RefreshGameplayControlTexts();
@@ -703,7 +715,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         {
             auto* noteRow = makeRow();
             auto* gameplayNote = noteRow->CreateChild<Label>(
-                UnitBounds{{0.02f, 0.1f}, {0.98f, 0.9f}},
+                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.98f, .y = 0.9f}},
                 font,
                 "Changes apply on the next chart.");
             gameplayNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
@@ -717,7 +729,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     contentContainer->SetLayout(std::make_unique<Layout::ViewportMatchLayout>());
 
     auto* sectionLabel = contentContainer->CreateChild<Label>(
-        UnitBounds{{0.05f, 0.05f}, {0.95f, 0.14f}},
+        UnitBounds{.min = {.x = 0.05f, .y = 0.05f}, .max = {.x = 0.95f, .y = 0.14f}},
         titleFont,
         std::string(CategoryTitle(category)));
     sectionLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
@@ -725,11 +737,11 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     if (category == Category::Video) {
         auto addRow = [&](const float yMin, const float yMax, const char* leftText, TextButton*& outButton, std::function<void()> onClick) {
             contentContainer->CreateChild<Label>(
-                UnitBounds{{0.05f, yMin}, {0.48f, yMax}},
+                UnitBounds{.min = {.x = 0.05f, .y = yMin}, .max = {.x = 0.48f, .y = yMax}},
                 rowFont,
                 leftText);
             outButton = contentContainer->CreateChild<TextButton>(
-                UnitBounds{{0.52f, yMin}, {0.95f, yMax}},
+                UnitBounds{.min = {.x = 0.52f, .y = yMin}, .max = {.x = 0.95f, .y = yMax}},
                 rowFont,
                 "",
                 std::move(onClick),
@@ -741,7 +753,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.26f,
             "Resolution",
             videoResolutionButton,
-            [this]() {
+            [this] {
                 game.CycleLogicalResolution();
                 RefreshVideoControlTexts();
             });
@@ -751,7 +763,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.36f,
             "VSync",
             videoVsyncButton,
-            [this]() {
+            [this] {
                 game.ToggleVsync();
                 RefreshVideoControlTexts();
             });
@@ -761,17 +773,17 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.46f,
             "Window mode",
             videoWindowModeButton,
-            [this]() {
+            [this] {
                 game.CycleWindowMode();
                 RefreshVideoControlTexts();
             });
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.48f}, {0.48f, 0.56f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.48f}, .max = {.x = 0.48f, .y = 0.56f}},
             rowFont,
             "Aspect ratio");
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.52f, 0.48f}, {0.95f, 0.56f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.48f}, .max = {.x = 0.95f, .y = 0.56f}},
             rowFont,
             std::string(VideoAspectRatioLabel(game.GetVideoSettings().aspectRatio)) + " (template)");
 
@@ -782,25 +794,25 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             0.66f,
             "Limit framerate",
             videoLimitFramerateButton,
-            [this]() {
+            [this] {
                 const bool cur = game.GetVideoSettings().enableFrameLimiter;
                 game.SetFrameLimiterEnabled(!cur);
                 RefreshVideoControlTexts();
             });
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.68f}, {0.34f, 0.76f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.68f}, .max = {.x = 0.34f, .y = 0.76f}},
             rowFont,
             "Framerate limit");
 
         videoFramerateLimitValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.68f}, {0.50f, 0.76f}},
+            UnitBounds{.min = {.x = 0.36f, .y = 0.68f}, .max = {.x = 0.50f, .y = 0.76f}},
             rowFont,
             "");
         videoFramerateLimitValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
         auto* framerateSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.68f}, {0.95f, 0.76f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.68f}, .max = {.x = 0.95f, .y = 0.76f}},
             30.0f,
             1000.0f,
             1.0f,
@@ -811,13 +823,13 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         });
 
         auto* noteLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.78f}, {0.95f, 0.90f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.78f}, .max = {.x = 0.95f, .y = 0.90f}},
             font,
             "Changes apply immediately.");
         noteLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
         auto* resLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.84f}, {0.95f, 0.96f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.84f}, .max = {.x = 0.95f, .y = 0.96f}},
             font,
             "Refresh the window for resolution changes.");
         resLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
@@ -835,18 +847,18 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         const auto&[masterVolume, musicVolume, sfxVolume, uiVolume] = game.GetAudioSettings();
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.16f}, {0.34f, 0.24f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.16f}, .max = {.x = 0.34f, .y = 0.24f}},
             rowFont,
             "Master volume");
 
         audioMasterValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.16f}, {0.50f, 0.24f}},
+            UnitBounds{.min = {.x = 0.36f, .y = 0.16f}, .max = {.x = 0.50f, .y = 0.24f}},
             rowFont,
             "");
         audioMasterValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
         auto* masterSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.16f}, {0.95f, 0.24f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.16f}, .max = {.x = 0.95f, .y = 0.24f}},
             kVolMin,
             kVolMax,
             kVolStep,
@@ -857,18 +869,18 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         });
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.26f}, {0.34f, 0.34f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.26f}, .max = {.x = 0.34f, .y = 0.34f}},
             rowFont,
             "Music");
 
         audioMusicValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.26f}, {0.50f, 0.34f}},
+            UnitBounds{.min = {.x = 0.36f, .y = 0.26f}, .max = {.x = 0.50f, .y = 0.34f}},
             rowFont,
             "");
         audioMusicValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
         auto* musicSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.26f}, {0.95f, 0.34f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.26f}, .max = {.x = 0.95f, .y = 0.34f}},
             kVolMin,
             kVolMax,
             kVolStep,
@@ -879,18 +891,18 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         });
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.36f}, {0.34f, 0.44f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.36f}, .max = {.x = 0.34f, .y = 0.44f}},
             rowFont,
             "Sound effects");
 
         audioSfxValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.36f}, {0.50f, 0.44f}},
+            UnitBounds{.min = {.x = 0.36f, .y = 0.36f}, .max = {.x = 0.50f, .y = 0.44f}},
             rowFont,
             "");
         audioSfxValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
         auto* sfxSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.36f}, {0.95f, 0.44f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.36f}, .max = {.x = 0.95f, .y = 0.44f}},
             kVolMin,
             kVolMax,
             kVolStep,
@@ -901,18 +913,18 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         });
 
         contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.46f}, {0.34f, 0.54f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.46f}, .max = {.x = 0.34f, .y = 0.54f}},
             rowFont,
             "UI sounds");
 
         audioUiValueLabel = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.36f, 0.46f}, {0.50f, 0.54f}},
+            UnitBounds{.min = {.x = 0.36f, .y = 0.46f}, .max = {.x = 0.50f, .y = 0.54f}},
             rowFont,
             "");
         audioUiValueLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Middle);
 
         auto* uiSlider = contentContainer->CreateChild<Slider>(
-            UnitBounds{{0.52f, 0.46f}, {0.95f, 0.54f}},
+            UnitBounds{.min = {.x = 0.52f, .y = 0.46f}, .max = {.x = 0.95f, .y = 0.54f}},
             kVolMin,
             kVolMax,
             kVolStep,
@@ -923,7 +935,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         });
 
         auto* audioNote = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.58f}, {0.95f, 0.68f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.58f}, .max = {.x = 0.95f, .y = 0.68f}},
             font,
             "Changes apply immediately.");
         audioNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
@@ -948,7 +960,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             const float yMax = yMin + 0.08f;
 
             contentContainer->CreateChild<Label>(
-                UnitBounds{{0.05f, yMin}, {0.18f, yMax}},
+                UnitBounds{.min = {.x = 0.05f, .y = yMin}, .max = {.x = 0.18f, .y = yMax}},
                 rowFont,
                 kLaneNames[static_cast<size_t>(lane)]);
 
@@ -957,10 +969,10 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                 const float xMax = xMin + 0.20f;
 
                 inputBindButtons[lane][slot] = contentContainer->CreateChild<TextButton>(
-                    UnitBounds{{xMin, yMin}, {xMax, yMax}},
+                    UnitBounds{.min = {.x = xMin, .y = yMin}, .max = {.x = xMax, .y = yMax}},
                     rowFont,
                     KeyLabel(gs.keyBindings[static_cast<size_t>(lane)][static_cast<size_t>(slot)]),
-                    [this, lane, slot]() {
+                    [this, lane, slot] {
                         BeginKeyRebind(lane, slot);
                     },
                     buttonTexture);
@@ -968,7 +980,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
         }
 
         auto* inputNote = contentContainer->CreateChild<Label>(
-            UnitBounds{{0.05f, 0.58f}, {0.95f, 0.68f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.58f}, .max = {.x = 0.95f, .y = 0.68f}},
             font,
             "Changes apply immediately.");
         inputNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);

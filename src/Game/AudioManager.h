@@ -41,7 +41,8 @@ public:
     void StopCategory(AudioCategory category) const;
 
     // Creates and plays a sound from decoded mixer audio
-    std::shared_ptr<Sound> Play(const std::shared_ptr<MIX_Audio>& audio, AudioCategory category = AudioCategory::Sfx, bool loop = false);
+    std::shared_ptr<Sound> Play(const std::shared_ptr<MIX_Audio>& audio, AudioCategory category = AudioCategory::Sfx,
+                                bool loop = false);
 
 private:
     AudioManager();

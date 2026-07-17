@@ -13,7 +13,7 @@ namespace Game::Gameplay {
 // Bottom timing strip, +/-window ms, hit markers with hold + fade.
 class TimingRuler final : public Drawable, public ITimeAware {
 public:
-    explicit TimingRuler(UnitBounds bounds = UnitBounds{{0.0f, 0.0f}, {1.0f, 1.0f}});
+    explicit TimingRuler(UnitBounds bounds = UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}});
 
     void Update() override {}
     ITimeAware* AsTimeAware() override;

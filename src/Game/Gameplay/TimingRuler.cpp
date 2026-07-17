@@ -35,10 +35,10 @@ void TimingRuler::Clear() {
 
 void TimingRuler::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const SDL_FRect slotRect = {
-        parentRect.x + (bounds.min.x * parentRect.w),
-        parentRect.y + (bounds.min.y * parentRect.h),
-        (bounds.max.x - bounds.min.x) * parentRect.w,
-        (bounds.max.y - bounds.min.y) * parentRect.h,
+        .x = parentRect.x + bounds.min.x * parentRect.w,
+        .y = parentRect.y + bounds.min.y * parentRect.h,
+        .w = (bounds.max.x - bounds.min.x) * parentRect.w,
+        .h = (bounds.max.y - bounds.min.y) * parentRect.h,
     };
 
     if (slotRect.w <= 0.0f || slotRect.h <= 0.0f) {
@@ -55,10 +55,10 @@ void TimingRuler::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
 
     SDL_SetRenderDrawColor(renderer, 200, 215, 235, 90);
     const SDL_FRect baseline = {
-        slotRect.x + paddingPx,
-        centerY - lineW * 0.5f,
-        std::max(0.0f, slotRect.w - 2.0f * paddingPx),
-        lineW,
+        .x = slotRect.x + paddingPx,
+        .y = centerY - lineW * 0.5f,
+        .w = std::max(0.0f, slotRect.w - 2.0f * paddingPx),
+        .h = lineW,
     };
     SDL_RenderFillRect(renderer, &baseline);
 
@@ -67,10 +67,10 @@ void TimingRuler::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     SDL_SetRenderDrawColor(renderer, 240, 248, 255, 220);
     const float midX = slotRect.x + slotRect.w * 0.5f;
     const SDL_FRect notch = {
-        midX - notchW * 0.5f,
-        centerY - notchH * 0.5f,
-        notchW,
-        notchH,
+        .x = midX - notchW * 0.5f,
+        .y = centerY - notchH * 0.5f,
+        .w = notchW,
+        .h = notchH,
     };
     SDL_RenderFillRect(renderer, &notch);
 
@@ -96,10 +96,10 @@ void TimingRuler::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
 
         const float markerH = std::min(slotRect.h * 0.72f, notchH + strokePx * 2.0f);
         const SDL_FRect markerRect = {
-            mx - lineW * 0.5f,
-            centerY - markerH * 0.5f,
-            lineW,
-            markerH,
+            .x = mx - lineW * 0.5f,
+            .y = centerY - markerH * 0.5f,
+            .w = lineW,
+            .h = markerH,
         };
         SDL_RenderFillRect(renderer, &markerRect);
     }

@@ -56,9 +56,9 @@ private:
 
     std::function<void(float)> onChanged;
 
-    SDL_Color trackColor{50, 52, 62, 255};
-    SDL_Color thumbColor{200, 202, 215, 255};
-    SDL_Color thumbHoverColor{232, 235, 245, 255};
+    SDL_Color trackColor{.r = 50, .g = 52, .b = 62, .a = 255};
+    SDL_Color thumbColor{.r = 200, .g = 202, .b = 215, .a = 255};
+    SDL_Color thumbHoverColor{.r = 232, .g = 235, .b = 245, .a = 255};
 
     bool hovered = false;
 };

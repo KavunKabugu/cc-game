@@ -56,8 +56,7 @@ std::expected<ChartData, ChartLoadError> LoadChartFromFile(const std::filesystem
 
         chart.notes.reserve(j["notes"].size());
         for (const auto& note : j["notes"]) {
-            const std::string type = note.value("type", "tap");
-            if (type != "tap" && type != "hold") {
+            if (const std::string type = note.value("type", "tap"); type != "tap" && type != "hold") {
                 continue; // Skip unknown / unsupported types.
             }
 

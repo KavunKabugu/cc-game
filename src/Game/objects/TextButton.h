@@ -53,13 +53,13 @@ private:
     std::shared_ptr<SDL_Texture> backgroundTexture;
     std::function<void()> onClick;
 
-    SDL_Color normalColor{50, 80, 140, 255};
-    SDL_Color hoverColor{70, 105, 170, 255};
-    SDL_Color pressedColor{35, 60, 110, 255};
-    SDL_Color selectedNormalColor{76, 136, 86, 255};
-    SDL_Color selectedHoverColor{92, 160, 102, 255};
-    SDL_Color selectedPressedColor{58, 114, 69, 255};
-    SDL_Color textColor{255, 255, 255, 255};
+    SDL_Color normalColor{.r = 50, .g = 80, .b = 140, .a = 255};
+    SDL_Color hoverColor{.r = 70, .g = 105, .b = 170, .a = 255};
+    SDL_Color pressedColor{.r = 35, .g = 60, .b = 110, .a = 255};
+    SDL_Color selectedNormalColor{.r = 76, .g = 136, .b = 86, .a = 255};
+    SDL_Color selectedHoverColor{.r = 92, .g = 160, .b = 102, .a = 255};
+    SDL_Color selectedPressedColor{.r = 58, .g = 114, .b = 69, .a = 255};
+    SDL_Color textColor{.r = 255, .g = 255, .b = 255, .a = 255};
 
     int textW = 0;
     int textH = 0;

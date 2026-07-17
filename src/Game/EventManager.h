@@ -32,24 +32,25 @@ public:
     void Dispatch(const std::vector<Container*>& roots, int windowW, int windowH);
     void ResetInteractionState();
     void ClearQueue();
-    void NotifyObjectDestroyed(GameObject* obj);
+    void NotifyObjectDestroyed(const GameObject* obj);
 
     void BeginDragCapture(GameObject* target, int button);
 
-    bool IsKeyDown(SDL_Keycode key) const;
-    Uint64 GetKeyTimestamp(SDL_Keycode key) const;
-    bool IsMouseDown(int button) const;
-    UnitPoint GetMousePos() const { return lastMousePos; }
+    [[nodiscard]] bool IsKeyDown(SDL_Keycode key) const;
+    [[nodiscard]] Uint64 GetKeyTimestamp(SDL_Keycode key) const;
+    [[nodiscard]] bool IsMouseDown(int button) const;
+    [[nodiscard]] UnitPoint GetMousePos() const { return lastMousePos; }
 
 private:
     void ClearDragCapture();
 
-    bool ProcessInternal(const SDL_Event& event, const std::vector<Container*>& roots, int windowW, int windowH, bool updateStates);
+    bool ProcessInternal(const SDL_Event& event, const std::vector<Container*>& roots, int windowW, int windowH,
+                         bool updateStates);
 
     std::deque<SDL_Event> eventQueue;
     std::unordered_map<SDL_Keycode, KeyState> keyStates;
     std::unordered_map<int, bool> mouseButtonStates;
-    UnitPoint lastMousePos{0.0f, 0.0f};
+    UnitPoint lastMousePos{.x = 0.0f, .y = 0.0f};
 
     // For Clicked & Hover events
     GameObject* pressedObject = nullptr;

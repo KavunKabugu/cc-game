@@ -70,7 +70,8 @@ namespace Game::Song {
             }
         }
 
-        std::expected<std::shared_ptr<SongMetadata>, SongError> ParseSongFolder(const std::filesystem::path& folderPath) {
+        std::expected<std::shared_ptr<SongMetadata>, SongError>
+        ParseSongFolder(const std::filesystem::path& folderPath) {
             const std::filesystem::path metadataPath = folderPath / "song_metadata.json";
             if (!std::filesystem::exists(metadataPath)) {
                 return std::unexpected(SongError::MetadataMissing);
@@ -92,12 +93,16 @@ namespace Game::Song {
                 
                 if (j.contains("coverFile")) {
                     metadata->coverFile = j.at("coverFile").get<std::string>();
-                } else if (j.contains("thumbnailPath")) { // Support example field name TODO: Don't do this anymore? Not sure.
+                }
+                else if (j.contains("thumbnailPath")) {
+                    // Support example field name TODO: Don't do this anymore? Not sure.
                     metadata->coverFile = j.at("thumbnailPath").get<std::string>();
                 }
 
                 for (const auto& d : j.at("difficulties")) {
-                    std::string chartFile = d.contains("chartFile") ? d.at("chartFile").get<std::string>() : d.at("chartPath").get<std::string>();
+                    std::string chartFile = d.contains("chartFile")
+                                                ? d.at("chartFile").get<std::string>()
+                                                : d.at("chartPath").get<std::string>();
                     metadata->difficulties.push_back(SongDifficulty{
                         .name = d.at("name").get<std::string>(),
                         .chartPath = Utf8StringToPath(chartFile),

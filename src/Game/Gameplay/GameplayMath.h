@@ -26,7 +26,7 @@ constexpr float LaneToAngleDegrees(const int lane) {
 // Crosshair radius -> z-location such that an arc at noteTime reaches that radius.
 constexpr float CrosshairZLocation(const float crosshairRadius, const int screenWidth = kLogicalWidth) {
     if (crosshairRadius <= 0.0f) return 0.0f;
-    return (kArcReferenceWidth / crosshairRadius) * (static_cast<float>(screenWidth) * 0.5f);
+    return kArcReferenceWidth / crosshairRadius * (static_cast<float>(screenWidth) * 0.5f);
 }
 
 // noteSpeed (player setting) -> z-units per millisecond used by the formulas below.
@@ -45,7 +45,7 @@ constexpr float ZLocation(
 // Radius of an arc with the given z-location, in pixels at the given screen width.
 constexpr float ArcRadius(const float zLocation, const int screenWidth = kLogicalWidth) {
     if (zLocation <= 0.0f) return 0.0f;
-    return (kArcReferenceWidth / zLocation) * (static_cast<float>(screenWidth) * 0.5f);
+    return kArcReferenceWidth / zLocation * (static_cast<float>(screenWidth) * 0.5f);
 }
 
 // Time (in seconds) when an arc first becomes visible (Pulsarc-style IsSeenAt).

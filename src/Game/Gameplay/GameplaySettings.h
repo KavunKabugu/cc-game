@@ -11,7 +11,7 @@ namespace Game::Gameplay {
 // SetGlobalVolume / SetCategoryVolume and the gameplay layer never touches it.
 struct GameplaySettings {
     // Visible crosshair radius in logical pixels at the reference resolution
-    // (GameplayConstants kLogicalWidth × kLogicalHeight). GameplayScene scales into the active
+    // (GameplayConstants kLogicalWidth x kLogicalHeight). GameplayScene scales into the active
     // logical framebuffer so size and scroll timing stay consistent across resolutions.
     float crosshairRadius = kDefaultCrosshairRadius;
 

@@ -17,7 +17,8 @@ public:
     
     void Update() override;
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
-    bool HandleEvent(const SDL_Event& event, UnitPoint parentLocalPos, GameObject*& pressedObject, GameObject*& hoveredObject) override;
+    bool HandleEvent(const SDL_Event& event, UnitPoint parentLocalPos, GameObject*& pressedObject,
+                     GameObject*& hoveredObject) override;
 
     IMouseScrollable* AsMouseScrollable() override { return this; }
     IMouseClickable* AsMouseClickable() override { return this; }
@@ -37,7 +38,7 @@ public:
     bool OnMouseButtonUp(int button, UnitPoint localPos) override { return false; } // Handled in HandleEvent
     void OnMouseButtonClicked(int button, UnitPoint localPos) override {} // Handled in HandleEvent
 
-    // IMouseDraggable (scrollbar thumb; capture routed via EventManager)
+    // IMouseDraggable (scrollbar thumb, capture routed via EventManager)
     bool OnDragStart(int button, UnitPoint localPos) override;
     void OnDragMove(UnitPoint localPos) override;
     void OnDragEnd(int button, UnitPoint localPos) override;
@@ -58,8 +59,8 @@ private:
     float m_contentHeight{0.0f};
     
     float m_scrollbarWidth{12.0f};
-    SDL_Color m_trackColor{40, 40, 45, 180};
-    SDL_Color m_thumbColor{180, 180, 190, 255};
+    SDL_Color m_trackColor{.r = 40, .g = 40, .b = 45, .a = 180};
+    SDL_Color m_thumbColor{.r = 180, .g = 180, .b = 190, .a = 255};
     
     float m_dragStartY{0.0f};
     float m_dragStartScrollY{0.0f};

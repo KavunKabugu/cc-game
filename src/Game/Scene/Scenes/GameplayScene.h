@@ -2,7 +2,6 @@
 #define CC_GAME_GAMEPLAY_SCENE_H
 
 #include <array>
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
@@ -67,13 +66,13 @@ private:
     void UpdateHud();
     void HandleSongEnd();
     void HandleEscapeKey();
-    void HandleUserQuit();
+    void HandleUserQuit() const;
     void ShowStatsOverlay();
-    void HideStatsOverlay();
-    void ShowHud();
-    void HideHud();
-    void ShowPauseUi();
-    void HidePauseUi();
+    void HideStatsOverlay() const;
+    void ShowHud() const;
+    void HideHud() const;
+    void ShowPauseUi() const;
+    void HidePauseUi() const;
     void EnterPaused();
     void ResumeFromPause();
     void FinishResumeGrace();
