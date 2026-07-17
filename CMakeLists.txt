@@ -227,3 +227,8 @@ target_include_directories(slider_tests PRIVATE src)
 target_link_libraries(slider_tests PRIVATE SDL3::SDL3)
 add_test(NAME slider_tests COMMAND slider_tests)
 
+add_executable(path_utf8_tests tests/PathUtf8Tests.cpp)
+target_include_directories(path_utf8_tests PRIVATE src)
+target_link_libraries(path_utf8_tests PRIVATE SDL3::SDL3)
+add_test(NAME path_utf8_tests COMMAND path_utf8_tests)
+

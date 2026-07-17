@@ -37,7 +37,7 @@ public:
     [[nodiscard]] bool BlocksLowerUpdates() const override { return true; }
 
 protected:
-    static void DispatchDeltaTime(GameObject* object, double dt) {
+    static void DispatchDeltaTime(GameObject* object, const double dt) {
         if (!object) {
             return;
         }

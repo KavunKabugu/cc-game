@@ -18,7 +18,6 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
-#include <cctype>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -30,6 +29,8 @@
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
+using Game::PathEqualsAsciiICaseUtf8;
+using Game::PathExtensionAsciiLowerUtf8;
 using Game::PathFromSdlBasePath;
 using Game::PathToUtf8String;
 using Game::Utf8StringToPath;
@@ -385,8 +386,7 @@ namespace
             bool isFile = fs::is_regular_file(inPath, isFileEc);
             bool isDir = fs::is_directory(inPath, isDirEc);
 
-            std::string ext = inPath.extension().string();
-            std::ranges::transform(ext, ext.begin(), [](const unsigned char c) { return std::tolower(c); });
+            const std::string ext = PathExtensionAsciiLowerUtf8(inPath);
             bool isArchive = (ext == ".osz" || ext == ".zip");
 
             // Prepare source directory
@@ -442,8 +442,7 @@ namespace
             LogPath("Searching for .osu files in: ", sourceDir);
             std::vector<OsuChart> parsedCharts;
             for (std::error_code dirIterEc; const auto& entry : fs::directory_iterator(sourceDir, dirIterEc)) {
-                std::string entryExt = entry.path().extension().string();
-                std::ranges::transform(entryExt, entryExt.begin(), [](const unsigned char c) { return std::tolower(c); });
+                const std::string entryExt = PathExtensionAsciiLowerUtf8(entry.path());
 
                 if (std::error_code checkEc; entry.is_regular_file(checkEc) && entryExt == ".osu") {
                     Log("Parsing chart file: " + PathToUtf8String(entry.path().filename()));
@@ -573,10 +572,11 @@ namespace
                     fs::path srcPath = sourceDir / Utf8StringToPath(asset);
                     // Case-insensitive search on disk for Linux matching
                     if (std::error_code existsEc; !fs::exists(srcPath, existsEc)) {
-                        for (std::error_code assetDirEc; const auto& entry : fs::directory_iterator(sourceDir, assetDirEc)) {
+                        for (std::error_code assetDirEc; const auto& entry : fs::directory_iterator(
+                                 sourceDir, assetDirEc)) {
                             if (std::error_code checkEc; entry.is_regular_file(checkEc)) {
                                 const std::string entryName = PathToUtf8String(entry.path().filename());
-                                if (SDL_strcasecmp(entryName.c_str(), asset.c_str()) == 0) {
+                                if (PathEqualsAsciiICaseUtf8(entryName, asset)) {
                                     srcPath = entry.path();
                                     break;
                                 }

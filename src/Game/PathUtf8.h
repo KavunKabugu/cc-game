@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <SDL3/SDL_filesystem.h>
 
@@ -53,6 +54,38 @@ inline std::filesystem::path PathFromSdlUtf8(const char* raw) {
     return std::filesystem::path(raw);
 }
 #endif
+
+// ASCII-only lowercasing for culture-invariant extension / ASCII name compares.
+// Does not apply Unicode case folding (e.g. German ß); use only on known-ASCII text.
+[[nodiscard]] inline std::string AsciiToLowerUtf8(const std::string_view utf8) {
+    std::string out(utf8);
+    for (char& c : out) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    return out;
+}
+
+// Extension as UTF-8 (includes leading '.'). Empty if path has no extension.
+[[nodiscard]] inline std::string PathExtensionUtf8(const std::filesystem::path& p) {
+    return PathToUtf8String(p.extension());
+}
+
+// Extension as UTF-8, ASCII-lowercased (".OSU" -> ".osu"). Culture-invariant (should be).
+[[nodiscard]] inline std::string PathExtensionAsciiLowerUtf8(const std::filesystem::path& p) {
+    return AsciiToLowerUtf8(PathExtensionUtf8(p));
+}
+
+[[nodiscard]] inline bool PathEqualsUtf8(const std::filesystem::path& a, const std::filesystem::path& b) {
+    return PathToUtf8String(a) == PathToUtf8String(b);
+}
+
+// Byte-identical UTF-8 equality after ASCII-only case fold. For ASCII names/extensions only.
+// Pass UTF-8 string views (or PathToUtf8String results), do not pass raw narrow ACP paths.
+[[nodiscard]] inline bool PathEqualsAsciiICaseUtf8(const std::string_view aUtf8, const std::string_view bUtf8) {
+    return AsciiToLowerUtf8(aUtf8) == AsciiToLowerUtf8(bUtf8);
+}
 
 // SDL3 SDL_GetBasePath returns const char* owned by SDL, DO NOT SDL_free.
 inline std::optional<std::filesystem::path> PathFromSdlBasePath() {
