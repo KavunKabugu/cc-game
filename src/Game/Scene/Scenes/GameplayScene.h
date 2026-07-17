@@ -11,6 +11,7 @@
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/ResultsGraphDisplay.h"
 #include "Game/Gameplay/SongClock.h"
+#include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneBase.h"
 #include "Game/Song/SongTypes.h"
 
@@ -18,10 +19,7 @@ namespace Game {
 
 class GameInstance;
 class Label;
-class PanelRect;
 class SceneManager;
-class Sound;
-class TextButton;
 
 namespace Gameplay {
 class LaneInputHandler;
@@ -66,19 +64,15 @@ private:
     void UpdateHud();
     void HandleSongEnd();
     void HandleEscapeKey();
-    void HandleUserQuit() const;
-    void ShowStatsOverlay();
-    void HideStatsOverlay() const;
     void ShowHud() const;
     void HideHud() const;
-    void ShowPauseUi() const;
-    void HidePauseUi() const;
     void EnterPaused();
-    void ResumeFromPause();
+    void BeginResumeGrace();
     void FinishResumeGrace();
     void EnterResults();
     void ReturnToSongSelect(const std::string& errorMessage = "") const;
 
+    [[nodiscard]] Score::ResultsViewData BuildResultsViewData() const;
     [[nodiscard]] double AccuracyPercent() const;
     // Mean (t_input - t_note) in ms over hit judgements only, 0 when none.
     [[nodiscard]] double MeanSignedTimingErrorMs() const;
@@ -102,20 +96,6 @@ private:
     Label* judgementsLabel = nullptr;
     Label* accuracyLabel = nullptr;
     Label* timingStatsLabel = nullptr;
-
-    PanelRect* dimLayer = nullptr;
-    Gameplay::ResultsGraphDisplay* resultsGraphDisplay = nullptr;
-    TextButton* graphToggleButton = nullptr;
-    Label* resultScoreLabel = nullptr;
-    Label* resultAccuracyLabel = nullptr;
-    Label* resultJudgementsLabel = nullptr;
-    Label* resultRatioLabel = nullptr;
-    Label* resultBiasLabel = nullptr;
-    Label* resultStdDevLabel = nullptr;
-    TextButton* resultsBackButton = nullptr;
-    Label* pauseTitleLabel = nullptr;
-    TextButton* pauseResumeButton = nullptr;
-    TextButton* pauseQuitButton = nullptr;
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;

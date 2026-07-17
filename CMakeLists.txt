@@ -58,6 +58,7 @@ set(GAME_SOURCES
         src/Game/Score/ScoreStore.cpp
         src/Game/Score/ScoreStore.h
         src/Game/Score/ScoreTypes.h
+        src/Game/Score/ResultsViewData.h
         src/Game/objects/ScrollContainer.cpp
         src/Game/objects/ScrollContainer.h
         src/Game/objects/Slider.cpp
@@ -79,6 +80,8 @@ set(GAME_SOURCES
         src/Game/Scene/Scenes/GameplayScene.h
         src/Game/Scene/Scenes/OptionsOverlayScene.cpp
         src/Game/Scene/Scenes/OptionsOverlayScene.h
+        src/Game/Scene/Scenes/ResultsOverlayScene.cpp
+        src/Game/Scene/Scenes/ResultsOverlayScene.h
         src/Game/Gameplay/ChartData.h
         src/Game/Gameplay/ChartLoader.cpp
         src/Game/Gameplay/ChartLoader.h

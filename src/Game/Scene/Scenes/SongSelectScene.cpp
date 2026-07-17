@@ -8,9 +8,11 @@
 #include "Game/PathUtf8.h"
 #include "Game/ResourceManager.h"
 #include "Game/Score/ScoreStore.h"
+#include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneManager.h"
 #include "Game/Scene/Scenes/GameplayScene.h"
 #include "Game/Scene/Scenes/MainMenuScene.h"
+#include "Game/Scene/Scenes/ResultsOverlayScene.h"
 #include "Game/Song/SongManager.h"
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
@@ -338,9 +340,24 @@ void SongSelectScene::BuildScoreList() {
         const auto& entry = scores[i];
         auto* row = leftScroll->CreateChild<SelectableRow>(
             kFullBounds,
-            [this, i] {
+            [this, i, entry, song] {
                 selectedScoreIndex = i;
                 UpdateScoreSelectionVisuals();
+
+                Score::ResultsViewData view;
+                view.score = entry.score;
+                view.accuracyPercent = entry.accuracyPercent;
+                view.perfectGreatRatioText = entry.statsText;
+                view.songTitle = song->title;
+                view.difficultyName = entry.difficultyName;
+                view.chartDomainFirst = 0.0;
+                view.chartDomainLast = 1.0;
+
+                this->sceneManager.QueuePush<ResultsOverlayScene>(
+                    std::ref(this->sceneManager),
+                    std::ref(this->game),
+                    ResultsOverlayScene::Mode::Browse,
+                    std::move(view));
             });
         ApplyChartRowColors(row);
 
