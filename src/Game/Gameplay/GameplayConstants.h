@@ -47,6 +47,9 @@ inline constexpr unsigned char kDefaultBackgroundColorR = 20;
 inline constexpr unsigned char kDefaultBackgroundColorG = 28;
 inline constexpr unsigned char kDefaultBackgroundColorB = 42;
 
+// Player display name (Options + score snapshots).
+inline constexpr std::size_t kPlayerNameMaxLength = 24;
+
 // Judgement timing windows (absolute |delta| in milliseconds).
 inline constexpr double kPerfectWindowMs = 18.0;
 inline constexpr double kGreatWindowMs = 60.0;

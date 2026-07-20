@@ -18,7 +18,7 @@ namespace {
 
 using json = nlohmann::json;
 
-constexpr int kSettingsVersion = 2;
+constexpr int kSettingsVersion = 3;
 constexpr auto kSettingsFileName = "settings.json";
 
 // Legacy pref-path single-purpose file (version 1).
@@ -56,6 +56,20 @@ void ClampGameplayFields(Gameplay::GameplaySettings& s) {
     s.playfieldBorderSize =
         std::clamp(s.playfieldBorderSize, Gameplay::kGameplayBorderSizeMin, Gameplay::kGameplayBorderSizeMax);
     Gameplay::NormalizeLaneKeyBindings(s.keyBindings);
+
+    // Trim whitespace and clamp player name length.
+    while (!s.playerName.empty() && (s.playerName.front() == ' ' || s.playerName.front() == '\t')) {
+        s.playerName.erase(s.playerName.begin());
+    }
+    while (!s.playerName.empty() && (s.playerName.back() == ' ' || s.playerName.back() == '\t')) {
+        s.playerName.pop_back();
+    }
+    if (s.playerName.empty()) {
+        s.playerName = "Player";
+    }
+    if (s.playerName.size() > Gameplay::kPlayerNameMaxLength) {
+        s.playerName.resize(Gameplay::kPlayerNameMaxLength);
+    }
 }
 
 void SnapVideoResolutionToNearestPreset(VideoSettings& vs) {
@@ -192,6 +206,9 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     if (j.contains("keyBindings") && j["keyBindings"].is_array()) {
         ApplyKeyBindingsJson(j["keyBindings"], settings.keyBindings);
     }
+    if (j.contains("playerName") && j["playerName"].is_string()) {
+        settings.playerName = j["playerName"].get<std::string>();
+    }
 }
 
 void ApplyVideoJson(const json& j, VideoSettings& video, int& savedWindowedWidth, int& savedWindowedHeight) {
@@ -298,7 +315,7 @@ void LoadAllInto(
         json j;
         in >> j;
         // If you are here with clangd, ignore the error here, see above.
-        if (const int version = j.value("version", 0); version != kSettingsVersion) {
+        if (const int version = j.value("version", 0); version != 2 && version != kSettingsVersion) {
             TryLoadLegacyGameplayPrefs(gameplay);
             ClampGameplayFields(gameplay);
             ClampAudioSettings(audio);
@@ -395,6 +412,7 @@ bool SaveAll(
              {"playfieldBorderSize", gCopy.playfieldBorderSize},
              {"swapUpDownLanes", gCopy.swapUpDownLanes},
              {"keyBindings", keyBindingsJson},
+             {"playerName", gCopy.playerName},
          }},
         {"audio",
          {

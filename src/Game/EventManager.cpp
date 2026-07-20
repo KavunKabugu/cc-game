@@ -82,8 +82,46 @@ bool ResolveLocalForTarget(const std::vector<Container*>& roots, GameObject* tar
 } // namespace
 
 void EventManager::Push(const SDL_Event& event) {
-    if (event.type == SDL_EVENT_KEY_DOWN && event.key.repeat) return; // Ignore repeats early
+    if (event.type == SDL_EVENT_KEY_DOWN && event.key.repeat && textInputFocus == nullptr) {
+        return; // Ignore repeats early unless a text field needs backspace repeat
+    }
     eventQueue.push_back(event);
+}
+
+void EventManager::SetTextInputFocus(GameObject* target) {
+    if (textInputFocus == target) {
+        return;
+    }
+    if (textInputFocus != nullptr) {
+        if (auto* prev = textInputFocus->AsTextInputHandler()) {
+            prev->OnTextInputFocusLost();
+        }
+        if (SDL_Window* window = SDL_GetKeyboardFocus()) {
+            SDL_StopTextInput(window);
+        }
+    }
+    textInputFocus = target;
+    if (textInputFocus != nullptr) {
+        SDL_Window* window = SDL_GetKeyboardFocus();
+        if (!window) {
+            window = SDL_GetMouseFocus();
+        }
+        if (window) {
+            SDL_StartTextInput(window);
+        }
+    }
+}
+
+void EventManager::ClearTextInputFocus() {
+    if (textInputFocus == nullptr) {
+        return;
+    }
+    textInputFocus = nullptr;
+    if (SDL_Window* window = SDL_GetKeyboardFocus()) {
+        SDL_StopTextInput(window);
+    } else if (SDL_Window* w = SDL_GetMouseFocus()) {
+        SDL_StopTextInput(w);
+    }
 }
 
 void EventManager::Dispatch(Container* root, const int windowW, const int windowH) {
@@ -133,6 +171,13 @@ void EventManager::ResetInteractionState() {
         ClearDragCapture();
     }
 
+    if (textInputFocus != nullptr) {
+        if (auto* text = textInputFocus->AsTextInputHandler()) {
+            text->OnTextInputFocusLost();
+        }
+        ClearTextInputFocus();
+    }
+
     pressedObject = nullptr;
     hoveredObject = nullptr;
 }
@@ -147,6 +192,9 @@ void EventManager::NotifyObjectDestroyed(const GameObject* obj) {
     }
     if (dragCaptureTarget == obj) {
         ClearDragCapture();
+    }
+    if (textInputFocus == obj) {
+        ClearTextInputFocus();
     }
     if (pressedObject == obj) {
         pressedObject = nullptr;
@@ -202,7 +250,25 @@ bool EventManager::ProcessInternal(
 
     // Dispatch the CONVERTED event FIRST (allows handlers to see PREVIOUS state in maps below)
     if (!updateStates && !roots.empty()) {
-        if (dragCaptureTarget != nullptr) {
+        if (converted.type == SDL_EVENT_TEXT_INPUT && textInputFocus != nullptr) {
+            if (auto* text = textInputFocus->AsTextInputHandler()) {
+                consumed = text->OnTextInput(converted.text.text);
+            }
+        }
+
+        // Focused text field receives keys before scene-wide handlers (Esc blurs field first).
+        if (!consumed && textInputFocus != nullptr &&
+            (converted.type == SDL_EVENT_KEY_DOWN || converted.type == SDL_EVENT_KEY_UP)) {
+            if (auto* keys = textInputFocus->AsKeyHandler()) {
+                if (converted.type == SDL_EVENT_KEY_DOWN) {
+                    consumed = keys->OnKeyDown(converted.key.key, converted.key.timestamp);
+                } else {
+                    consumed = keys->OnKeyUp(converted.key.key, converted.key.timestamp);
+                }
+            }
+        }
+
+        if (dragCaptureTarget != nullptr && !consumed) {
             const bool isMotion = converted.type == SDL_EVENT_MOUSE_MOTION;
             const bool isUp = converted.type == SDL_EVENT_MOUSE_BUTTON_UP;
 
@@ -242,6 +308,15 @@ bool EventManager::ProcessInternal(
                     break;
                 }
             }
+        }
+
+        // Click outside focused text field blurs it.
+        if (converted.type == SDL_EVENT_MOUSE_BUTTON_DOWN && textInputFocus != nullptr &&
+            pressedObject != textInputFocus) {
+            if (auto* text = textInputFocus->AsTextInputHandler()) {
+                text->OnTextInputFocusLost();
+            }
+            ClearTextInputFocus();
         }
     }
 

@@ -21,6 +21,7 @@ class ITimeAware;
 class Container;
 class Drawable;
 class IKeyHandler;
+class ITextInputHandler;
 class IMouseClickable;
 class IMouseHoverable;
 class IMouseScrollable;
@@ -37,6 +38,7 @@ public:
     virtual Container* AsContainer() { return nullptr; }
     virtual Drawable* AsDrawable() { return nullptr; }
     virtual IKeyHandler* AsKeyHandler() { return nullptr; }
+    virtual ITextInputHandler* AsTextInputHandler() { return nullptr; }
     virtual IMouseClickable* AsMouseClickable() { return nullptr; }
     virtual IMouseHoverable* AsMouseHoverable() { return nullptr; }
     virtual IMouseScrollable* AsMouseScrollable() { return nullptr; }

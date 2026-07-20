@@ -2,6 +2,7 @@
 #define CC_GAME_RESULTS_GRAPH_DELTA_BAR_WIDTH_H
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <span>
 #include <vector>

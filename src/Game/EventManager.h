@@ -36,6 +36,11 @@ public:
 
     void BeginDragCapture(GameObject* target, int button);
 
+    // Text-input focus (SDL_StartTextInput / SDL_EVENT_TEXT_INPUT). One widget at a time.
+    void SetTextInputFocus(GameObject* target);
+    void ClearTextInputFocus();
+    [[nodiscard]] GameObject* GetTextInputFocus() const { return textInputFocus; }
+
     [[nodiscard]] bool IsKeyDown(SDL_Keycode key) const;
     [[nodiscard]] Uint64 GetKeyTimestamp(SDL_Keycode key) const;
     [[nodiscard]] bool IsMouseDown(int button) const;
@@ -58,6 +63,8 @@ private:
 
     GameObject* dragCaptureTarget = nullptr;
     int dragCaptureButton = 0;
+
+    GameObject* textInputFocus = nullptr;
 };
 
 } // namespace Game

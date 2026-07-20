@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(cc_game VERSION 0.1.3)
+project(cc_game VERSION 0.1.4)
 
 set(CMAKE_CXX_STANDARD 23)
 include(CTest)
@@ -38,6 +38,8 @@ set(GAME_SOURCES
         src/Game/objects/Label.h
         src/Game/objects/TextButton.cpp
         src/Game/objects/TextButton.h
+        src/Game/objects/InputField.cpp
+        src/Game/objects/InputField.h
         src/Game/objects/SelectableRow.cpp
         src/Game/objects/SelectableRow.h
         src/Game/objects/PanelRect.cpp
@@ -59,6 +61,9 @@ set(GAME_SOURCES
         src/Game/Score/ScoreStore.h
         src/Game/Score/ScoreTypes.h
         src/Game/Score/ResultsViewData.h
+        src/Game/Score/ReplayStore.cpp
+        src/Game/Score/ReplayStore.h
+        src/Game/Score/ReplayTypes.h
         src/Game/objects/ScrollContainer.cpp
         src/Game/objects/ScrollContainer.h
         src/Game/objects/Slider.cpp

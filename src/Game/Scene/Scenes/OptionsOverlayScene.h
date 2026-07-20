@@ -16,6 +16,7 @@ class Label;
 class TextButton;
 class GameInstance;
 class PanelRect;
+class InputField;
 
 class OptionsOverlayScene final : public SceneBase {
 public:
@@ -63,6 +64,7 @@ private:
     Label* gameplayScrollSpeedValueLabel = nullptr;
     Label* gameplayCrosshairValueLabel = nullptr;
     Label* gameplayAudioOffsetValueLabel = nullptr;
+    InputField* gameplayPlayerNameField = nullptr;
     TextButton* gameplaySongClockTimingCheckbox = nullptr;
     TextButton* gameplayEnableBackgroundCheckbox = nullptr;
     Label* gameplayBackgroundOpacityValueLabel = nullptr;

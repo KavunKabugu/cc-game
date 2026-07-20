@@ -53,6 +53,14 @@ public:
     virtual bool OnKeyUp(SDL_Keycode key, Uint64 timestamp) = 0;
 };
 
+// UTF-8 text from SDL_EVENT_TEXT_INPUT while the widget holds text-input focus.
+class ITextInputHandler {
+public:
+    virtual ~ITextInputHandler() = default;
+    virtual bool OnTextInput(const char* text) = 0;
+    virtual void OnTextInputFocusLost() {}
+};
+
 } // namespace Game
 
 #endif //CC_GAME_INTERFACES_H

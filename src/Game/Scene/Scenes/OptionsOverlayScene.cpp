@@ -11,6 +11,7 @@
 #include <SDL3/SDL_keyboard.h>
 
 #include "Game/Events/Interfaces.h"
+#include "Game/EventManager.h"
 #include "Game/Game.h"
 #include "Game/Gameplay/GameplayConstants.h"
 #include "Game/Gameplay/LaneInputHandler.h"
@@ -22,6 +23,7 @@
 #include "Game/Layout/VBoxLayout.h"
 #include "Game/Layout/ViewportMatchLayout.h"
 #include "Game/objects/Container.h"
+#include "Game/objects/InputField.h"
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
 #include "Game/objects/ScrollContainer.h"
@@ -295,6 +297,7 @@ OptionsOverlayScene::OptionsOverlayScene(SceneManager& sceneManager, GameInstanc
 
 void OptionsOverlayScene::CloseOverlay() {
     EndKeyRebind();
+    EventManager::getInstance().ClearTextInputFocus();
 
     const VideoSettings& now = game.GetVideoSettings();
     const bool logicalResolutionChanged =
@@ -336,6 +339,9 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
     if (gameplayAudioOffsetValueLabel) {
         const auto ms = static_cast<float>(gs.audioOffsetSeconds * 1000.0);
         gameplayAudioOffsetValueLabel->SetText(std::format("{:.1f} ms", ms));
+    }
+    if (gameplayPlayerNameField && !gameplayPlayerNameField->IsFocused()) {
+        gameplayPlayerNameField->SetText(gs.playerName);
     }
     if (gameplaySongClockTimingCheckbox) {
         // Checked (X) = song-time path, empty = wall clock path.
@@ -453,6 +459,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplayScrollSpeedValueLabel = nullptr;
     gameplayCrosshairValueLabel = nullptr;
     gameplayAudioOffsetValueLabel = nullptr;
+    gameplayPlayerNameField = nullptr;
     gameplaySongClockTimingCheckbox = nullptr;
     gameplayEnableBackgroundCheckbox = nullptr;
     gameplayBackgroundOpacityValueLabel = nullptr;
@@ -481,8 +488,8 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     auto& children = contentContainer->GetChildren();
     children.clear();
 
-    auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
-    auto rowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 26.0f);
+    const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
+    const auto rowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 26.0f);
     const auto buttonTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("button.png");
     if (!titleFontRes || !rowFontRes) {
         return;
@@ -555,6 +562,23 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                 std::move(onClick),
                 buttonTexture);
         };
+
+        {
+            auto* row = makeRow();
+            row->CreateChild<Label>(
+                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.34f, .y = 0.9f}},
+                rowFont,
+                "Player name");
+            gameplayPlayerNameField = row->CreateChild<InputField>(
+                UnitBounds{.min = {.x = 0.36f, .y = 0.15f}, .max = {.x = 0.98f, .y = 0.85f}},
+                rowFont,
+                gs.playerName,
+                Gameplay::kPlayerNameMaxLength);
+            gameplayPlayerNameField->SetOnChanged([this](const std::string& name) {
+                game.SetPlayerName(name);
+                RefreshGameplayControlTexts();
+            });
+        }
 
         addSliderRow(
             "Scroll speed",

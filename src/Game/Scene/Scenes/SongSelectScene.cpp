@@ -3,6 +3,8 @@
 #include <format>
 #include <functional>
 
+#include <SDL3/SDL_log.h>
+
 #include "Game/Game.h"
 #include "Game/Layout/VBoxLayout.h"
 #include "Game/PathUtf8.h"
@@ -344,20 +346,23 @@ void SongSelectScene::BuildScoreList() {
                 selectedScoreIndex = i;
                 UpdateScoreSelectionVisuals();
 
-                Score::ResultsViewData view;
-                view.score = entry.score;
-                view.accuracyPercent = entry.accuracyPercent;
-                view.perfectGreatRatioText = entry.statsText;
-                view.songTitle = song->title;
-                view.difficultyName = entry.difficultyName;
-                view.chartDomainFirst = 0.0;
-                view.chartDomainLast = 1.0;
-
-                this->sceneManager.QueuePush<ResultsOverlayScene>(
-                    std::ref(this->sceneManager),
-                    std::ref(this->game),
-                    ResultsOverlayScene::Mode::Browse,
-                    std::move(view));
+                if (auto loaded = Score::ScoreStore::Load(song->songFolder, entry.runId)) {
+                    ResultsOverlayContext overlayContext;
+                    overlayContext.song = song;
+                    overlayContext.replayId = loaded->summary.replayId;
+                    this->sceneManager.QueuePush<ResultsOverlayScene>(
+                        std::ref(this->sceneManager),
+                        std::ref(this->game),
+                        ResultsOverlayScene::Mode::Browse,
+                        std::move(loaded->detail),
+                        std::move(overlayContext));
+                } else {
+                    SDL_LogWarn(
+                        SDL_LOG_CATEGORY_APPLICATION,
+                        "SongSelectScene: failed to load score '%s' for song '%s'",
+                        entry.runId.c_str(),
+                        PathToUtf8String(song->songFolder).c_str());
+                }
             });
         ApplyChartRowColors(row);
 
@@ -369,10 +374,10 @@ void SongSelectScene::BuildScoreList() {
         scoreLabel->SetOverflowMode(LabelOverflowMode::Marquee);
 
         const auto statsLine = std::format(
-            "{}  ·  {:.2f}%  ·  {}",
+            "{}  ·  {}  ·  {:.2f}%",
+            entry.playerName,
             entry.difficultyName,
-            entry.accuracyPercent,
-            entry.statsText);
+            entry.accuracyPercent);
         auto* statsLabel = row->CreateChild<Label>(
             UnitBounds{.min = {.x = 0.04f, .y = 0.48f}, .max = {.x = 0.96f, .y = 0.92f}},
             bodyRowFont,

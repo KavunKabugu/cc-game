@@ -57,6 +57,8 @@ public:
     void SetPlayfieldBorderSize(float size);
     void SetSwapUpDownLanes(bool enabled);
 
+    void SetPlayerName(std::string name);
+
     void SetGameplayLaneKeyBinding(int lane, int slot, SDL_Keycode key);
 
     void CycleLogicalResolution();

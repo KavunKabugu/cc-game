@@ -27,6 +27,9 @@ using Game::Utf8StringToPath;
 #include "Game/Gameplay/TimingRuler.h"
 #include "Game/ResourceManager.h"
 #include "Game/Game.h"
+#include "Game/Score/ReplayStore.h"
+#include "Game/Score/ScoreStore.h"
+#include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneManager.h"
 #include "Game/Scene/Scenes/ResultsOverlayScene.h"
 #include "Game/Scene/Scenes/SongSelectScene.h"
@@ -95,26 +98,56 @@ GameplayScene::GameplayScene(
     GameInstance& gameInstance,
     std::shared_ptr<Song::SongMetadata> selectedSong,
     const int selectedDifficultyIndex,
-    Gameplay::GameplaySettings settings)
+    Gameplay::GameplaySettings settings,
+    const PlayMode playMode,
+    std::optional<Score::ReplayRecord> replay)
     : sceneManager(sceneManager),
       game(gameInstance),
       selectedSong(std::move(selectedSong)),
       selectedDifficultyIndex(selectedDifficultyIndex),
-      settings(settings) {
+      settings(std::move(settings)),
+      playMode(playMode) {
+    if (playMode == PlayMode::Replay) {
+        if (!replay.has_value()) {
+            SDL_Log("GameplayScene: Replay mode requires a replay record");
+            initFailed = true;
+            initErrorMessage = "Missing replay data.";
+            return;
+        }
+        this->settings.noteSpeed = replay->settings.noteSpeed;
+        this->settings.crosshairRadius = replay->settings.crosshairRadius;
+        this->settings.audioOffsetSeconds = replay->settings.audioOffsetSeconds;
+        this->settings.swapUpDownLanes = replay->settings.swapUpDownLanes;
+        this->settings.useWallClockForJudgementTiming = replay->settings.useWallClockForJudgementTiming;
+        replayLogicalWidth = replay->settings.logicalWidth;
+        replayLogicalHeight = replay->settings.logicalHeight;
+        replayPresses = std::move(replay->presses);
+        recordingEnabled = false;
+        if (replay->difficultyIndex >= 0) {
+            this->selectedDifficultyIndex = replay->difficultyIndex;
+        }
+    } else {
+        recordingEnabled = true;
+        recordedPresses.reserve(4096);
+    }
+
     root->CreateChild<PanelRect>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
         SDL_Color{
-            .r = settings.backgroundColorR, .g = settings.backgroundColorG, .b = settings.backgroundColorB, .a = 255
+            .r = this->settings.backgroundColorR,
+            .g = this->settings.backgroundColorG,
+            .b = this->settings.backgroundColorB,
+            .a = 255
         });
 
-    if (settings.enableBackgroundImage && this->selectedSong && !this->selectedSong->coverFile.empty()) {
+    if (this->settings.enableBackgroundImage && this->selectedSong && !this->selectedSong->coverFile.empty()) {
         const std::filesystem::path coverPath =
             Song::SongManager::ResolveSongFile(*this->selectedSong, Utf8StringToPath(this->selectedSong->coverFile));
         if (auto coverRes = ResourceManager::getInstance().Get<SDL_Texture>(PathToUtf8String(coverPath))) {
             auto* coverSprite = root->CreateChild<Sprite>(
                 UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
                 *coverRes);
-            const float opacity = std::clamp(settings.backgroundOpacity, 0.0f, 1.0f);
+            const float opacity = std::clamp(this->settings.backgroundOpacity, 0.0f, 1.0f);
             coverSprite->SetAlpha(static_cast<Uint8>(std::lround(opacity * 255.0f)));
         } else {
             SDL_LogWarn(
@@ -125,11 +158,11 @@ GameplayScene::GameplayScene(
         }
     }
 
-    if (settings.enablePlayfieldBorder && settings.playfieldBorderSize > 0.0f &&
-        settings.playfieldBorderOpacity > 0.0f) {
-        const float t = std::clamp(settings.playfieldBorderSize, 0.0f, 100.0f) / 100.0f * 0.5f;
+    if (this->settings.enablePlayfieldBorder && this->settings.playfieldBorderSize > 0.0f &&
+        this->settings.playfieldBorderOpacity > 0.0f) {
+        const float t = std::clamp(this->settings.playfieldBorderSize, 0.0f, 100.0f) / 100.0f * 0.5f;
         const auto borderAlpha =
-            static_cast<Uint8>(std::lround(std::clamp(settings.playfieldBorderOpacity, 0.0f, 1.0f) * 255.0f));
+            static_cast<Uint8>(std::lround(std::clamp(this->settings.playfieldBorderOpacity, 0.0f, 1.0f) * 255.0f));
         const SDL_Color borderColor{.r = 0, .g = 0, .b = 0, .a = borderAlpha};
         // Full-width top/bottom strips, side strips between them (corners covered by top/bottom).
         root->CreateChild<PanelRect>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = t}},
@@ -207,8 +240,12 @@ GameplayScene::GameplayScene(
     }
 
     const auto& video = game.GetVideoSettings();
-    const int logicalW = video.logicalWidth;
-    const int logicalH = video.logicalHeight;
+    int logicalW = video.logicalWidth;
+    int logicalH = video.logicalHeight;
+    if (playMode == PlayMode::Replay && replayLogicalWidth > 0 && replayLogicalHeight > 0) {
+        logicalW = replayLogicalWidth;
+        logicalH = replayLogicalHeight;
+    }
     const float resolutionScale =
         std::max(Gameplay::ResolutionUniformScale(logicalW, logicalH), 0.001f);
     const float tunedCrosshairRadius = this->settings.crosshairRadius * resolutionScale;
@@ -337,7 +374,11 @@ void GameplayScene::Update(const double dt) {
 
         switch (phase) {
         case Phase::Playing:
-            ProcessInputs(songTime);
+            if (playMode == PlayMode::Replay) {
+                InjectReplayPresses(songTime);
+            } else {
+                ProcessInputs(songTime);
+            }
             simulation.Tick(songTime);
             ConsumeJudgements();
             HandleSongEnd();
@@ -398,7 +439,19 @@ void GameplayScene::ProcessInputs(const double songTimeSeconds) {
             if (timeSinceEvent < 0.0) timeSinceEvent = 0.0;
             pressSongTime = songTimeSeconds - timeSinceEvent;
         }
+        if (recordingEnabled) {
+            recordedPresses.push_back(Score::ReplayPress{.t = pressSongTime, .lane = lane});
+        }
         simulation.TryHit(lane, pressSongTime);
+    }
+}
+
+void GameplayScene::InjectReplayPresses(const double songTimeSeconds) {
+    DrainLaneInput();
+    while (replayCursor < replayPresses.size() && replayPresses[replayCursor].t <= songTimeSeconds) {
+        const auto& [t, lane] = replayPresses[replayCursor];
+        simulation.TryHit(lane, t);
+        ++replayCursor;
     }
 }
 
@@ -549,6 +602,19 @@ Score::ResultsViewData GameplayScene::BuildResultsViewData() const {
     return view;
 }
 
+Score::ReplaySettingsSnapshot GameplayScene::BuildReplaySettingsSnapshot() const {
+    const auto& video = game.GetVideoSettings();
+    return Score::ReplaySettingsSnapshot{
+        .noteSpeed = settings.noteSpeed,
+        .crosshairRadius = settings.crosshairRadius,
+        .logicalWidth = video.logicalWidth,
+        .logicalHeight = video.logicalHeight,
+        .audioOffsetSeconds = settings.audioOffsetSeconds,
+        .swapUpDownLanes = settings.swapUpDownLanes,
+        .useWallClockForJudgementTiming = settings.useWallClockForJudgementTiming,
+    };
+}
+
 void GameplayScene::EnterPaused() {
     if (phase != Phase::Playing) {
         return;
@@ -566,7 +632,8 @@ void GameplayScene::EnterPaused() {
         std::ref(sceneManager),
         std::ref(game),
         ResultsOverlayScene::Mode::Pause,
-        BuildResultsViewData());
+        BuildResultsViewData(),
+        ResultsOverlayContext{});
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on pause menu entry: %s", SDL_GetError());
@@ -603,11 +670,35 @@ void GameplayScene::EnterResults() {
     HideHud();
     phase = Phase::Results;
 
+    const Score::ResultsViewData viewData = BuildResultsViewData();
+    std::string replayId;
+    if (playMode == PlayMode::Live && selectedSong) {
+        if (const auto savedReplay = Score::ReplayStore::Save(
+                *selectedSong,
+                selectedDifficultyIndex,
+                BuildReplaySettingsSnapshot(),
+                recordedPresses)) {
+            replayId = *savedReplay;
+        }
+        (void)Score::ScoreStore::Save(
+            *selectedSong,
+            selectedDifficultyIndex,
+            viewData,
+            game.GetGameplaySettings().playerName,
+            replayId);
+    }
+
+    ResultsOverlayContext overlayContext;
+    overlayContext.song = selectedSong;
+    overlayContext.difficultyIndex = selectedDifficultyIndex;
+    overlayContext.replayId = std::move(replayId);
+
     sceneManager.QueuePush<ResultsOverlayScene>(
         std::ref(sceneManager),
         std::ref(game),
         ResultsOverlayScene::Mode::Results,
-        BuildResultsViewData());
+        viewData,
+        std::move(overlayContext));
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on results entry: %s", SDL_GetError());

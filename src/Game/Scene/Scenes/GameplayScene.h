@@ -3,6 +3,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/ResultsGraphDisplay.h"
 #include "Game/Gameplay/SongClock.h"
+#include "Game/Score/ReplayTypes.h"
 #include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneBase.h"
 #include "Game/Song/SongTypes.h"
@@ -29,12 +31,19 @@ class TimingRuler;
 
 class GameplayScene final : public SceneBase {
 public:
+    enum class PlayMode {
+        Live,
+        Replay,
+    };
+
     GameplayScene(
         SceneManager& sceneManager,
         GameInstance& gameInstance,
         std::shared_ptr<Song::SongMetadata> selectedSong,
         int selectedDifficultyIndex,
-        Gameplay::GameplaySettings settings = {});
+        Gameplay::GameplaySettings settings = {},
+        PlayMode playMode = PlayMode::Live,
+        std::optional<Score::ReplayRecord> replay = std::nullopt);
     ~GameplayScene() override;
 
     void OnEnter() override;
@@ -59,6 +68,7 @@ private:
     };
 
     void ProcessInputs(double songTimeSeconds);
+    void InjectReplayPresses(double songTimeSeconds);
     void DrainLaneInput() const;
     void ConsumeJudgements();
     void UpdateHud();
@@ -73,6 +83,7 @@ private:
     void ReturnToSongSelect(const std::string& errorMessage = "") const;
 
     [[nodiscard]] Score::ResultsViewData BuildResultsViewData() const;
+    [[nodiscard]] Score::ReplaySettingsSnapshot BuildReplaySettingsSnapshot() const;
     [[nodiscard]] double AccuracyPercent() const;
     // Mean (t_input - t_note) in ms over hit judgements only, 0 when none.
     [[nodiscard]] double MeanSignedTimingErrorMs() const;
@@ -85,6 +96,7 @@ private:
     std::shared_ptr<Song::SongMetadata> selectedSong;
     int selectedDifficultyIndex = -1;
     Gameplay::GameplaySettings settings;
+    PlayMode playMode = PlayMode::Live;
 
     std::unique_ptr<Gameplay::SongClock> clock;
     Gameplay::NoteSimulation simulation;
@@ -111,6 +123,13 @@ private:
     double chartDomainLast = 0.0;
     std::vector<Gameplay::ResultsGraphEvent> resultsGraphEvents;
     std::vector<std::pair<double, double>> accuracySteps;
+
+    bool recordingEnabled = false;
+    std::vector<Score::ReplayPress> recordedPresses;
+    std::vector<Score::ReplayPress> replayPresses;
+    std::size_t replayCursor = 0;
+    int replayLogicalWidth = 0;
+    int replayLogicalHeight = 0;
 
     Phase phase = Phase::Playing;
     EndReason endReason = EndReason::Completed;

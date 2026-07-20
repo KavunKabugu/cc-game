@@ -4,11 +4,15 @@
 #include <functional>
 
 #include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_log.h>
 
 #include "Game/Events/Interfaces.h"
 #include "Game/Game.h"
+#include "Game/PathUtf8.h"
 #include "Game/ResourceManager.h"
+#include "Game/Score/ReplayStore.h"
 #include "Game/Scene/SceneManager.h"
+#include "Game/Scene/Scenes/GameplayScene.h"
 #include "Game/Scene/Scenes/SongSelectScene.h"
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
@@ -26,7 +30,9 @@ constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.438f}, .max =
 constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.496f}, .max = {.x = 0.48f, .y = 0.551f}};
 constexpr UnitBounds kResultsGraphBounds{.min = {.x = 0.52f, .y = 0.24f}, .max = {.x = 0.94f, .y = 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{.min = {.x = 0.52f, .y = 0.17f}, .max = {.x = 0.80f, .y = 0.225f}};
-constexpr UnitBounds kResultsBackButtonBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
+constexpr UnitBounds kResultsBackButtonAloneBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
+constexpr UnitBounds kResultsWatchReplayBounds{.min = {.x = 0.22f, .y = 0.88f}, .max = {.x = 0.48f, .y = 0.96f}};
+constexpr UnitBounds kResultsBackWithWatchBounds{.min = {.x = 0.52f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}};
 constexpr UnitBounds kPauseTitleBounds{.min = {.x = 0.30f, .y = 0.08f}, .max = {.x = 0.70f, .y = 0.16f}};
 constexpr UnitBounds kPauseResumeButtonBounds{.min = {.x = 0.22f, .y = 0.88f}, .max = {.x = 0.48f, .y = 0.96f}};
 constexpr UnitBounds kPauseQuitButtonBounds{.min = {.x = 0.52f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}};
@@ -54,17 +60,26 @@ private:
     std::function<void()> onEscape;
 };
 
+[[nodiscard]] bool CanWatchReplay(const ResultsOverlayContext& context) {
+    if (!context.song || context.replayId.empty()) {
+        return false;
+    }
+    return Score::ReplayStore::Exists(context.song->songFolder, context.replayId);
+}
+
 } // namespace
 
 ResultsOverlayScene::ResultsOverlayScene(
     SceneManager& sceneManager,
     GameInstance& gameInstance,
     const Mode mode,
-    Score::ResultsViewData data)
+    Score::ResultsViewData data,
+    ResultsOverlayContext context)
     : sceneManager(sceneManager),
       game(gameInstance),
       mode(mode),
-      data(std::move(data)) {
+      data(std::move(data)),
+      context(std::move(context)) {
     root->CreateChild<PanelRect>(kResultsDimBounds, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 170});
 
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 48.0f);
@@ -162,8 +177,17 @@ ResultsOverlayScene::ResultsOverlayScene(
             [this] { CloseToSongSelect(); },
             buttonTexture);
     } else {
+        const bool showWatch = (mode == Mode::Results || mode == Mode::Browse) && CanWatchReplay(this->context);
+        if (showWatch) {
+            root->CreateChild<TextButton>(
+                kResultsWatchReplayBounds,
+                *buttonFontRes,
+                "Watch Replay",
+                [this] { LaunchWatchReplay(); },
+                buttonTexture);
+        }
         root->CreateChild<TextButton>(
-            kResultsBackButtonBounds,
+            showWatch ? kResultsBackWithWatchBounds : kResultsBackButtonAloneBounds,
             *buttonFontRes,
             "Back",
             [this] {
@@ -192,6 +216,45 @@ void ResultsOverlayScene::CloseToSongSelect() const {
 
 void ResultsOverlayScene::CloseBrowse() const {
     sceneManager.QueuePop();
+}
+
+void ResultsOverlayScene::LaunchWatchReplay() const {
+    if (!context.song || context.replayId.empty()) {
+        return;
+    }
+
+    auto loaded = Score::ReplayStore::Load(context.song->songFolder, context.replayId);
+    if (!loaded) {
+        SDL_LogWarn(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "ResultsOverlayScene: replay '%s' missing for song '%s'",
+            context.replayId.c_str(),
+            PathToUtf8String(context.song->songFolder).c_str());
+        return;
+    }
+
+    int difficultyIndex = context.difficultyIndex;
+    if (difficultyIndex < 0) {
+        difficultyIndex = loaded->difficultyIndex;
+    }
+    if (difficultyIndex < 0 ||
+        difficultyIndex >= static_cast<int>(context.song->difficulties.size())) {
+        SDL_LogWarn(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "ResultsOverlayScene: invalid difficulty for replay '%s'",
+            context.replayId.c_str());
+        return;
+    }
+
+    sceneManager.QueuePop();
+    sceneManager.QueueReplace<GameplayScene>(
+        std::ref(sceneManager),
+        std::ref(game),
+        context.song,
+        difficultyIndex,
+        game.GetGameplaySettings(),
+        GameplayScene::PlayMode::Replay,
+        std::move(loaded));
 }
 
 void ResultsOverlayScene::HandleEscape() const {

@@ -8,7 +8,7 @@
 static Game::GameInstance* game = nullptr;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    SDL_SetAppMetadata("cc-game", "0.1.3alpha", "com.karp.cc-game");
+    SDL_SetAppMetadata("cc-game", "0.1.4alpha", "com.karp.cc-game");
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());

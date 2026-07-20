@@ -1,6 +1,8 @@
 #ifndef CC_GAME_GAMEPLAY_SETTINGS_H
 #define CC_GAME_GAMEPLAY_SETTINGS_H
 
+#include <string>
+
 #include "GameplayConstants.h"
 #include "LaneInputHandler.h"
 
@@ -54,6 +56,9 @@ struct GameplaySettings {
 
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
+
+    // Display name (editable in Options).
+    std::string playerName = "Player";
 };
 
 } // namespace Game::Gameplay

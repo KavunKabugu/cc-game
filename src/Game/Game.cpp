@@ -496,6 +496,31 @@ void GameInstance::SetSwapUpDownLanes(const bool enabled) {
     PersistAllSettings();
 }
 
+void GameInstance::SetPlayerName(std::string name) {
+    Gameplay::GameplaySettings probe = gameplaySettings;
+    probe.playerName = std::move(name);
+    // Reuse clamp rules (trim / empty -> Player / max length).
+    {
+        while (!probe.playerName.empty() && (probe.playerName.front() == ' ' || probe.playerName.front() == '\t')) {
+            probe.playerName.erase(probe.playerName.begin());
+        }
+        while (!probe.playerName.empty() && (probe.playerName.back() == ' ' || probe.playerName.back() == '\t')) {
+            probe.playerName.pop_back();
+        }
+        if (probe.playerName.empty()) {
+            probe.playerName = "Player";
+        }
+        if (probe.playerName.size() > Gameplay::kPlayerNameMaxLength) {
+            probe.playerName.resize(Gameplay::kPlayerNameMaxLength);
+        }
+    }
+    if (probe.playerName == gameplaySettings.playerName) {
+        return;
+    }
+    gameplaySettings.playerName = std::move(probe.playerName);
+    PersistAllSettings();
+}
+
 void GameInstance::SetPlayfieldBorderOpacity(const float opacity) {
     const float clamped =
         std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
