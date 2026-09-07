@@ -18,6 +18,11 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include <cmath>
+#include <functional>
+#include <optional>
+#include <ranges>
+#include <iterator>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -26,6 +31,7 @@
 #include "miniz.h"
 #include "ThirdParty/json.hpp"
 #include "font8x8.h"
+#include "IntralismParse.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -98,6 +104,71 @@ namespace
             safe = Trim(safe);
         }
         return safe;
+    }
+
+#ifdef _WIN32
+    std::string Utf16LeBytesToUtf8(const std::string& bytes) {
+        if (bytes.size() < 2) {
+            return {};
+        }
+        std::wstring wide(bytes.size() / 2, L'\0');
+        for (size_t i = 0; i + 1 < bytes.size(); i += 2) {
+            wide[i / 2] = static_cast<wchar_t>(
+                static_cast<unsigned char>(bytes[i]) |
+                (static_cast<wchar_t>(static_cast<unsigned char>(bytes[i + 1])) << 8));
+        }
+        size_t start = 0;
+        if (!wide.empty() && wide[0] == 0xFEFF) {
+            start = 1;
+        }
+        if (start >= wide.size()) {
+            return {};
+        }
+        const int wlen = static_cast<int>(wide.size() - start);
+        const int needed = WideCharToMultiByte(CP_UTF8, 0, wide.data() + start, wlen, nullptr, 0, nullptr, nullptr);
+        if (needed <= 0) {
+            return {};
+        }
+        std::string out(static_cast<size_t>(needed), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, wide.data() + start, wlen, out.data(), needed, nullptr, nullptr);
+        return out;
+    }
+
+    void InitUtf8Console() {
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+    }
+#endif
+
+    std::optional<std::string> ReadUtf8TextFile(const fs::path& path) {
+        std::ifstream f(path, std::ios::binary);
+        if (!f.is_open()) {
+            return std::nullopt;
+        }
+        std::string data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        if (data.size() >= 3 &&
+            static_cast<unsigned char>(data[0]) == 0xEF &&
+            static_cast<unsigned char>(data[1]) == 0xBB &&
+            static_cast<unsigned char>(data[2]) == 0xBF) {
+            data.erase(0, 3);
+        }
+#ifdef _WIN32
+        else if (data.size() >= 2 &&
+                 static_cast<unsigned char>(data[0]) == 0xFF &&
+                 static_cast<unsigned char>(data[1]) == 0xFE) {
+            data = Utf16LeBytesToUtf8(data);
+        }
+#endif
+        return data;
+    }
+
+    bool WriteUtf8TextFile(const fs::path& path, const std::string& utf8) {
+        std::ofstream out(path, std::ios::binary);
+        if (!out.is_open()) {
+            return false;
+        }
+        out.write(utf8.data(), static_cast<std::streamsize>(utf8.size()));
+        return static_cast<bool>(out);
     }
 
     // ZIP Extraction Wrapper
@@ -186,7 +257,6 @@ namespace
         return true;
     }
 
-    // .osu Parser Data Structures
     struct TimingPoint {
         int timeMs;
         double bpm;
@@ -199,7 +269,7 @@ namespace
         int durationMs{0};
     };
 
-    struct OsuMetadata {
+    struct ConvertedMetadata {
         std::string title;
         std::string artist;
         std::string version;
@@ -208,14 +278,35 @@ namespace
         std::string bgFile;
     };
 
-    struct OsuChart {
-        OsuMetadata metadata;
+    struct ConvertedChart {
+        ConvertedMetadata metadata;
         std::vector<TimingPoint> timingPoints;
         std::vector<Note> notes;
     };
 
-    // Parses a single .osu file
-    std::optional<OsuChart> ParseOsu(const fs::path& filePath) {
+    bool IsConfigTxtPath(const fs::path& path) {
+        return PathEqualsAsciiICaseUtf8(PathToUtf8String(path.filename()), "config.txt");
+    }
+
+    std::optional<fs::path> FindConfigTxt(const fs::path& dir) {
+        for (std::error_code dirIterEc; const auto& entry : fs::directory_iterator(dir, dirIterEc)) {
+            if (std::error_code checkEc; entry.is_regular_file(checkEc) && IsConfigTxtPath(entry.path())) {
+                return entry.path();
+            }
+        }
+        return std::nullopt;
+    }
+
+    bool ShouldSkipAvifAsset(const std::string& name) {
+#if !SDLIMAGE_AVIF
+        return PathExtensionAsciiLowerUtf8(Utf8StringToPath(name)) == ".avif";
+#else
+        (void)name;
+        return false;
+#endif
+    }
+
+    std::optional<ConvertedChart> ParseOsu(const fs::path& filePath) {
         std::ifstream f(filePath);
         if (!f.is_open()) {
             LogPath("Failed to open file: ", filePath);
@@ -269,7 +360,7 @@ namespace
             return std::nullopt;
         }
 
-        OsuChart chart;
+        ConvertedChart chart;
         chart.metadata.title = metadata["Title"].empty() ? "Unknown" : metadata["Title"];
         chart.metadata.artist = metadata["Artist"].empty() ? "Unknown" : metadata["Artist"];
         chart.metadata.version = metadata["Version"].empty() ? "Standard" : metadata["Version"];
@@ -365,6 +456,135 @@ namespace
         return chart;
     }
 
+    std::optional<ConvertedChart> ParseIntralism(const fs::path& filePath) {
+        const auto fileData = ReadUtf8TextFile(filePath);
+        if (!fileData) {
+            LogPath("Failed to open file: ", filePath);
+            return std::nullopt;
+        }
+
+        json j;
+        try {
+            j = json::parse(*fileData);
+        } catch (const std::exception& e) {
+            Log("Rejected Intralism map: invalid JSON (" + std::string(e.what()) + ")");
+            return std::nullopt;
+        }
+
+        if (!j.contains("events") || !j["events"].is_array()) {
+            const int configVersion = j.value("configVersion", 0);
+            const bool hasEncryptedField = j.contains("e") && !j["e"].is_null() &&
+                                           !(j["e"].is_string() && j["e"].get<std::string>().empty());
+            if (hasEncryptedField || configVersion == 3) {
+                Log("Rejected Intralism map: encrypted or no SpawnObj events (configVersion " +
+                    std::to_string(configVersion) + ").");
+            } else {
+                Log("Rejected Intralism map: missing events array.");
+            }
+            return std::nullopt;
+        }
+
+        bool hasSpawnObj = false;
+        for (const auto& ev : j["events"]) {
+            if (!ev.contains("data") || !ev["data"].is_array() || ev["data"].empty() || !ev["data"][0].is_string()) {
+                continue;
+            }
+            if (ev["data"][0].get<std::string>() == "SpawnObj") {
+                hasSpawnObj = true;
+                break;
+            }
+        }
+
+        if (!hasSpawnObj) {
+            const int configVersion = j.value("configVersion", 0);
+            const bool hasEncryptedField = j.contains("e") && !j["e"].is_null() &&
+                                           !(j["e"].is_string() && j["e"].get<std::string>().empty());
+            if (hasEncryptedField || configVersion == 3) {
+                Log("Rejected Intralism map: encrypted or no SpawnObj events (configVersion " +
+                    std::to_string(configVersion) + ").");
+            } else {
+                Log("Rejected Intralism map: no SpawnObj events.");
+            }
+            return std::nullopt;
+        }
+
+        try {
+            ConvertedChart chart;
+            const std::string name = j.value("name", std::string{});
+            const size_t sep = name.find(" - ");
+            if (sep != std::string::npos) {
+                chart.metadata.artist = Trim(name.substr(0, sep));
+                chart.metadata.title = Trim(name.substr(sep + 3));
+                if (chart.metadata.artist.empty()) {
+                    chart.metadata.artist = "Intralism";
+                }
+                if (chart.metadata.title.empty()) {
+                    chart.metadata.title = "Unknown";
+                }
+            } else {
+                chart.metadata.artist = "Intralism";
+                chart.metadata.title = name.empty() ? "Unknown" : name;
+            }
+            chart.metadata.version = "Intralism";
+            chart.metadata.bpm = 120.0;
+            chart.metadata.audioFile = j.value("musicFile", std::string{"music.ogg"});
+            chart.metadata.bgFile = j.value("iconFile", std::string{});
+
+            for (const auto& ev : j["events"]) {
+                if (!ev.contains("data") || !ev["data"].is_array() || ev["data"].size() < 2 ||
+                    !ev["data"][0].is_string() || ev["data"][0].get<std::string>() != "SpawnObj") {
+                    continue;
+                }
+                if (!ev["data"][1].is_string()) {
+                    continue;
+                }
+
+                double timeSec = 0.0;
+                try {
+                    timeSec = ev.value("time", 0.0);
+                } catch (...) {
+                    continue;
+                }
+                const int timeMs = static_cast<int>(std::round(timeSec * 1000.0));
+                if (timeMs < 0) {
+                    continue;
+                }
+
+                for (const int lane : MapConverter::ParseSpawnObjLanes(ev["data"][1].get<std::string>())) {
+                    chart.notes.push_back(Note{
+                        .timeMs = timeMs,
+                        .lane = lane,
+                        .type = "tap",
+                        .durationMs = 0,
+                    });
+                }
+            }
+
+            if (chart.notes.empty()) {
+                Log("Rejected Intralism map: SpawnObj events produced no notes.");
+                return std::nullopt;
+            }
+
+            Log("Intralism: " + std::to_string(chart.notes.size()) + " SpawnObj notes");
+            return chart;
+        } catch (const std::exception& e) {
+            Log("Rejected Intralism map: malformed config (" + std::string(e.what()) + ")");
+            return std::nullopt;
+        }
+    }
+
+    void FinishConversion(const bool success, const std::string& message, const fs::path& tempDir) {
+        if (!tempDir.empty()) {
+            std::error_code cleanEc;
+            fs::remove_all(tempDir, cleanEc);
+        }
+        std::lock_guard lock(g_state.mutex);
+        g_state.isConverting = false;
+        g_state.conversionFinished = true;
+        g_state.conversionSuccess = success;
+        g_state.conversionMessage = message;
+    }
+
     // Main conversion logic
     void RunConversion(const std::string& inputPath, const std::string& outputPath) {
         try {
@@ -428,45 +648,47 @@ namespace
                 sourceDir = tempDir;
             } else if (isDir) {
                 sourceDir = inPath;
+            } else if (isFile && IsConfigTxtPath(inPath)) {
+                sourceDir = inPath.parent_path();
+                if (sourceDir.empty()) {
+                    sourceDir = fs::current_path();
+                }
             } else {
                 LogPath("Error: ", inPath);
                 Log(" is not a valid file or directory.");
-                std::lock_guard lock(g_state.mutex);
-                g_state.isConverting = false;
-                g_state.conversionFinished = true;
-                g_state.conversionMessage = "Invalid input file or folder.";
+                FinishConversion(false, "Invalid input file or folder.", tempDir);
                 return;
             }
 
-            // Find and parse all .osu files
-            LogPath("Searching for .osu files in: ", sourceDir);
-            std::vector<OsuChart> parsedCharts;
-            for (std::error_code dirIterEc; const auto& entry : fs::directory_iterator(sourceDir, dirIterEc)) {
-                const std::string entryExt = PathExtensionAsciiLowerUtf8(entry.path());
+            std::vector<ConvertedChart> parsedCharts;
+            if (const auto configPath = FindConfigTxt(sourceDir)) {
+                Log("Parsing Intralism config: " + PathToUtf8String(configPath->filename()));
+                if (auto chart = ParseIntralism(*configPath)) {
+                    parsedCharts.push_back(*chart);
+                }
+            } else {
+                LogPath("Searching for .osu files in: ", sourceDir);
+                for (std::error_code dirIterEc; const auto& entry : fs::directory_iterator(sourceDir, dirIterEc)) {
+                    const std::string entryExt = PathExtensionAsciiLowerUtf8(entry.path());
 
-                if (std::error_code checkEc; entry.is_regular_file(checkEc) && entryExt == ".osu") {
-                    Log("Parsing chart file: " + PathToUtf8String(entry.path().filename()));
-                    if (auto chart = ParseOsu(entry.path())) {
-                        parsedCharts.push_back(*chart);
+                    if (std::error_code checkEc; entry.is_regular_file(checkEc) && entryExt == ".osu") {
+                        Log("Parsing chart file: " + PathToUtf8String(entry.path().filename()));
+                        if (auto chart = ParseOsu(entry.path())) {
+                            parsedCharts.push_back(*chart);
+                        }
                     }
                 }
             }
 
             if (parsedCharts.empty()) {
-                Log("Error: No valid osu!mania charts found.");
-                if (!tempDir.empty()) {
-                    std::error_code cleanEc;
-                    fs::remove_all(tempDir, cleanEc);
-                }
-                std::lock_guard lock(g_state.mutex);
-                g_state.isConverting = false;
-                g_state.conversionFinished = true;
-                g_state.conversionMessage = "No valid 4-key osu!mania (Mode 3) charts found.";
+                Log("Error: No valid Intralism or osu!mania charts found.");
+                FinishConversion(false, "No valid Intralism config.txt or 4-key osu!mania (Mode 3) charts found.",
+                                 tempDir);
                 return;
             }
 
             // Group charts by their Audio File
-            std::map<std::string, std::vector<OsuChart>> groups;
+            std::map<std::string, std::vector<ConvertedChart>> groups;
             for (const auto& chart : parsedCharts) {
                 groups[chart.metadata.audioFile].push_back(chart);
             }
@@ -496,12 +718,18 @@ namespace
                     continue;
                 }
 
+                std::string thumbnailPath = bgFile;
+                if (ShouldSkipAvifAsset(thumbnailPath)) {
+                    Log("Rejected AVIF cover (SDLIMAGE_AVIF is off): " + thumbnailPath);
+                    thumbnailPath = "";
+                }
+
                 json songMetadata = {
                     {"title", title},
                     {"artist", artist},
                     {"bpm", bpm},
                     {"audioFile", audioFile},
-                    {"thumbnailPath", bgFile},
+                    {"thumbnailPath", thumbnailPath},
                     {"difficulties", json::array()}
                 };
 
@@ -549,26 +777,30 @@ namespace
                     chartJson["notes"] = notesJ;
 
                     fs::path chartFilePath = chartsDir / Utf8StringToPath(chartFilename);
-                    if (std::ofstream out(chartFilePath); out.is_open()) {
-                        // Safe JSON dump to prevent crash on invalid UTF-8 bytes
-                        out << chartJson.dump(2, ' ', false, json::error_handler_t::replace);
-                    } else {
+                    const std::string chartText =
+                        chartJson.dump(2, ' ', false, json::error_handler_t::replace);
+                    if (!WriteUtf8TextFile(chartFilePath, chartText)) {
                         LogPath("Failed to write chart: ", chartFilePath);
                     }
                 }
 
                 // Save master metadata
-                if (std::ofstream outMeta(finalOutputPath / "song_metadata.json"); outMeta.is_open()) {
-                    // Safe JSON dump to prevent crash on invalid UTF-8 bytes
-                    outMeta << songMetadata.dump(2, ' ', false, json::error_handler_t::replace);
+                const std::string metaText =
+                    songMetadata.dump(2, ' ', false, json::error_handler_t::replace);
+                if (!WriteUtf8TextFile(finalOutputPath / "song_metadata.json", metaText)) {
+                    LogPath("Failed to write metadata: ", finalOutputPath / "song_metadata.json");
                 }
 
                 // Copy assets
                 std::set<std::string> assetsToCopy;
                 if (!audioFile.empty()) assetsToCopy.insert(audioFile);
-                if (!bgFile.empty()) assetsToCopy.insert(bgFile);
+                if (!thumbnailPath.empty()) assetsToCopy.insert(thumbnailPath);
 
                 for (const auto& asset : assetsToCopy) {
+                    if (ShouldSkipAvifAsset(asset)) {
+                        Log("Rejected AVIF asset (SDLIMAGE_AVIF is off): " + asset);
+                        continue;
+                    }
                     fs::path srcPath = sourceDir / Utf8StringToPath(asset);
                     // Case-insensitive search on disk for Linux matching
                     if (std::error_code existsEc; !fs::exists(srcPath, existsEc)) {
@@ -639,15 +871,31 @@ namespace
     void DrawText8x8(SDL_Renderer* renderer, const std::string& text, float x, float y, const float scale, const SDL_Color color) {
         SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
         const float startX = x;
-        for (const char c : text) {
-            if (c == '\n') {
+        for (size_t i = 0; i < text.size();) {
+            const unsigned char lead = static_cast<unsigned char>(text[i]);
+            if (lead == '\n') {
                 y += 8.0f * scale + 4.0f;
                 x = startX;
+                ++i;
                 continue;
             }
 
-            int idx = static_cast<unsigned char>(c);
-            if (idx >= 128) idx = '?';
+            int idx = 0;
+            if (lead < 0x80) {
+                idx = lead;
+                ++i;
+            } else {
+                idx = '?';
+                size_t width = 1;
+                if ((lead & 0xE0) == 0xC0) {
+                    width = 2;
+                } else if ((lead & 0xF0) == 0xE0) {
+                    width = 3;
+                } else if ((lead & 0xF8) == 0xF0) {
+                    width = 4;
+                }
+                i = (i + width > text.size()) ? text.size() : i + width;
+            }
 
             for (int row = 0; row < 8; ++row) {
                 const unsigned char row_bits = font8x8_basic[idx][row];
@@ -711,6 +959,9 @@ namespace
 
 // Main Program Entry
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+    InitUtf8Console();
+#endif
     std::string defaultOutputPath;
     if (const auto base = PathFromSdlBasePath()) {
         defaultOutputPath = PathToUtf8String((*base / "songs").lexically_normal());
@@ -791,10 +1042,11 @@ int main(int argc, char* argv[]) {
             .rect = { .x = 40.0f, .y = 110.0f, .w = 150.0f, .h = 30.0f }, .label = "Browse File...", .onClick = [window]() {
                 constexpr SDL_DialogFileFilter filters[] = {
                     { .name = "osu!mania map archive", .pattern = "osz" },
+                    { .name = "Intralism config.txt", .pattern = "txt" },
                     { .name = "Zip archive", .pattern = "zip" },
                     { .name = "All files", .pattern = "*" }
                 };
-                SDL_ShowOpenFileDialog(InputFileCallback, nullptr, window, filters, 3, nullptr, false);
+                SDL_ShowOpenFileDialog(InputFileCallback, nullptr, window, filters, 4, nullptr, false);
             } },
         {
             .rect = { .x = 200.0f, .y = 110.0f, .w = 150.0f, .h = 30.0f }, .label = "Browse Folder...", .onClick = [window]() {
@@ -814,7 +1066,8 @@ int main(int argc, char* argv[]) {
                     out = g_state.outputPath;
                 }
                 if (in.empty()) {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missing Input", "Please select a valid .osz file or folder first.", window);
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missing Input",
+                                             "Please select a valid .osz, config.txt, or folder first.", window);
                     return;
                 }
                 if (out.empty()) {
@@ -911,7 +1164,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Input section
-        DrawText8x8(renderer, "INPUT PATH (.osz or folder):", 40.0f, 65.0f, 1.0f, { .r = 150, .g = 150, .b = 180, .a = 255 });
+        DrawText8x8(renderer, "INPUT PATH (.osz / config.txt / folder):", 40.0f, 65.0f, 1.0f, { .r = 150, .g = 150, .b = 180, .a = 255 });
         std::string displayIn = inputPathSnapshot.empty() ? "<Please select an input path>" : inputPathSnapshot;
         if (displayIn.length() > 70) displayIn = "..." + displayIn.substr(displayIn.length() - 67);
         DrawText8x8(renderer, displayIn, 40.0f, 85.0f, 1.0f, inputPathSnapshot.empty() ? SDL_Color{ .r = 200, .g = 80, .b = 80, .a = 255 } : SDL_Color{ .r = 200, .g = 200, .b = 255, .a = 255 });

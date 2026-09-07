@@ -145,6 +145,9 @@ add_executable(cc_map_converter
 target_include_directories(cc_map_converter PRIVATE src map-converter)
 # ...or as standalone as it can get
 target_link_libraries(cc_map_converter PRIVATE SDL3::SDL3)
+# Mirror SDL_image's AVIF option so source builds that enable it also copy .avif covers.
+# I am pretty sure this will break stuff but whatever.
+target_compile_definitions(cc_map_converter PRIVATE SDLIMAGE_AVIF=$<BOOL:${SDLIMAGE_AVIF}>)
 
 # Bundler for windows, pretty sure this breaks stuff
 include(cmake/BundleWindows.cmake)
@@ -244,4 +247,8 @@ add_executable(path_utf8_tests tests/PathUtf8Tests.cpp)
 target_include_directories(path_utf8_tests PRIVATE src)
 target_link_libraries(path_utf8_tests PRIVATE SDL3::SDL3)
 add_test(NAME path_utf8_tests COMMAND path_utf8_tests)
+
+add_executable(intralism_parse_tests tests/IntralismParseTests.cpp)
+target_include_directories(intralism_parse_tests PRIVATE src map-converter)
+add_test(NAME intralism_parse_tests COMMAND intralism_parse_tests)
 
