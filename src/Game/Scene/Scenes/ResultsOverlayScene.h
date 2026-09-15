@@ -34,7 +34,8 @@ public:
         GameInstance& gameInstance,
         Mode mode,
         Score::ResultsViewData data,
-        ResultsOverlayContext context = {});
+        ResultsOverlayContext context = {},
+        int selectedSongIndex = -1);
 
     [[nodiscard]] bool BlocksLowerInput() const override { return true; }
     [[nodiscard]] bool BlocksLowerRendering() const override { return false; }
@@ -51,6 +52,7 @@ private:
     Mode mode;
     Score::ResultsViewData data;
     ResultsOverlayContext context;
+    int selectedSongIndex = -1;
 
     Gameplay::ResultsGraphDisplay* resultsGraphDisplay = nullptr;
     TextButton* graphToggleButton = nullptr;

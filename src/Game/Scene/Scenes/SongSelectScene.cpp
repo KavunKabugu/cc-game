@@ -84,7 +84,7 @@ void WireMarqueeLabel(SelectableRow* row, Label* label) {
 } // namespace
 
 SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance,
-                                 const std::string& errorMessage)
+                                 const std::string& errorMessage, int songIndex)
     : sceneManager(sceneManager),
       game(gameInstance) {
     root->CreateChild<PanelRect>(kFullBounds, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 255});
@@ -163,7 +163,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     songs.assign(library.begin(), library.end());
     BuildSongList();
     if (!songs.empty()) {
-        SelectSong(0);
+        SelectSong(songIndex);
     } else {
         BuildLeftPanel();
     }
@@ -174,6 +174,23 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         "Back",
         [this] {
             this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
+        },
+        buttonTexture);
+
+    root->CreateChild<TextButton>(
+        UnitBounds{.min = {.x = 0.62f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}},
+        *buttonFontRes,
+        "Refresh",
+        [this, songIndex] {
+            Song::SongManager::GetInstance().RefreshLibrary();
+            const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
+            songs.assign(temp_library.begin(), temp_library.end());
+            BuildSongList();
+            if (!songs.empty()) {
+                SelectSong(0);
+            } else {
+                BuildLeftPanel();
+            }
         },
         buttonTexture);
 }
@@ -292,6 +309,7 @@ void SongSelectScene::BuildChartList() {
                     std::ref(this->game),
                     selectedSong,
                     i,
+                    selectedSongIndex,
                     this->game.GetGameplaySettings());
             });
         ApplyChartRowColors(row);

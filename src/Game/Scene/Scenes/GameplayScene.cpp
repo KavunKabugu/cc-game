@@ -98,6 +98,7 @@ GameplayScene::GameplayScene(
     GameInstance& gameInstance,
     std::shared_ptr<Song::SongMetadata> selectedSong,
     const int selectedDifficultyIndex,
+    int selectedSongIndex,
     Gameplay::GameplaySettings settings,
     const PlayMode playMode,
     std::optional<Score::ReplayRecord> replay)
@@ -105,6 +106,7 @@ GameplayScene::GameplayScene(
       game(gameInstance),
       selectedSong(std::move(selectedSong)),
       selectedDifficultyIndex(selectedDifficultyIndex),
+      selectedSongIndex(selectedSongIndex),
       settings(std::move(settings)),
       playMode(playMode) {
     if (playMode == PlayMode::Replay) {
@@ -633,7 +635,8 @@ void GameplayScene::EnterPaused() {
         std::ref(game),
         ResultsOverlayScene::Mode::Pause,
         BuildResultsViewData(),
-        ResultsOverlayContext{});
+        ResultsOverlayContext{},
+        this->selectedSongIndex);
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on pause menu entry: %s", SDL_GetError());
@@ -698,7 +701,8 @@ void GameplayScene::EnterResults() {
         std::ref(game),
         ResultsOverlayScene::Mode::Results,
         viewData,
-        std::move(overlayContext));
+        std::move(overlayContext),
+        this->selectedSongIndex);
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on results entry: %s", SDL_GetError());

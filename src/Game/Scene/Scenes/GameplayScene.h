@@ -41,6 +41,7 @@ public:
         GameInstance& gameInstance,
         std::shared_ptr<Song::SongMetadata> selectedSong,
         int selectedDifficultyIndex,
+        int selectedSongIndex,
         Gameplay::GameplaySettings settings = {},
         PlayMode playMode = PlayMode::Live,
         std::optional<Score::ReplayRecord> replay = std::nullopt);
@@ -95,6 +96,7 @@ private:
     GameInstance& game;
     std::shared_ptr<Song::SongMetadata> selectedSong;
     int selectedDifficultyIndex = -1;
+    int selectedSongIndex = -1;
     Gameplay::GameplaySettings settings;
     PlayMode playMode = PlayMode::Live;
 
