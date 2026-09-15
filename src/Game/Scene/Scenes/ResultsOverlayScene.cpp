@@ -22,6 +22,7 @@ namespace Game {
 namespace {
 
 constexpr UnitBounds kResultsDimBounds{.min = {.x = 0.00f, .y = 0.00f}, .max = {.x = 1.00f, .y = 1.00f}};
+constexpr UnitBounds kResultsSongTitleBounds{.min = {.x = 0.06f, .y = 0.10f}, .max = {.x = 0.48f, .y = 0.18f}};
 constexpr UnitBounds kResultsScoreBounds{.min = {.x = 0.06f, .y = 0.20f}, .max = {.x = 0.48f, .y = 0.28f}};
 constexpr UnitBounds kResultsAccuracyBounds{.min = {.x = 0.06f, .y = 0.29f}, .max = {.x = 0.48f, .y = 0.345f}};
 constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.355f}, .max = {.x = 0.48f, .y = 0.405f}};
@@ -101,6 +102,12 @@ ResultsOverlayScene::ResultsOverlayScene(
         auto* pauseTitle = root->CreateChild<Label>(kPauseTitleBounds, *titleFontRes, "Paused");
         pauseTitle->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Top);
     }
+
+    auto* songNameLabel = root->CreateChild<Label>(
+        kResultsSongTitleBounds,
+        *resultBodyFontRes,
+        std::format("{} ({})",this->data.songTitle, this->data.difficultyName));
+    songNameLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     auto* scoreLabel = root->CreateChild<Label>(
         kResultsScoreBounds,
