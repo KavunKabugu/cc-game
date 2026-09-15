@@ -2,6 +2,7 @@
 #define CC_GAME_RESULTS_VIEW_DATA_H
 
 #include <array>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
