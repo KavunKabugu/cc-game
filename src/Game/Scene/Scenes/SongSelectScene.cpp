@@ -173,7 +173,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         *buttonFontRes,
         "Back",
         [this] {
-            this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
+            this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game), this->selectedSongIndex);
         },
         buttonTexture);
 

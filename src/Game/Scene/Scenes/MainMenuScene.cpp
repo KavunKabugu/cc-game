@@ -14,9 +14,10 @@
 
 namespace Game {
 
-MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInstance)
+MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInstance, int selectedSongIndex)
     : sceneManager(sceneManager),
-      game(gameInstance) {
+      game(gameInstance),
+      selectedSongIndex(selectedSongIndex) {
     if (auto bgRes = ResourceManager::getInstance().Get<SDL_Texture>("background.png")) {
         root->CreateChild<Sprite>(UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}}, *bgRes);
     } else {
@@ -47,7 +48,7 @@ MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInsta
         *buttonFontRes,
         "Play",
         [this] {
-            this->sceneManager.QueueReplace<SongSelectScene>(std::ref(this->sceneManager), std::ref(this->game));
+            this->sceneManager.QueueReplace<SongSelectScene>(std::ref(this->sceneManager), std::ref(this->game), "", this->selectedSongIndex);
         },
         buttonTexture);
     playButton->SetColors(
