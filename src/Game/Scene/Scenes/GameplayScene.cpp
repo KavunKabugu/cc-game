@@ -182,6 +182,7 @@ GameplayScene::GameplayScene(
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
+    const auto crosshairTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("crosshair-quarter.png");
 
     if (!titleFontRes || !textFontRes) {
         SDL_Log("GameplayScene: missing required fonts");
@@ -191,6 +192,12 @@ GameplayScene::GameplayScene(
     }
     if (!arcTextureRes) {
         SDL_Log("GameplayScene: missing arc-quarter.png");
+        initFailed = true;
+        initErrorMessage = "Missing required textures.";
+        return;
+    }
+    if (!crosshairTextureRes) {
+        SDL_Log("GameplayScene: missing crosshair-quarter.png");
         initFailed = true;
         initErrorMessage = "Missing required textures.";
         return;
@@ -268,6 +275,7 @@ GameplayScene::GameplayScene(
     rhythmField = root->CreateChild<Gameplay::RhythmField>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
         *arcTextureRes,
+        *crosshairTextureRes,
         &simulation);
 
     scoreLabel = root->CreateChild<Label>(
