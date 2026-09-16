@@ -15,7 +15,7 @@ class NoteSimulation;
 // Reads its state from the supplied NoteSimulation each frame.
 class RhythmField final : public Drawable {
 public:
-    RhythmField(UnitBounds bounds, std::shared_ptr<SDL_Texture> arcTexture, std::shared_ptr<SDL_Texture> crosshairTexture, const NoteSimulation* sim);
+    RhythmField(UnitBounds bounds, std::shared_ptr<SDL_Texture> arcTexture, std::shared_ptr<SDL_Texture> crosshairTexture, std::shared_ptr<SDL_Texture> crosshairInnerTexture, const NoteSimulation* sim);
 
     void Update() override {}
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
@@ -23,6 +23,7 @@ public:
 private:
     std::shared_ptr<SDL_Texture> arcTexture;
     std::shared_ptr<SDL_Texture> crosshairTexture;
+    std::shared_ptr<SDL_Texture> crosshairInnerTexture;
     const NoteSimulation* sim;
 };
 
