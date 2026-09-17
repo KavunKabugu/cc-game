@@ -75,14 +75,12 @@ ResultsOverlayScene::ResultsOverlayScene(
     GameInstance& gameInstance,
     const Mode mode,
     Score::ResultsViewData data,
-    ResultsOverlayContext context,
-    int selectedSongIndex)
+    ResultsOverlayContext context)
     : sceneManager(sceneManager),
       game(gameInstance),
       mode(mode),
       data(std::move(data)),
-      context(std::move(context)),
-      selectedSongIndex(selectedSongIndex) {
+      context(std::move(context)) {
     root->CreateChild<PanelRect>(kResultsDimBounds, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 170});
 
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 48.0f);
@@ -222,7 +220,7 @@ void ResultsOverlayScene::CloseResume() const {
 
 void ResultsOverlayScene::CloseToSongSelect() const {
     sceneManager.QueuePop();
-    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game), "", this->selectedSongIndex);
+    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game));
 }
 
 void ResultsOverlayScene::CloseBrowse() const {
@@ -263,7 +261,6 @@ void ResultsOverlayScene::LaunchWatchReplay() const {
         std::ref(game),
         context.song,
         difficultyIndex,
-        this->selectedSongIndex,
         game.GetGameplaySettings(),
         GameplayScene::PlayMode::Replay,
         std::move(loaded));

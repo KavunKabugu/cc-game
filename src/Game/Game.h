@@ -69,6 +69,9 @@ public:
     void SetWindowMode(VideoWindowMode mode);
     void CycleWindowMode();
 
+    void setLastSelectedSongIndex(int index);
+    [[nodiscard]] int getLastSelectedSongIndex() const;
+
 private:
     void ApplyLogicalPresentation() const;
     void ApplyVsync() const;
@@ -90,6 +93,7 @@ private:
 
     Uint64 lastTickNs = 0;
     TransitionEventPolicy transitionEventPolicy = TransitionEventPolicy::FlushPendingEventsOnSceneChange;
+    int lastSelectedSongIndex = 0;
 };
 
 } // Game

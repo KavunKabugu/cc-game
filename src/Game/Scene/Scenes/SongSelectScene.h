@@ -20,7 +20,7 @@ class TextButton;
 
 class SongSelectScene final : public SceneBase {
 public:
-    SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance, const std::string& errorMessage = "", int songIndex = 0);
+    SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance, const std::string& errorMessage = "");
 
 private:
     enum class LeftPanelMode {

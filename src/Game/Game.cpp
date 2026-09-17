@@ -73,7 +73,7 @@ GameInstance::GameInstance(SDL_Window* window, SDL_Renderer* renderer) : window(
     const auto s = Song::SongManager::GetInstance().RefreshLibrary();
     (void)s; // Stop analysis from complaining about discarded return value
 
-    sceneManager.QueuePush<MainMenuScene>(std::ref(sceneManager), std::ref(*this), 0);
+    sceneManager.QueuePush<MainMenuScene>(std::ref(sceneManager), std::ref(*this));
     sceneManager.CommitQueuedTransitions();
     lastTickNs = SDL_GetTicksNS();
 }
@@ -601,4 +601,11 @@ Container* GameInstance::GetRoot() const {
     return nullptr;
 }
 
+void GameInstance::setLastSelectedSongIndex(int index) {
+    this->lastSelectedSongIndex = index;
+}
+
+int GameInstance::getLastSelectedSongIndex() const {
+    return this->lastSelectedSongIndex;
+}
 } // namespace Game

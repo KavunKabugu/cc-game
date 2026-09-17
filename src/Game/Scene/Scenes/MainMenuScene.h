@@ -10,12 +10,11 @@ class SceneManager;
 
 class MainMenuScene final : public SceneBase {
 public:
-    MainMenuScene(SceneManager& sceneManager, GameInstance& gameInstance, int selectedSongIndex);
+    MainMenuScene(SceneManager& sceneManager, GameInstance& gameInstance);
 
 private:
     SceneManager& sceneManager;
     GameInstance& game;
-    int selectedSongIndex = 0;
 };
 
 } // namespace Game

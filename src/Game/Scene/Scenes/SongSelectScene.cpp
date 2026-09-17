@@ -84,7 +84,7 @@ void WireMarqueeLabel(SelectableRow* row, Label* label) {
 } // namespace
 
 SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameInstance,
-                                 const std::string& errorMessage, int songIndex)
+                                 const std::string& errorMessage)
     : sceneManager(sceneManager),
       game(gameInstance) {
     root->CreateChild<PanelRect>(kFullBounds, SDL_Color{.r = 0, .g = 0, .b = 0, .a = 255});
@@ -157,13 +157,15 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     leftScroll->SetLayout(std::make_unique<Layout::VBoxLayout>(8.0f, 8.0f, 56.0f));
     songScroll->SetLayout(std::make_unique<Layout::VBoxLayout>(8.0f, 8.0f, 92.0f));
 
+    const auto lastSelectedSongIndex = gameInstance.getLastSelectedSongIndex();
+
     // NOTE: GetLibrary() currently returns a const reference under the
     // assumption there is no concurrent background refresh. Snapshot locally.
     const auto& library = Song::SongManager::GetInstance().GetLibrary();
     songs.assign(library.begin(), library.end());
     BuildSongList();
     if (!songs.empty()) {
-        SelectSong(songIndex);
+        SelectSong(lastSelectedSongIndex);
     } else {
         BuildLeftPanel();
     }
@@ -173,7 +175,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         *buttonFontRes,
         "Back",
         [this] {
-            this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game), this->selectedSongIndex);
+            this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
 
@@ -181,7 +183,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         UnitBounds{.min = {.x = 0.62f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}},
         *buttonFontRes,
         "Refresh",
-        [this, songIndex] {
+        [this] {
             Song::SongManager::GetInstance().RefreshLibrary();
             const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
             songs.assign(temp_library.begin(), temp_library.end());
@@ -301,6 +303,7 @@ void SongSelectScene::BuildChartList() {
                 if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
                     return;
                 }
+                this->game.setLastSelectedSongIndex(selectedSongIndex);
                 selectedDifficultyIndex = i;
                 UpdateChartSelectionVisuals();
                 const auto selectedSong = songs[selectedSongIndex];
@@ -309,7 +312,6 @@ void SongSelectScene::BuildChartList() {
                     std::ref(this->game),
                     selectedSong,
                     i,
-                    selectedSongIndex,
                     this->game.GetGameplaySettings());
             });
         ApplyChartRowColors(row);

@@ -305,7 +305,7 @@ void OptionsOverlayScene::CloseOverlay() {
 
     sceneManager.QueuePop();
     if (logicalResolutionChanged) {
-        sceneManager.QueueReplace<MainMenuScene>(std::ref(sceneManager), std::ref(game), 0);
+        sceneManager.QueueReplace<MainMenuScene>(std::ref(sceneManager), std::ref(game));
     }
 }
 
