@@ -182,6 +182,8 @@ GameplayScene::GameplayScene(
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
     const auto crosshairTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("crosshair-quarter.png");
     const auto crosshairInnerTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("crosshair-inner.png");
+    missAudioRes = ResourceManager::getInstance().Get<MIX_Audio>("miss.wav");
+    hitAudioRes = ResourceManager::getInstance().Get<MIX_Audio>("hit.wav");
 
     if (!titleFontRes || !textFontRes) {
         SDL_Log("GameplayScene: missing required fonts");
@@ -205,6 +207,20 @@ GameplayScene::GameplayScene(
         SDL_Log("GameplayScene: missing crosshair-inner.png");
         initFailed = true;
         initErrorMessage = "Missing required textures.";
+        return;
+    }
+    if (!missAudioRes || !*missAudioRes) {
+        std::string errStr = missAudioRes ? "Unknown" : ResourceErrorToString(missAudioRes.error());
+        SDL_Log("GameplayScene: failed to load audio miss.wav (Error: %s)", errStr.c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load audio file: miss.wav (Error: " + errStr + ")";
+        return;
+    }
+    if (!hitAudioRes || !*hitAudioRes) {
+        std::string errStr = hitAudioRes ? "Unknown" : ResourceErrorToString(hitAudioRes.error());
+        SDL_Log("GameplayScene: failed to load audio hit.wav (Error: %s)", errStr.c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load audio file: hit.wav (Error: " + errStr + ")";
         return;
     }
 
@@ -511,6 +527,14 @@ void GameplayScene::ConsumeJudgements() {
             accuracySteps.back().second = accPct;
         } else {
             accuracySteps.emplace_back(nx, accPct);
+        }
+
+        if (result.judgement == Miss)
+        {
+            AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
+        } else
+        {
+            AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
         }
     }
     simulation.ClearEvents();
