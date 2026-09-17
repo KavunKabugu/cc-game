@@ -15,6 +15,11 @@ set(SDLMIXER_VENDORED ON CACHE BOOL "" FORCE)
 # Don't use AVIF, I couldn't get it to build properly
 # so I guess we won't have AVIF support
 set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
+# Discord SDK variables
+set(DISCORD_SDK_ROOT "${CMAKE_SOURCE_DIR}/lib/discord_social_sdk")
+set(DISCORD_SDK_LIB_DIR "${DISCORD_SDK_ROOT}/lib/release")
+set(DISCORD_SDK_BIN_DIR "${DISCORD_SDK_ROOT}/bin/release")
+set(DISCORD_SDK_INCLUDE_DIR "${DISCORD_SDK_ROOT}/include")
 
 # SDL library directories
 add_subdirectory(lib/SDL3 EXCLUDE_FROM_ALL)
@@ -112,6 +117,8 @@ set(GAME_SOURCES
         src/Game/Gameplay/TimingRulerMath.h
         src/Game/Profile.cpp
         src/Game/Profile.h
+        src/Game/DiscordPresenceManager.h
+        src/Game/DiscordPresenceManager.cpp
 )
 
 add_executable(cc_game main.cpp ${GAME_SOURCES})
@@ -120,6 +127,11 @@ add_executable(cc_game main.cpp ${GAME_SOURCES})
 if(WIN32)
     set_target_properties(cc_game PROPERTIES WIN32_EXECUTABLE TRUE)
     target_sources(cc_game PRIVATE src/resources.rc)
+    set(DISCORD_LIB_PATH "${DISCORD_SDK_LIB_DIR}/discord_partner_sdk.lib")
+    set(DISCORD_SHARED_LIB "${DISCORD_SDK_BIN_DIR}/discord_partner_sdk.dll")
+else() #Linux
+    set(DISCORD_LIB_PATH "${DISCORD_SDK_LIB_DIR}/libdiscord_partner_sdk.so")
+    set(DISCORD_SHARED_LIB "${DISCORD_SDK_LIB_DIR}/libdiscord_partner_sdk.so")
 endif()
 
 # Optional profiler for the game, I am pretty sure it's shit so maybe replace it later?
@@ -128,14 +140,20 @@ if(CC_ENABLE_PROFILING)
     target_compile_definitions(cc_game PRIVATE CC_ENABLE_PROFILING)
 endif()
 
-target_include_directories(cc_game PRIVATE src)
+target_include_directories(cc_game PRIVATE src ${DISCORD_SDK_INCLUDE_DIR})
 
-target_link_libraries(cc_game PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer)
+target_link_libraries(cc_game PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image SDL3_mixer::SDL3_mixer ${DISCORD_LIB_PATH})
 # If using a GNU compiler (?) link to atomic
 # MSVC can't do this, and I think doesn't need this.
 if(MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT MSVC))
     target_link_libraries(cc_game PRIVATE atomic)
 endif()
+
+add_custom_command(TARGET cc_game POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DISCORD_SHARED_LIB}"
+        $<TARGET_FILE_DIR:cc_game>
+)
 
 # Standalone C++ Map Converter
 add_executable(cc_map_converter

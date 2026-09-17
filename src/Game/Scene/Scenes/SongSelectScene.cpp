@@ -5,6 +5,7 @@
 
 #include <SDL3/SDL_log.h>
 
+#include "Game/DiscordPresenceManager.h"
 #include "Game/Game.h"
 #include "Game/Layout/VBoxLayout.h"
 #include "Game/PathUtf8.h"
@@ -157,13 +158,15 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     leftScroll->SetLayout(std::make_unique<Layout::VBoxLayout>(8.0f, 8.0f, 56.0f));
     songScroll->SetLayout(std::make_unique<Layout::VBoxLayout>(8.0f, 8.0f, 92.0f));
 
+    const auto lastSelectedSongIndex = gameInstance.getLastSelectedSongIndex();
+
     // NOTE: GetLibrary() currently returns a const reference under the
     // assumption there is no concurrent background refresh. Snapshot locally.
     const auto& library = Song::SongManager::GetInstance().GetLibrary();
     songs.assign(library.begin(), library.end());
     BuildSongList();
     if (!songs.empty()) {
-        SelectSong(0);
+        SelectSong(lastSelectedSongIndex);
     } else {
         BuildLeftPanel();
     }
@@ -176,6 +179,25 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
             this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
+
+    root->CreateChild<TextButton>(
+        UnitBounds{.min = {.x = 0.85f, .y = 0.155f}, .max = {.x = 0.95f, .y = 0.215f}},
+        *buttonFontRes,
+        "Refresh",
+        [this] {
+            Song::SongManager::GetInstance().RefreshLibrary();
+            const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
+            songs.assign(temp_library.begin(), temp_library.end());
+            BuildSongList();
+            if (!songs.empty()) {
+                SelectSong(0);
+            } else {
+                BuildLeftPanel();
+            }
+        },
+        buttonTexture);
+
+    DiscordPresenceManager::getInstance().Update("", "Idle");
 }
 
 void SongSelectScene::BuildSongList() {
@@ -284,6 +306,7 @@ void SongSelectScene::BuildChartList() {
                 if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
                     return;
                 }
+                this->game.setLastSelectedSongIndex(selectedSongIndex);
                 selectedDifficultyIndex = i;
                 UpdateChartSelectionVisuals();
                 const auto selectedSong = songs[selectedSongIndex];

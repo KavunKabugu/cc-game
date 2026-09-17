@@ -10,6 +10,7 @@
 #include <format>
 #include <functional>
 
+#include "Game/DiscordPresenceManager.h"
 #include "Game/PathUtf8.h"
 
 using Game::PathToUtf8String;
@@ -126,9 +127,21 @@ GameplayScene::GameplayScene(
         if (replay->difficultyIndex >= 0) {
             this->selectedDifficultyIndex = replay->difficultyIndex;
         }
+        DiscordPresenceManager::getInstance().Update(
+        std::format("{} - {} [{}]",
+            this->selectedSong->artist,
+            this->selectedSong->title,
+            this->selectedSong->difficulties[this->selectedDifficultyIndex].name),
+        "Watching a replay");
     } else {
         recordingEnabled = true;
         recordedPresses.reserve(4096);
+        DiscordPresenceManager::getInstance().Update(
+        std::format("{} - {} [{}]",
+            this->selectedSong->artist,
+            this->selectedSong->title,
+            this->selectedSong->difficulties[this->selectedDifficultyIndex].name),
+        "Playing a song");
     }
 
     root->CreateChild<PanelRect>(
@@ -180,6 +193,10 @@ GameplayScene::GameplayScene(
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
+    const auto crosshairTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("crosshair-quarter.png");
+    const auto crosshairInnerTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("crosshair-inner.png");
+    missAudioRes = ResourceManager::getInstance().Get<MIX_Audio>("miss.wav");
+    hitAudioRes = ResourceManager::getInstance().Get<MIX_Audio>("hit.wav");
 
     if (!titleFontRes || !textFontRes) {
         SDL_Log("GameplayScene: missing required fonts");
@@ -191,6 +208,32 @@ GameplayScene::GameplayScene(
         SDL_Log("GameplayScene: missing arc-quarter.png");
         initFailed = true;
         initErrorMessage = "Missing required textures.";
+        return;
+    }
+    if (!crosshairTextureRes) {
+        SDL_Log("GameplayScene: missing crosshair-quarter.png");
+        initFailed = true;
+        initErrorMessage = "Missing required textures.";
+        return;
+    }
+    if (!crosshairInnerTextureRes) {
+        SDL_Log("GameplayScene: missing crosshair-inner.png");
+        initFailed = true;
+        initErrorMessage = "Missing required textures.";
+        return;
+    }
+    if (!missAudioRes || !*missAudioRes) {
+        std::string errStr = missAudioRes ? "Unknown" : ResourceErrorToString(missAudioRes.error());
+        SDL_Log("GameplayScene: failed to load audio miss.wav (Error: %s)", errStr.c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load audio file: miss.wav (Error: " + errStr + ")";
+        return;
+    }
+    if (!hitAudioRes || !*hitAudioRes) {
+        std::string errStr = hitAudioRes ? "Unknown" : ResourceErrorToString(hitAudioRes.error());
+        SDL_Log("GameplayScene: failed to load audio hit.wav (Error: %s)", errStr.c_str());
+        initFailed = true;
+        initErrorMessage = "Failed to load audio file: hit.wav (Error: " + errStr + ")";
         return;
     }
 
@@ -266,6 +309,8 @@ GameplayScene::GameplayScene(
     rhythmField = root->CreateChild<Gameplay::RhythmField>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 1.0f, .y = 1.0f}},
         *arcTextureRes,
+        *crosshairTextureRes,
+        *crosshairInnerTextureRes,
         &simulation);
 
     scoreLabel = root->CreateChild<Label>(
@@ -495,6 +540,14 @@ void GameplayScene::ConsumeJudgements() {
             accuracySteps.back().second = accPct;
         } else {
             accuracySteps.emplace_back(nx, accPct);
+        }
+
+        if (result.judgement == Miss)
+        {
+            AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
+        } else
+        {
+            AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
         }
     }
     simulation.ClearEvents();

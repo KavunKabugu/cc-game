@@ -2,12 +2,14 @@
 #define CC_GAME_GAMEPLAY_SCENE_H
 
 #include <array>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "Game/ResourceManager.h"
 #include "Game/Gameplay/GameplaySettings.h"
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/ResultsGraphDisplay.h"
@@ -140,6 +142,9 @@ private:
     bool simulationReady = false;
     bool initFailed = false;
     std::string initErrorMessage;
+
+    std::expected<std::shared_ptr<MIX_Audio>, ResourceError> missAudioRes;
+    std::expected<std::shared_ptr<MIX_Audio>, ResourceError> hitAudioRes;
 };
 
 } // namespace Game

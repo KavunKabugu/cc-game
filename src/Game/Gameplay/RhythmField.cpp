@@ -57,6 +57,23 @@ void DrawArcQuarter(SDL_Renderer* renderer, SDL_Texture* texture,
     SDL_RenderTextureRotated(renderer, texture, nullptr, &dst, rotation, nullptr, SDL_FLIP_NONE);
 }
 
+void DrawInnerCrosshairPicture(SDL_Renderer* renderer, SDL_Texture* texture,
+                                const float centerX, const float centerY,
+                                const float radius, const SDL_Color color, TextureState& state) {
+    if (radius <= 0.0f) return;
+
+    const float diameter = radius * 2.0f;
+    const SDL_FRect dst = {
+        .x = centerX - radius,
+        .y = centerY - radius,
+        .w = diameter,
+        .h = diameter,
+    };
+
+    SetTextureStateIfNeeded(texture, color, SDL_BLENDMODE_BLEND, state);
+    SDL_RenderTexture(renderer, texture, nullptr, &dst);
+}
+
 SDL_Color NoteColorFor(const RuntimeNote& note) {
     if (note.resolved) {
         return note.judgement == Judgement::Miss ? kNoteColorMiss : kNoteColorHit;
@@ -68,12 +85,14 @@ SDL_Color NoteColorFor(const RuntimeNote& note) {
 
 RhythmField::RhythmField(const UnitBounds bounds,
                          std::shared_ptr<SDL_Texture> arcTexture,
+                         std::shared_ptr<SDL_Texture> crosshairTexture,
+                         std::shared_ptr<SDL_Texture> crosshairInnerTexture,
                          const NoteSimulation* sim)
-    : Drawable(bounds), arcTexture(std::move(arcTexture)), sim(sim) {}
+    : Drawable(bounds), arcTexture(std::move(arcTexture)), crosshairTexture(std::move(crosshairTexture)), crosshairInnerTexture(std::move(crosshairInnerTexture)), sim(sim) {}
 
 void RhythmField::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     CC_PROFILE("RhythmField.Render");
-    if (!arcTexture || !sim) return;
+    if (!arcTexture || !crosshairTexture || !sim) return;
 
     const SDL_FRect rect = {
         .x = parentRect.x + bounds.min.x * parentRect.w,
@@ -85,13 +104,17 @@ void RhythmField::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
     const float centerX = rect.x + rect.w * 0.5f;
     const float centerY = rect.y + rect.h * 0.5f;
 
-    SDL_Texture* texture = arcTexture.get();
+    SDL_Texture* textureArc = arcTexture.get();
+    SDL_Texture* textureCrosshair = crosshairTexture.get();
+    SDL_Texture* textureInnerCrosshair = crosshairInnerTexture.get();
     TextureState state{};
 
     const float crosshairRadius = sim->CrosshairRadius();
     for (const float angle : kCrosshairAngles) {
-        DrawArcQuarter(renderer, texture, centerX, centerY, crosshairRadius, angle, kCrosshairColor, state);
+        DrawArcQuarter(renderer, textureCrosshair, centerX, centerY, crosshairRadius, angle, kCrosshairColor, state);
     }
+
+    DrawInnerCrosshairPicture(renderer, textureInnerCrosshair, centerX, centerY, crosshairRadius, kCrosshairColor, state);
 
     const auto active = sim->ActiveNotes();
     if (active.empty()) return;
@@ -101,7 +124,7 @@ void RhythmField::Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) {
         if (note->zLocation <= 0.0f) continue;
         const float radius = ArcRadius(note->zLocation, screenWidth);
         const float angle = LaneToAngleDegrees(note->lane);
-        DrawArcQuarter(renderer, texture, centerX, centerY, radius, angle, NoteColorFor(*note), state);
+        DrawArcQuarter(renderer, textureArc, centerX, centerY, radius, angle, NoteColorFor(*note), state);
     }
 }
 
