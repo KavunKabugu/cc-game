@@ -12,6 +12,7 @@
 #include <SDL3/SDL.h>
 
 #include "AudioManager.h"
+#include "DiscordPresenceManager.h"
 #include "EventManager.h"
 #include "Gameplay/GameplayMath.h"
 #include "Gameplay/LaneInputHandler.h"
@@ -52,6 +53,8 @@ GameInstance::GameInstance(SDL_Window* window, SDL_Renderer* renderer) : window(
     ResourceManager::getInstance().AddSearchPath("resources");
 
     AudioManager::getInstance().Init();
+
+    DiscordPresenceManager::getInstance().Init();
 
     SDL_GetWindowSize(window, &savedWindowedWidth, &savedWindowedHeight);
     savedWindowedWidth = std::max(savedWindowedWidth, 640);

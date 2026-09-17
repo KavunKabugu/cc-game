@@ -10,6 +10,7 @@
 #include <format>
 #include <functional>
 
+#include "Game/DiscordPresenceManager.h"
 #include "Game/PathUtf8.h"
 
 using Game::PathToUtf8String;
@@ -126,9 +127,21 @@ GameplayScene::GameplayScene(
         if (replay->difficultyIndex >= 0) {
             this->selectedDifficultyIndex = replay->difficultyIndex;
         }
+        DiscordPresenceManager::getInstance().Update(
+        std::format("{} - {} [{}]",
+            this->selectedSong->artist,
+            this->selectedSong->title,
+            this->selectedSong->difficulties[this->selectedDifficultyIndex].name),
+        "Watching a replay");
     } else {
         recordingEnabled = true;
         recordedPresses.reserve(4096);
+        DiscordPresenceManager::getInstance().Update(
+        std::format("{} - {} [{}]",
+            this->selectedSong->artist,
+            this->selectedSong->title,
+            this->selectedSong->difficulties[this->selectedDifficultyIndex].name),
+        "Playing a song");
     }
 
     root->CreateChild<PanelRect>(

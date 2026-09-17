@@ -5,6 +5,7 @@
 
 #include <SDL3/SDL_log.h>
 
+#include "Game/DiscordPresenceManager.h"
 #include "Game/Game.h"
 #include "Game/Layout/VBoxLayout.h"
 #include "Game/PathUtf8.h"
@@ -195,6 +196,8 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
             }
         },
         buttonTexture);
+
+    DiscordPresenceManager::getInstance().Update("", "Idle");
 }
 
 void SongSelectScene::BuildSongList() {

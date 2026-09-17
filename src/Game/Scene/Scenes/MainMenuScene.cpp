@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "Game/DiscordPresenceManager.h"
 #include "Game/Game.h"
 #include "Game/ResourceManager.h"
 #include "Game/Scene/SceneManager.h"
@@ -85,6 +86,8 @@ MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInsta
         SDL_Color{.r = 170, .g = 80, .b = 92, .a = 255},
         SDL_Color{.r = 100, .g = 45, .b = 52, .a = 255},
         SDL_Color{.r = 245, .g = 245, .b = 245, .a = 255});
+
+    DiscordPresenceManager::getInstance().Update("", "Idle");
 }
 
 } // namespace Game
