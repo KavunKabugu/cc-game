@@ -108,6 +108,8 @@ ResultsOverlayScene::ResultsOverlayScene(
         *resultBodyFontRes,
         std::format("{} ({})",this->data.songTitle, this->data.difficultyName));
     songNameLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+    songNameLabel->SetOverflowMode(LabelOverflowMode::Marquee);
+    songNameLabel->SetMarqueeActive(true);
 
     auto* scoreLabel = root->CreateChild<Label>(
         kResultsScoreBounds,
