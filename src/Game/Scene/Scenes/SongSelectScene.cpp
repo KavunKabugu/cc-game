@@ -180,7 +180,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         buttonTexture);
 
     root->CreateChild<TextButton>(
-        UnitBounds{.min = {.x = 0.62f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}},
+        UnitBounds{.min = {.x = 0.85f, .y = 0.155f}, .max = {.x = 0.95f, .y = 0.215f}},
         *buttonFontRes,
         "Refresh",
         [this] {
