@@ -111,6 +111,7 @@ private:
     Label* judgementsLabel = nullptr;
     Label* accuracyLabel = nullptr;
     Label* timingStatsLabel = nullptr;
+    Label* judgementIndicatorLabel = nullptr;
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
@@ -143,6 +144,7 @@ private:
     bool simulationReady = false;
     bool initFailed = false;
     std::string initErrorMessage;
+    double lastHitTime = 0.0;
 
     std::expected<std::shared_ptr<MIX_Audio>, ResourceError> missAudioRes;
     std::expected<std::shared_ptr<MIX_Audio>, ResourceError> hitAudioRes;

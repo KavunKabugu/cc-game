@@ -39,6 +39,7 @@ using Game::Utf8StringToPath;
 #include "Game/objects/PanelRect.h"
 #include "Game/objects/Sprite.h"
 #include "Game/Profile.h"
+#include "Game/Gameplay/JudgementDisplayColors.h"
 
 namespace Game {
 
@@ -216,6 +217,7 @@ GameplayScene::GameplayScene(
         }
     }
 
+    const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 48.0f);
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
@@ -378,6 +380,12 @@ GameplayScene::GameplayScene(
         [this] { HandleRestartKey(); },
         settings.keyBindRestart);
 
+    judgementIndicatorLabel = root->CreateChild<Label>(
+        UnitBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}},
+        *judgementIndicatorFontRes,
+        "");
+    judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+
     const double spawnLead = simulation.SpawnLeadSeconds();
     const double firstHit = simulation.FirstNoteHitTime();
     const double offset = this->settings.audioOffsetSeconds;
@@ -534,7 +542,14 @@ void GameplayScene::InjectReplayPresses(const double songTimeSeconds) {
 void GameplayScene::ConsumeJudgements() {
     CC_PROFILE("ConsumeJudgements");
     const auto& events = simulation.DrainEvents();
-    if (events.empty()) return;
+    if (events.empty())
+    {
+        if (clock->SongTime() - lastHitTime > 0.2)
+        {
+            this->judgementIndicatorLabel->SetText("");
+        }
+        return;
+    }
 
     using enum Gameplay::Judgement;
     for (const auto& result : events) {
@@ -573,13 +588,37 @@ void GameplayScene::ConsumeJudgements() {
             accuracySteps.emplace_back(nx, accPct);
         }
 
-        if (result.judgement == Miss)
+        switch (result.judgement)
         {
-            AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
-        } else
-        {
-            AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+            case Perfect:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                this->judgementIndicatorLabel->SetText("100");
+                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Perfect, result.deltaMs));
+                break;
+            case Great:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                this->judgementIndicatorLabel->SetText("100");
+                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
+                break;
+            case Good:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                this->judgementIndicatorLabel->SetText("50");
+                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
+                break;
+            case Bad:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                this->judgementIndicatorLabel->SetText("25");
+                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
+                break;
+            case Miss:
+                AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
+                this->judgementIndicatorLabel->SetText("X");
+                this->judgementIndicatorLabel->SetColor(Gameplay::ResultsJudgementFillColor(Miss, result.deltaMs));
+                break;
+            case Count:
+                break;
         }
+        lastHitTime = clock->SongTime();
     }
     simulation.ClearEvents();
     UpdateHud();
