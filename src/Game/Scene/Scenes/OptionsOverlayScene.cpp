@@ -1039,12 +1039,12 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             }
 
             contentContainer->CreateChild<Label>(
-                UnitBounds{.min = {.x = 0.05f, .y = 0.53}, .max = {.x = 0.2f, .y = 0.61}},
+                UnitBounds{.min = {.x = 0.05f, .y = 0.54}, .max = {.x = 0.2f, .y = 0.62}},
                 rowFont,
                 "Restart");
 
             restartBindButton = contentContainer->CreateChild<TextButton>(
-                UnitBounds{.min = {.x = 0.25f, .y = 0.53}, .max = {.x = 0.45f, .y = 0.61}},
+                UnitBounds{.min = {.x = 0.20f, .y = 0.54}, .max = {.x = 0.40f, .y = 0.62}},
                 rowFont,
                 KeyLabel(gs.keyBindRestart),
                 [this]
