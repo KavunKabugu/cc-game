@@ -76,6 +76,7 @@ private:
     void UpdateHud();
     void HandleSongEnd();
     void HandleEscapeKey();
+    void HandleRestartKey();
     void ShowHud() const;
     void HideHud() const;
     void EnterPaused();

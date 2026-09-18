@@ -57,6 +57,8 @@ struct GameplaySettings {
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
 
+    SDL_Keycode keyBindRestart = SDLK_R;
+
     // Display name (editable in Options).
     std::string playerName = "Player";
 };

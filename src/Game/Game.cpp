@@ -611,4 +611,9 @@ void GameInstance::setLastSelectedSongIndex(int index) {
 int GameInstance::getLastSelectedSongIndex() const {
     return this->lastSelectedSongIndex;
 }
+
+void GameInstance::SetRestartKeyBinding(const SDL_Keycode key) {
+    gameplaySettings.keyBindRestart = key;
+    PersistAllSettings();
+}
 } // namespace Game

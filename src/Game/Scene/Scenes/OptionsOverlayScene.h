@@ -33,6 +33,18 @@ public:
     };
 
 private:
+    enum class KeyBind {
+        Lane1Slot1,
+        Lane2Slot1,
+        Lane3Slot1,
+        Lane4Slot1,
+        Lane1Slot2,
+        Lane2Slot2,
+        Lane3Slot2,
+        Lane4Slot2,
+        Restart
+    };
+
     void RebuildContent(Category category);
     void RefreshVideoControlTexts() const;
     void RefreshGameplayControlTexts() const;
@@ -40,7 +52,7 @@ private:
     void RefreshInputBindButtonTexts() const;
     void CloseOverlay();
 
-    void BeginKeyRebind(int lane, int slot);
+    void BeginKeyRebind(KeyBind keyBind);
     void EndKeyRebind();
     void CompleteKeyRebind(SDL_Keycode key);
     void CancelKeyRebind();
@@ -83,9 +95,9 @@ private:
     Label* audioUiValueLabel = nullptr;
 
     TextButton* inputBindButtons[4][2]{};
+    TextButton* restartBindButton{};
     bool keyCaptureActive = false;
-    int keyCaptureLane = 0;
-    int keyCaptureSlot = 0;
+    KeyBind keyCaptureKeyBind;
     PanelRect* keyCaptureBackdrop = nullptr;
     Label* keyCapturePrompt = nullptr;
 };

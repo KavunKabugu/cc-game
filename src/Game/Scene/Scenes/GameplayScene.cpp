@@ -92,6 +92,32 @@ private:
     std::function<void()> onEscape;
 };
 
+class RestartMapHandler final : public GameObject, public IKeyHandler {
+public:
+    explicit RestartMapHandler(const UnitBounds bounds, std::function<void()> onRestart, SDL_Keycode restartKeyCode)
+        : GameObject(bounds), onRestart(std::move(onRestart))
+    {
+        this->restartKeyCode = restartKeyCode;
+    }
+
+    void Update() override {}
+
+    IKeyHandler* AsKeyHandler() override { return this; }
+
+    bool OnKeyDown(const SDL_Keycode key, const Uint64 /*timestamp*/) override {
+        if (key == this->restartKeyCode && onRestart) {
+            onRestart();
+            return true;
+        }
+        return false;
+    }
+
+    bool OnKeyUp(SDL_Keycode, Uint64) override { return false; }
+    SDL_Keycode restartKeyCode;
+private:
+    std::function<void()> onRestart;
+};
+
 } // namespace
 
 GameplayScene::GameplayScene(
@@ -346,6 +372,11 @@ GameplayScene::GameplayScene(
     root->CreateChild<EscapeMenuHandler>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleEscapeKey(); });
+
+    root->CreateChild<RestartMapHandler>(
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
+        [this] { HandleRestartKey(); },
+        settings.keyBindRestart);
 
     const double spawnLead = simulation.SpawnLeadSeconds();
     const double firstHit = simulation.FirstNoteHitTime();
@@ -614,6 +645,17 @@ void GameplayScene::HandleEscapeKey() {
     }
 }
 
+void GameplayScene::HandleRestartKey()
+{
+    this->sceneManager.QueuePop();
+    this->sceneManager.QueueReplace<GameplayScene>(
+                    std::ref(this->sceneManager),
+                    std::ref(this->game),
+                    selectedSong,
+                    selectedDifficultyIndex,
+                    this->game.GetGameplaySettings());
+}
+
 void GameplayScene::HideHud() const {
     if (scoreLabel) scoreLabel->SetBounds(kOffscreenBounds);
     if (judgementsLabel) judgementsLabel->SetBounds(kOffscreenBounds);
@@ -681,12 +723,16 @@ void GameplayScene::EnterPaused() {
     HideHud();
     phase = Phase::Paused;
 
+    ResultsOverlayContext overlayContext;
+    overlayContext.song = selectedSong;
+    overlayContext.difficultyIndex = selectedDifficultyIndex;
+
     sceneManager.QueuePush<ResultsOverlayScene>(
         std::ref(sceneManager),
         std::ref(game),
         ResultsOverlayScene::Mode::Pause,
         BuildResultsViewData(),
-        ResultsOverlayContext{});
+        std::move(overlayContext));
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on pause menu entry: %s", SDL_GetError());

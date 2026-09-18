@@ -43,6 +43,7 @@ private:
     void CloseResume() const;
     void CloseToSongSelect() const;
     void CloseBrowse() const;
+    void CloseToRestart() const;
     void HandleEscape() const;
     void LaunchWatchReplay() const;
 

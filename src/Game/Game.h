@@ -72,6 +72,8 @@ public:
     void setLastSelectedSongIndex(int index);
     [[nodiscard]] int getLastSelectedSongIndex() const;
 
+    void SetRestartKeyBinding(SDL_Keycode key);
+
 private:
     void ApplyLogicalPresentation() const;
     void ApplyVsync() const;

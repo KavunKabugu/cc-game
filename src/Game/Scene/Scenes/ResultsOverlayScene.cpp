@@ -35,8 +35,9 @@ constexpr UnitBounds kResultsBackButtonAloneBounds{.min = {.x = 0.38f, .y = 0.88
 constexpr UnitBounds kResultsWatchReplayBounds{.min = {.x = 0.22f, .y = 0.88f}, .max = {.x = 0.48f, .y = 0.96f}};
 constexpr UnitBounds kResultsBackWithWatchBounds{.min = {.x = 0.52f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}};
 constexpr UnitBounds kPauseTitleBounds{.min = {.x = 0.30f, .y = 0.08f}, .max = {.x = 0.70f, .y = 0.16f}};
-constexpr UnitBounds kPauseResumeButtonBounds{.min = {.x = 0.22f, .y = 0.88f}, .max = {.x = 0.48f, .y = 0.96f}};
-constexpr UnitBounds kPauseQuitButtonBounds{.min = {.x = 0.52f, .y = 0.88f}, .max = {.x = 0.78f, .y = 0.96f}};
+constexpr UnitBounds kPauseResumeButtonBounds{.min = {.x = 0.15f, .y = 0.88f}, .max = {.x = 0.35f, .y = 0.96f}};
+constexpr UnitBounds kPauseRestartButtonBounds{.min = {.x = 0.40f, .y = 0.88f}, .max = {.x = 0.60f, .y = 0.96f}};
+constexpr UnitBounds kPauseQuitButtonBounds{.min = {.x = 0.65f, .y = 0.88f}, .max = {.x = 0.85f, .y = 0.96f}};
 
 class EscapeKeyHandler final : public GameObject, public IKeyHandler {
 public:
@@ -176,8 +177,14 @@ ResultsOverlayScene::ResultsOverlayScene(
         root->CreateChild<TextButton>(
             kPauseResumeButtonBounds,
             *buttonFontRes,
-            "Back",
+            "Resume",
             [this] { CloseResume(); },
+            buttonTexture);
+        root->CreateChild<TextButton>(
+            kPauseRestartButtonBounds,
+            *buttonFontRes,
+            "Restart",
+            [this] { CloseToRestart(); },
             buttonTexture);
         root->CreateChild<TextButton>(
             kPauseQuitButtonBounds,
@@ -225,6 +232,17 @@ void ResultsOverlayScene::CloseToSongSelect() const {
 
 void ResultsOverlayScene::CloseBrowse() const {
     sceneManager.QueuePop();
+}
+
+void ResultsOverlayScene::CloseToRestart() const
+{
+    sceneManager.QueuePop();
+    sceneManager.QueueReplace<GameplayScene>(
+                    std::ref(sceneManager),
+                    std::ref(game),
+                    context.song,
+                    context.difficultyIndex,
+                    game.GetGameplaySettings());
 }
 
 void ResultsOverlayScene::LaunchWatchReplay() const {

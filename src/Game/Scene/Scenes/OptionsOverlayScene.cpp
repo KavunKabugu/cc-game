@@ -1,4 +1,5 @@
 #include "OptionsOverlayScene.h"
+#include "OptionsOverlayScene.h"
 
 #include <array>
 #include <cmath>
@@ -410,12 +411,12 @@ void OptionsOverlayScene::RefreshInputBindButtonTexts() const {
             btn->SetText(KeyLabel(gs.keyBindings[static_cast<size_t>(lane)][static_cast<size_t>(slot)]));
         }
     }
+    restartBindButton->SetText(KeyLabel(gs.keyBindRestart));
 }
 
-void OptionsOverlayScene::BeginKeyRebind(const int lane, const int slot) {
+void OptionsOverlayScene::BeginKeyRebind(KeyBind keyBind) {
     keyCaptureActive = true;
-    keyCaptureLane = lane;
-    keyCaptureSlot = slot;
+    keyCaptureKeyBind = keyBind;
     if (keyCaptureBackdrop != nullptr) {
         keyCaptureBackdrop->SetColor(SDL_Color{.r = 0, .g = 0, .b = 0, .a = 200});
     }
@@ -438,7 +439,36 @@ void OptionsOverlayScene::CompleteKeyRebind(const SDL_Keycode key) {
     if (!keyCaptureActive) {
         return;
     }
-    game.SetGameplayLaneKeyBinding(keyCaptureLane, keyCaptureSlot, key);
+    switch (keyCaptureKeyBind) {
+        case KeyBind::Lane1Slot1:
+            game.SetGameplayLaneKeyBinding(0, 0, key);
+            break;
+        case KeyBind::Lane2Slot1:
+            game.SetGameplayLaneKeyBinding(1, 0, key);
+            break;
+        case KeyBind::Lane3Slot1:
+            game.SetGameplayLaneKeyBinding(2, 0, key);
+            break;
+        case KeyBind::Lane4Slot1:
+            game.SetGameplayLaneKeyBinding(3, 0, key);
+            break;
+        case KeyBind::Lane1Slot2:
+            game.SetGameplayLaneKeyBinding(0, 1, key);
+            break;
+        case KeyBind::Lane2Slot2:
+            game.SetGameplayLaneKeyBinding(1, 1, key);
+            break;
+        case KeyBind::Lane3Slot2:
+            game.SetGameplayLaneKeyBinding(2, 1, key);
+            break;
+        case KeyBind::Lane4Slot2:
+            game.SetGameplayLaneKeyBinding(3, 1, key);
+            break;
+        case KeyBind::Restart:
+            game.SetRestartKeyBinding(key);
+            break;
+    }
+
     EndKeyRebind();
     RefreshInputBindButtonTexts();
 }
@@ -997,14 +1027,35 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                     rowFont,
                     KeyLabel(gs.keyBindings[static_cast<size_t>(lane)][static_cast<size_t>(slot)]),
                     [this, lane, slot] {
-                        BeginKeyRebind(lane, slot);
+                        KeyBind keyBind;
+                        if (slot == 0) {
+                            keyBind = static_cast<KeyBind>(static_cast<size_t>(lane));
+                        } else {
+                            keyBind = static_cast<KeyBind>(static_cast<size_t>(lane+4));
+                        }
+                        BeginKeyRebind(keyBind);
                     },
                     buttonTexture);
             }
+
+            contentContainer->CreateChild<Label>(
+                UnitBounds{.min = {.x = 0.05f, .y = 0.53}, .max = {.x = 0.2f, .y = 0.61}},
+                rowFont,
+                "Restart");
+
+            restartBindButton = contentContainer->CreateChild<TextButton>(
+                UnitBounds{.min = {.x = 0.25f, .y = 0.53}, .max = {.x = 0.45f, .y = 0.61}},
+                rowFont,
+                KeyLabel(gs.keyBindRestart),
+                [this]
+                {
+                    BeginKeyRebind(KeyBind::Restart);
+                },
+                buttonTexture);
         }
 
         auto* inputNote = contentContainer->CreateChild<Label>(
-            UnitBounds{.min = {.x = 0.05f, .y = 0.58f}, .max = {.x = 0.95f, .y = 0.68f}},
+            UnitBounds{.min = {.x = 0.05f, .y = 0.68f}, .max = {.x = 0.95f, .y = 0.78f}},
             font,
             "Changes apply immediately.");
         inputNote->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
