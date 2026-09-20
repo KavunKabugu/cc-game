@@ -17,6 +17,7 @@
 #include "Game/objects/Label.h"
 #include "Game/objects/PanelRect.h"
 #include "Game/objects/TextButton.h"
+#include "Game/PerformancePoints/PerformancePointsCalculation.h"
 
 namespace Game {
 namespace {
@@ -24,11 +25,12 @@ namespace {
 constexpr UnitBounds kResultsDimBounds{.min = {.x = 0.00f, .y = 0.00f}, .max = {.x = 1.00f, .y = 1.00f}};
 constexpr UnitBounds kResultsSongTitleBounds{.min = {.x = 0.06f, .y = 0.13f}, .max = {.x = 1.00f, .y = 0.21f}};
 constexpr UnitBounds kResultsScoreBounds{.min = {.x = 0.06f, .y = 0.20f}, .max = {.x = 0.48f, .y = 0.28f}};
-constexpr UnitBounds kResultsAccuracyBounds{.min = {.x = 0.06f, .y = 0.29f}, .max = {.x = 0.48f, .y = 0.345f}};
-constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.355f}, .max = {.x = 0.48f, .y = 0.405f}};
-constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.405f}, .max = {.x = 0.48f, .y = 0.435f}};
-constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.438f}, .max = {.x = 0.48f, .y = 0.493f}};
-constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.496f}, .max = {.x = 0.48f, .y = 0.551f}};
+constexpr UnitBounds kPerformancePointsBounds{.min = {.x = 0.06f, .y = 0.29f}, .max = {.x = 0.48f, .y = 0.345f}};
+constexpr UnitBounds kResultsAccuracyBounds{.min = {.x = 0.06f, .y = 0.323f}, .max = {.x = 0.48f, .y = 0.378f}};
+constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.388f}, .max = {.x = 0.48f, .y = 0.438f}};
+constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.438f}, .max = {.x = 0.48f, .y = 0.468f}};
+constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.471f}, .max = {.x = 0.48f, .y = 0.526f}};
+constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.529f}, .max = {.x = 0.48f, .y = 0.584f}};
 constexpr UnitBounds kResultsGraphBounds{.min = {.x = 0.52f, .y = 0.24f}, .max = {.x = 0.94f, .y = 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{.min = {.x = 0.52f, .y = 0.17f}, .max = {.x = 0.80f, .y = 0.225f}};
 constexpr UnitBounds kResultsBackButtonAloneBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
@@ -115,6 +117,16 @@ ResultsOverlayScene::ResultsOverlayScene(
         *resultScoreFontRes,
         std::format("Score: {}", this->data.score));
     scoreLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
+    auto performancePointsCalculation = PerformancePoints::PerformancePointsCalculation(this->context, this->data);
+    performancePointsCalculation.CalculateDifficulty();
+    double ppValue = performancePointsCalculation.CalculatePerformancePoints(this->data.judgementCounts);
+
+    auto performancePointsLabel = root->CreateChild<Label>(
+        kPerformancePointsBounds,
+        *resultBodyFontRes,
+        std::format("Performance Points: {}pp", ppValue));
+    performancePointsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     auto* accuracyLabel = root->CreateChild<Label>(
         kResultsAccuracyBounds,

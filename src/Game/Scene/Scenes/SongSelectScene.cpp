@@ -298,6 +298,8 @@ void SongSelectScene::BuildChartList() {
         return;
     }
 
+    std::ranges::sort(song->difficulties, [] (Song::SongDifficulty const& a, Song::SongDifficulty const& b) { return a.rating < b.rating; });
+
     for (int i = 0; i < static_cast<int>(song->difficulties.size()); ++i) {
         const auto& diff = song->difficulties[i];
         auto* row = leftScroll->CreateChild<SelectableRow>(
@@ -322,7 +324,7 @@ void SongSelectScene::BuildChartList() {
         auto* nameLabel = row->CreateChild<Label>(
             UnitBounds{.min = {.x = 0.04f, .y = 0.1f}, .max = {.x = 0.96f, .y = 0.9f}},
             bodyRowFont,
-            diff.name);
+            std::format("{} - {}", diff.rating, diff.name));
         nameLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
         WireMarqueeLabel(row, nameLabel);
 
@@ -370,9 +372,12 @@ void SongSelectScene::BuildScoreList() {
                 UpdateScoreSelectionVisuals();
 
                 if (auto loaded = Score::ScoreStore::Load(song->songFolder, entry.runId)) {
-                    ResultsOverlayContext overlayContext;
-                    overlayContext.song = song;
-                    overlayContext.replayId = loaded->summary.replayId;
+                    ResultsOverlayContext overlayContext = {
+                        .song = song,
+                        .difficultyIndex = selectedDifficultyIndex,
+                        .replayId = loaded->summary.replayId
+                    };
+
                     this->sceneManager.QueuePush<ResultsOverlayScene>(
                         std::ref(this->sceneManager),
                         std::ref(this->game),

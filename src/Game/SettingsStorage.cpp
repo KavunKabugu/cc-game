@@ -212,6 +212,9 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     if (j.contains("playerName") && j["playerName"].is_string()) {
         settings.playerName = j["playerName"].get<std::string>();
     }
+    if (j.contains("showHitIndicators") && j["showHitIndicators"].is_boolean()) {
+        settings.showHitIndicators = j["showHitIndicators"].get<bool>();
+    }
 }
 
 void ApplyVideoJson(const json& j, VideoSettings& video, int& savedWindowedWidth, int& savedWindowedHeight) {
@@ -417,6 +420,7 @@ bool SaveAll(
              {"keyBindings", keyBindingsJson},
              {"keyBindRestart", gCopy.keyBindRestart},
              {"playerName", gCopy.playerName},
+             {"showHitIndicators", gCopy.showHitIndicators},
          }},
         {"audio",
          {

@@ -12,6 +12,7 @@
 
 #include "Game/DiscordPresenceManager.h"
 #include "Game/PathUtf8.h"
+#include "Game/PerformancePoints/PerformancePointsCalculation.h"
 
 using Game::PathToUtf8String;
 using Game::Utf8StringToPath;
@@ -67,6 +68,8 @@ constexpr UnitBounds kHudJudgementsBounds{.min = {.x = 0.02f, .y = 0.058f}, .max
 constexpr UnitBounds kHudAccuracyBounds{.min = {.x = 0.02f, .y = 0.098f}, .max = {.x = 0.70f, .y = 0.138f}};
 constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {.x = 0.92f, .y = 0.178f}};
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
+constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
+constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
 
@@ -217,7 +220,7 @@ GameplayScene::GameplayScene(
         }
     }
 
-    const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 48.0f);
+    const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", this->settings.crosshairRadius / 3);
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
@@ -365,6 +368,12 @@ GameplayScene::GameplayScene(
         "Bias: 0.00ms   Std.Dev.: 0.00ms");
     timingStatsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+    performancePointsLabel = root->CreateChild<Label>(
+        kHudPerformancePointsBounds,
+        *textFontRes,
+        "PP: 0pp");
+    performancePointsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
     timingRuler = root->CreateChild<Gameplay::TimingRuler>(kTimingRulerBounds);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
@@ -380,11 +389,13 @@ GameplayScene::GameplayScene(
         [this] { HandleRestartKey(); },
         settings.keyBindRestart);
 
-    judgementIndicatorLabel = root->CreateChild<Label>(
-        UnitBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}},
+    if (this->settings.showHitIndicators) {
+        judgementIndicatorLabel = root->CreateChild<Label>(
+        kHudJudgementHitIndicatorBounds,
         *judgementIndicatorFontRes,
         "");
-    judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+        judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+    }
 
     const double spawnLead = simulation.SpawnLeadSeconds();
     const double firstHit = simulation.FirstNoteHitTime();
@@ -393,6 +404,12 @@ GameplayScene::GameplayScene(
         std::isfinite(firstHit) ? std::max(0.0, spawnLead - firstHit - offset) : 0.0;
     // const double effectiveDelay = std::max(Gameplay::kStartDelaySeconds, leadShortfall);
     const double effectiveDelay = Gameplay::kStartDelaySeconds + leadShortfall;
+
+    ResultsOverlayContext overlayContext;
+    overlayContext.song = this->selectedSong;
+    overlayContext.difficultyIndex = this->selectedDifficultyIndex;
+    this->performancePointsCalculation = PerformancePoints::PerformancePointsCalculation(overlayContext, BuildResultsViewData());
+    this->performancePointsCalculation.CalculateDifficulty();
 
     clock = std::make_unique<Gameplay::SongClock>(*audioRes, effectiveDelay, offset);
     simulationReady = true;
@@ -546,7 +563,7 @@ void GameplayScene::ConsumeJudgements() {
     {
         if (clock->SongTime() - lastHitTime > 0.2)
         {
-            this->judgementIndicatorLabel->SetText("");
+            if (this->settings.showHitIndicators) this->judgementIndicatorLabel->SetText("");
         }
         return;
     }
@@ -592,28 +609,40 @@ void GameplayScene::ConsumeJudgements() {
         {
             case Perfect:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                this->judgementIndicatorLabel->SetText("100");
-                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Perfect, result.deltaMs));
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Perfect, result.deltaMs));
+                }
                 break;
             case Great:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                this->judgementIndicatorLabel->SetText("100");
-                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
+                }
                 break;
             case Good:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                this->judgementIndicatorLabel->SetText("50");
-                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("50");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
+                }
                 break;
             case Bad:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                this->judgementIndicatorLabel->SetText("25");
-                this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
+                if (this->settings.showHitIndicators)
+                {
+                    this->judgementIndicatorLabel->SetText("25");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
+                }
                 break;
             case Miss:
                 AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
-                this->judgementIndicatorLabel->SetText("X");
-                this->judgementIndicatorLabel->SetColor(Gameplay::ResultsJudgementFillColor(Miss, result.deltaMs));
+                if (this->settings.showHitIndicators)
+                {
+                    this->judgementIndicatorLabel->SetText("X");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::ResultsJudgementFillColor(Miss, result.deltaMs));
+                }
                 break;
             case Count:
                 break;
@@ -647,7 +676,7 @@ void GameplayScene::UpdateHud() {
     }
     if (accuracyLabel) {
         accuracyLabel->SetText(std::format(
-            "Acc: {:.1f}%",
+            "Acc: {:.2f}%",
             AccuracyPercent()));
     }
     if (timingStatsLabel) {
@@ -655,6 +684,11 @@ void GameplayScene::UpdateHud() {
             "Bias: {:.2f}ms   Std.Dev.: {:.2f}ms",
             MeanSignedTimingErrorMs(),
             TimingStandardDeviationMs()));
+    }
+
+    if (performancePointsLabel) {
+        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(this->judgementCounts);
+        performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
 }
 
@@ -704,6 +738,7 @@ void GameplayScene::HideHud() const {
         timingRuler->SetBounds(kOffscreenBounds);
         timingRuler->Clear();
     }
+    if (performancePointsLabel) performancePointsLabel->SetBounds(kOffscreenBounds);
 }
 
 void GameplayScene::ShowHud() const {
@@ -712,6 +747,7 @@ void GameplayScene::ShowHud() const {
     if (accuracyLabel) accuracyLabel->SetBounds(kHudAccuracyBounds);
     if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
     if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
+    if (performancePointsLabel) performancePointsLabel->SetBounds(kHudPerformancePointsBounds);
 }
 
 Score::ResultsViewData GameplayScene::BuildResultsViewData() const {

@@ -56,6 +56,7 @@ public:
     void SetPlayfieldBorderOpacity(float opacity);
     void SetPlayfieldBorderSize(float size);
     void SetSwapUpDownLanes(bool enabled);
+    void SetShowHitIndicators(bool show);
 
     void SetPlayerName(std::string name);
 

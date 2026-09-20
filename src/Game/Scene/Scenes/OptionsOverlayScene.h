@@ -86,6 +86,7 @@ private:
     PanelRect* gameplayBackgroundColorPreview = nullptr;
     TextButton* gameplayEnablePlayfieldBorderCheckbox = nullptr;
     TextButton* gameplaySwapUpDownLanesCheckbox = nullptr;
+    TextButton* gameplayShowHitIndicatorCheckbox = nullptr;
     Label* gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     Label* gameplayPlayfieldBorderSizeValueLabel = nullptr;
 
@@ -97,7 +98,7 @@ private:
     TextButton* inputBindButtons[4][2]{};
     TextButton* restartBindButton{};
     bool keyCaptureActive = false;
-    KeyBind keyCaptureKeyBind;
+    KeyBind keyCaptureKeyBind = {};
     PanelRect* keyCaptureBackdrop = nullptr;
     Label* keyCapturePrompt = nullptr;
 };

@@ -1,5 +1,4 @@
 #include "OptionsOverlayScene.h"
-#include "OptionsOverlayScene.h"
 
 #include <array>
 #include <cmath>
@@ -386,6 +385,9 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
         gameplayPlayfieldBorderSizeValueLabel->SetText(
             std::format("{:.0f}", gs.playfieldBorderSize));
     }
+    if (gameplayShowHitIndicatorCheckbox) {
+        gameplayShowHitIndicatorCheckbox->SetText(gs.showHitIndicators ? "X" : "");
+    }
 }
 
 void OptionsOverlayScene::RefreshAudioControlTexts() const {
@@ -414,7 +416,7 @@ void OptionsOverlayScene::RefreshInputBindButtonTexts() const {
     restartBindButton->SetText(KeyLabel(gs.keyBindRestart));
 }
 
-void OptionsOverlayScene::BeginKeyRebind(KeyBind keyBind) {
+void OptionsOverlayScene::BeginKeyRebind(const KeyBind keyBind) {
     keyCaptureActive = true;
     keyCaptureKeyBind = keyBind;
     if (keyCaptureBackdrop != nullptr) {
@@ -501,6 +503,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplaySwapUpDownLanesCheckbox = nullptr;
     gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     gameplayPlayfieldBorderSizeValueLabel = nullptr;
+    gameplayShowHitIndicatorCheckbox = nullptr;
     audioMasterValueLabel = nullptr;
     audioMusicValueLabel = nullptr;
     audioSfxValueLabel = nullptr;
@@ -763,6 +766,16 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             [this] {
                 const bool cur = game.GetGameplaySettings().swapUpDownLanes;
                 game.SetSwapUpDownLanes(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Show Hit Indicators",
+            gameplayShowHitIndicatorCheckbox,
+            gs.showHitIndicators,
+            [this] {
+                const bool cur = game.GetGameplaySettings().showHitIndicators;
+                game.SetShowHitIndicators(!cur);
                 RefreshGameplayControlTexts();
             });
 
