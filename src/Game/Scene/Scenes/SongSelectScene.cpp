@@ -10,6 +10,7 @@
 #include "Game/Layout/VBoxLayout.h"
 #include "Game/PathUtf8.h"
 #include "Game/ResourceManager.h"
+#include "Game/objects/InputField.h"
 #include "Game/Score/ScoreStore.h"
 #include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneManager.h"
@@ -150,6 +151,52 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         "Songs");
     songsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Middle);
 
+    auto songSearch = root->CreateChild<InputField>(
+        UnitBounds{.min = {.x = 0.6f, .y = 0.155f}, .max = {.x = 0.83f, .y = 0.215f}},
+        *sectionFontRes,
+        "",
+        30);
+
+    songSearch->SetOnChanged([this](const std::string& searchInput){
+        std::vector<std::shared_ptr<Song::SongMetadata>> tempSongs;
+
+        auto lowerSearchInput = searchInput;
+        std::ranges::transform(lowerSearchInput, lowerSearchInput.begin(),
+                            [](const unsigned char c){ return std::tolower(c); });
+
+        std::ranges::copy_if(songs, std::back_inserter(tempSongs),
+                         [lowerSearchInput](const std::shared_ptr<Song::SongMetadata>& songMetadata) {
+                             auto lowerArtist = songMetadata->artist;
+                             std::ranges::transform(lowerArtist, lowerArtist.begin(),
+                                                    [](const unsigned char c){ return std::tolower(c); });
+
+                             auto lowerTitle = songMetadata->title;
+                             std::ranges::transform(lowerTitle, lowerTitle.begin(),
+                                                    [](const unsigned char c){ return std::tolower(c); });
+
+                             return lowerArtist.contains(lowerSearchInput) || lowerTitle.contains(lowerSearchInput);
+                         });
+
+        BuildSongList(tempSongs);
+    });
+
+    root->CreateChild<TextButton>(
+        UnitBounds{.min = {.x = 0.85f, .y = 0.155f}, .max = {.x = 0.95f, .y = 0.215f}},
+        *buttonFontRes,
+        "Refresh",
+        [this] {
+            Song::SongManager::GetInstance().RefreshLibrary();
+            const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
+            songs.assign(temp_library.begin(), temp_library.end());
+            BuildSongList(songs);
+            if (!songs.empty()) {
+                SelectSong(0);
+            } else {
+                BuildLeftPanel();
+            }
+        },
+        buttonTexture);
+
     leftScroll = root->CreateChild<ScrollContainer>(
         UnitBounds{.min = {.x = 0.04f, .y = 0.23f}, .max = {.x = 0.47f, .y = 0.84f}});
     songScroll = root->CreateChild<ScrollContainer>(
@@ -164,7 +211,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     // assumption there is no concurrent background refresh. Snapshot locally.
     const auto& library = Song::SongManager::GetInstance().GetLibrary();
     songs.assign(library.begin(), library.end());
-    BuildSongList();
+    BuildSongList(songs);
     if (!songs.empty()) {
         SelectSong(lastSelectedSongIndex);
     } else {
@@ -180,27 +227,10 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         },
         buttonTexture);
 
-    root->CreateChild<TextButton>(
-        UnitBounds{.min = {.x = 0.85f, .y = 0.155f}, .max = {.x = 0.95f, .y = 0.215f}},
-        *buttonFontRes,
-        "Refresh",
-        [this] {
-            Song::SongManager::GetInstance().RefreshLibrary();
-            const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
-            songs.assign(temp_library.begin(), temp_library.end());
-            BuildSongList();
-            if (!songs.empty()) {
-                SelectSong(0);
-            } else {
-                BuildLeftPanel();
-            }
-        },
-        buttonTexture);
-
     DiscordPresenceManager::getInstance().Update("", "Idle");
 }
 
-void SongSelectScene::BuildSongList() {
+void SongSelectScene::BuildSongList(const std::vector<std::shared_ptr<Song::SongMetadata>> &songsToShow) {
     if (!songScroll || !titleRowFont || !bodyRowFont || !metaRowFont) {
         return;
     }
@@ -209,15 +239,15 @@ void SongSelectScene::BuildSongList() {
     auto& children = songScroll->GetChildren();
     children.clear();
 
-    if (songs.empty()) {
+    if (songsToShow.empty()) {
         auto* label = songScroll->CreateChild<Label>(kFullBounds, bodyRowFont, "No songs found.");
         label->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
         songScroll->UpdateLayout();
         return;
     }
 
-    for (int i = 0; i < static_cast<int>(songs.size()); ++i) {
-        const auto& song = songs[i];
+    for (int i = 0; i < static_cast<int>(songsToShow.size()); ++i) {
+        const auto& song = songsToShow[i];
         auto* row = songScroll->CreateChild<SelectableRow>(kFullBounds, [this, i] { SelectSong(i); });
         ApplySongRowColors(row);
 

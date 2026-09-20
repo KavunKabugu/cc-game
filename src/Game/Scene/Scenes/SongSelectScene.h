@@ -28,7 +28,7 @@ private:
         Scores
     };
 
-    void BuildSongList();
+    void BuildSongList(const std::vector<std::shared_ptr<Song::SongMetadata>> &songsToShow);
     void BuildLeftPanel();
     void BuildChartList();
     void BuildScoreList();
