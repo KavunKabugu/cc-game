@@ -30,12 +30,11 @@ namespace Game::PerformancePoints
         return result;
     }
 
-    std::pair<std::vector<DifficultyCalculation::NoteGroup>, nlohmann::json> DifficultyCalculation::LoadNoteGroupsFromFile(const std::string& path) {
+    std::pair<std::vector<DifficultyCalculation::NoteGroup>, nlohmann::json> DifficultyCalculation::LoadNoteGroupsFromFile(const std::filesystem::path& path) {
         std::ifstream file(path);
 
         if (!file) {
             SDL_LogError(SDL_LOG_CATEGORY_ERROR, "PerformancePointsCalculation | Could not open map: %s", path.c_str());
-            throw std::runtime_error("Could not open map: " + path);
         }
 
         nlohmann::json data;
@@ -125,7 +124,7 @@ namespace Game::PerformancePoints
         return shares;
     }
 
-    DifficultyCalculation::Result DifficultyCalculation::CalculateDifficulty(const std::string& chartFilePath) {
+    DifficultyCalculation::Result DifficultyCalculation::CalculateDifficulty(const std::filesystem::path& chartFilePath) {
         auto [groups, song] = LoadNoteGroupsFromFile(chartFilePath);
         if (groups.size() < 2) return {};
 

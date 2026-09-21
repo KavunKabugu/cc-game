@@ -5,7 +5,7 @@
 #ifndef CC_GAME_DIFFICULTYCALCULATION_H
 #define CC_GAME_DIFFICULTYCALCULATION_H
 #include <utility>
-#include <debug/vector>
+#include <vector>
 #include "ThirdParty/json.hpp"
 
 namespace Game::PerformancePoints {
@@ -41,7 +41,7 @@ namespace Game::PerformancePoints {
                 }
             };
 
-            static Result CalculateDifficulty(const std::string& chartFilePath);
+            static Result CalculateDifficulty(const std::filesystem::path& chartFilePath);
         private:
             struct RawNote {
                 float time_ms;
@@ -50,7 +50,7 @@ namespace Game::PerformancePoints {
 
             static bool contains_lane(const std::vector<int>& lanes, int lane);
             static int lane_overlap(const NoteGroup& a, const NoteGroup& b);
-            static std::pair<std::vector<NoteGroup>, nlohmann::json> LoadNoteGroupsFromFile(const std::string& path);
+            static std::pair<std::vector<NoteGroup>, nlohmann::json> LoadNoteGroupsFromFile(const std::filesystem::path& path);
             static std::vector<double> anchor_shares(const std::vector<NoteGroup>& groups);
 
     };
