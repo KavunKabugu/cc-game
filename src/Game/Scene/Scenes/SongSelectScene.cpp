@@ -177,6 +177,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
                              return lowerArtist.contains(lowerSearchInput) || lowerTitle.contains(lowerSearchInput);
                          });
 
+        filteredSongs = tempSongs;
         BuildSongList(tempSongs);
     });
 
@@ -184,16 +185,18 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         UnitBounds{.min = {.x = 0.85f, .y = 0.155f}, .max = {.x = 0.95f, .y = 0.215f}},
         *buttonFontRes,
         "Refresh",
-        [this] {
+        [this, songSearch] {
             Song::SongManager::GetInstance().RefreshLibrary();
             const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
             songs.assign(temp_library.begin(), temp_library.end());
+            filteredSongs = songs;
             BuildSongList(songs);
             if (!songs.empty()) {
                 SelectSong(0);
             } else {
                 BuildLeftPanel();
             }
+            songSearch->SetText("");
         },
         buttonTexture);
 
@@ -211,6 +214,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     // assumption there is no concurrent background refresh. Snapshot locally.
     const auto& library = Song::SongManager::GetInstance().GetLibrary();
     songs.assign(library.begin(), library.end());
+    filteredSongs = songs;
     BuildSongList(songs);
     if (!songs.empty()) {
         SelectSong(lastSelectedSongIndex);
@@ -313,14 +317,14 @@ void SongSelectScene::BuildChartList() {
     children.clear();
     selectedDifficultyIndex = -1;
 
-    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
+    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(filteredSongs.size())) {
         auto* label = leftScroll->CreateChild<Label>(kFullBounds, bodyRowFont, "Select a song.");
         label->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
         leftScroll->UpdateLayout();
         return;
     }
 
-    const auto& song = songs[selectedSongIndex];
+    const auto& song = filteredSongs[selectedSongIndex];
     if (song->difficulties.empty()) {
         auto* label = leftScroll->CreateChild<Label>(kFullBounds, bodyRowFont, "No charts in selected song.");
         label->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
@@ -335,13 +339,13 @@ void SongSelectScene::BuildChartList() {
         auto* row = leftScroll->CreateChild<SelectableRow>(
             kFullBounds,
             [this, i] {
-                if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
+                if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(filteredSongs.size())) {
                     return;
                 }
                 this->game.setLastSelectedSongIndex(selectedSongIndex);
                 selectedDifficultyIndex = i;
                 UpdateChartSelectionVisuals();
-                const auto selectedSong = songs[selectedSongIndex];
+                const auto selectedSong = filteredSongs[selectedSongIndex];
                 this->sceneManager.QueueReplace<GameplayScene>(
                     std::ref(this->sceneManager),
                     std::ref(this->game),
@@ -377,14 +381,14 @@ void SongSelectScene::BuildScoreList() {
     children.clear();
     selectedScoreIndex = -1;
 
-    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
+    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(filteredSongs.size())) {
         auto* label = leftScroll->CreateChild<Label>(kFullBounds, bodyRowFont, "Select a song.");
         label->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
         leftScroll->UpdateLayout();
         return;
     }
 
-    const auto& song = songs[selectedSongIndex];
+    const auto& song = filteredSongs[selectedSongIndex];
     const auto scores = Score::ScoreStore::ListForSong(*song);
     if (scores.empty()) {
         auto* label = leftScroll->CreateChild<Label>(kFullBounds, bodyRowFont, "No scores.");
@@ -457,7 +461,7 @@ void SongSelectScene::BuildScoreList() {
 }
 
 void SongSelectScene::SelectSong(const int index) {
-    if (index < 0 || index >= static_cast<int>(songs.size())) {
+    if (index < 0 || index >= static_cast<int>(filteredSongs.size())) {
         return;
     }
 
@@ -504,12 +508,12 @@ void SongSelectScene::UpdateCoverBackground() const {
         return;
     }
 
-    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(songs.size())) {
+    if (selectedSongIndex < 0 || selectedSongIndex >= static_cast<int>(filteredSongs.size())) {
         coverSprite->SetTexture(nullptr);
         return;
     }
 
-    const auto& song = songs[selectedSongIndex];
+    const auto& song = filteredSongs[selectedSongIndex];
     if (!song || song->coverFile.empty()) {
         coverSprite->SetTexture(nullptr);
         return;

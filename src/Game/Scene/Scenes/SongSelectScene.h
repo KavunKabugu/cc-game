@@ -43,6 +43,7 @@ private:
     SceneManager& sceneManager;
     GameInstance& game;
     std::vector<std::shared_ptr<Song::SongMetadata>> songs;
+    std::vector<std::shared_ptr<Song::SongMetadata>> filteredSongs;
 
     Sprite* coverSprite = nullptr;
     ScrollContainer* leftScroll = nullptr;
