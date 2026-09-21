@@ -179,12 +179,12 @@ void TestGermanSongPipeline() {
     }
 
     // Library scan stand-in, folder name from directory_iterator -> UTF-8
+	bool foundFolder = false;
     for (const auto& entry : fs::directory_iterator(base)) {
         if (!entry.is_directory()) {
             continue;
         }
         if (PathToUtf8String(entry.path().filename()) == kGermanSongFolder) {
-            bool foundFolder = false;
             foundFolder = true;
         }
     }

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cmath>
 #include <vector>
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/GameplayConstants.h"
@@ -165,15 +166,103 @@ void TestEmptyLaneAndChords() {
     assert(resEmpty.missReason == MissReason::EmptyLane);
     assert(resEmpty.lane == 1);
 
-    // Try hit lane 0: should hit the first note (1.0) because it's closest to hit time
+    // Try hit lane 0: should hit the first note (1.0) because it's the next note in line
     [[maybe_unused]] const HitResult resFirst = sim.TryHit(0, 0.99);
     assert(resFirst.judgement == Judgement::Perfect);
     assert(resFirst.noteTargetTimeSeconds.has_value() && *resFirst.noteTargetTimeSeconds == 1.0);
 
-    // Try hit lane 0 again: should hit the second note (1.01)
     [[maybe_unused]] const HitResult resSecond = sim.TryHit(0, 1.01);
     assert(resSecond.judgement == Judgement::Perfect);
     assert(resSecond.noteTargetTimeSeconds.has_value() && *resSecond.noteTargetTimeSeconds == 1.01);
+}
+
+void TestTryHitPrefersEarlierNotePastMidpoint() {
+    // 80 ms jack: a tap 50 ms after the first note is closer to the second.
+    // Next-unhit must still consume the first note.
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = {
+        ChartNote{.hitTime = 1.0, .lane = 0},
+        ChartNote{.hitTime = 1.08, .lane = 0},
+    };
+    sim.LoadChart(chart);
+    sim.Tick(1.05);
+    assert(sim.ActiveNotes().size() == 2);
+
+    [[maybe_unused]] const HitResult resFirst = sim.TryHit(0, 1.05);
+    assert(resFirst.missReason == MissReason::None);
+    assert(resFirst.noteTargetTimeSeconds.has_value() && *resFirst.noteTargetTimeSeconds == 1.0);
+    assert(std::abs(resFirst.deltaMs - 50.0) < 1e-6);
+    assert(resFirst.judgement == Judgement::Great);
+    assert(sim.ActiveNotes().size() == 1);
+    assert(sim.ActiveNotes()[0]->hitTime == 1.08);
+
+    [[maybe_unused]] const HitResult resSecond = sim.TryHit(0, 1.08);
+    assert(resSecond.noteTargetTimeSeconds.has_value() && *resSecond.noteTargetTimeSeconds == 1.08);
+    assert(resSecond.judgement == Judgement::Perfect);
+    assert(sim.ActiveNotes().empty());
+}
+
+void TestLateTapHitsLeftoverNotLaterNote() {
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = {
+        ChartNote{.hitTime = 1.0, .lane = 0},
+        ChartNote{.hitTime = 1.08, .lane = 0},
+    };
+    sim.LoadChart(chart);
+    sim.Tick(1.08);
+
+    // On time for the second note, but the first is still the next unhit.
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.08);
+    assert(res.noteTargetTimeSeconds.has_value() && *res.noteTargetTimeSeconds == 1.0);
+    assert(std::abs(res.deltaMs - 80.0) < 1e-6);
+    assert(res.judgement == Judgement::Good);
+    assert(sim.ActiveNotes().size() == 1);
+    assert(sim.ActiveNotes()[0]->hitTime == 1.08);
+}
+
+void TestTryHitFromSpawn() {
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = {ChartNote{.hitTime = 1.0, .lane = 0}};
+    sim.LoadChart(chart);
+
+    const double spawnTime = 1.0 - sim.SpawnLeadSeconds() + 0.01;
+    sim.Tick(spawnTime);
+    assert(sim.ActiveNotes().size() == 1);
+
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, spawnTime);
+    assert(res.missReason == MissReason::None);
+    assert(res.noteTargetTimeSeconds.has_value() && *res.noteTargetTimeSeconds == 1.0);
+    assert(res.deltaMs < -kGoodWindowMs);
+    assert(res.judgement == Judgement::Bad);
+    assert(sim.ActiveNotes().empty());
+}
+
+void TestTryHitIsPerLane() {
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = {
+        ChartNote{.hitTime = 1.0, .lane = 0},
+        ChartNote{.hitTime = 1.08, .lane = 1},
+    };
+    sim.LoadChart(chart);
+    sim.Tick(1.08);
+
+    [[maybe_unused]] const HitResult res = sim.TryHit(1, 1.08);
+    assert(res.noteTargetTimeSeconds.has_value() && *res.noteTargetTimeSeconds == 1.08);
+    assert(res.judgement == Judgement::Perfect);
+    assert(sim.ActiveNotes().size() == 1);
+    assert(sim.ActiveNotes()[0]->lane == 0);
 }
 
 } // namespace
@@ -186,5 +275,9 @@ int main() {
     TestTryHitGreat();
     TestTryHitGoodAndBad();
     TestEmptyLaneAndChords();
+    TestTryHitPrefersEarlierNotePastMidpoint();
+    TestLateTapHitsLeftoverNotLaterNote();
+    TestTryHitFromSpawn();
+    TestTryHitIsPerLane();
     return 0;
 }

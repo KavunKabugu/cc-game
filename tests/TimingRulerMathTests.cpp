@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 
 #include "Game/Gameplay/GameplayConstants.h"
 #include "Game/Gameplay/TimingRulerMath.h"

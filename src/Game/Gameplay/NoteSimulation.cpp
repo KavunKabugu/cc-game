@@ -79,16 +79,10 @@ void NoteSimulation::Tick(const double currentTimeSeconds) {
 
 HitResult NoteSimulation::TryHit(const int lane, const double hitTimeSeconds) {
     RuntimeNote* best = nullptr;
-    double bestAbs = 0.0;
-    double bestDelta = 0.0;
-
     for (RuntimeNote* note : active) {
         if (note->lane != lane || note->resolved) continue;
-        const double deltaSec = hitTimeSeconds - note->hitTime;
-        if (const double absSec = std::abs(deltaSec); best == nullptr || absSec < bestAbs || (absSec == bestAbs && note->hitTime < best->hitTime)) {
+        if (best == nullptr || note->hitTime < best->hitTime) {
             best = note;
-            bestAbs = absSec;
-            bestDelta = deltaSec;
         }
     }
 
@@ -105,7 +99,8 @@ HitResult NoteSimulation::TryHit(const int lane, const double hitTimeSeconds) {
         return result;
     }
 
-    const double absMs = bestAbs * 1000.0;
+    const double bestDelta = hitTimeSeconds - best->hitTime;
+    const double absMs = std::abs(bestDelta) * 1000.0;
     Judgement tier;
     if (absMs <= kPerfectWindowMs) {
         tier = Judgement::Perfect;
