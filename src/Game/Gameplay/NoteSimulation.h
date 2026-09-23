@@ -27,8 +27,10 @@ public:
     // Returns judgements produced this tick (only Miss/NoteExpired).
     void Tick(double currentTimeSeconds);
 
-    // Resolve a key press in this lane at hit time. Returns a HitResult.
-    // If no hittable note matches, returns Miss/EmptyLane.
+    // Resolve a key press in this lane at hit time. Hits the earliest unresolved
+    // note in the lane (next unhit), which is hittable from spawn 
+	// until MissReason::NoteExpired.
+    // If the lane has no such note, returns MissReason::EmptyLane.
     HitResult TryHit(int lane, double hitTimeSeconds);
 
     [[nodiscard]] std::span<const RuntimeNote* const> ActiveNotes() const { return activeView; }

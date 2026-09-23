@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "Game/Gameplay/ChartLoader.h"
+#include "Game/Gameplay/LaneRemap.h"
 
 namespace {
 
