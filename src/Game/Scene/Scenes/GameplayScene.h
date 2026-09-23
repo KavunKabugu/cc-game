@@ -14,6 +14,7 @@
 #include "Game/Gameplay/NoteSimulation.h"
 #include "Game/Gameplay/ResultsGraphDisplay.h"
 #include "Game/Gameplay/SongClock.h"
+#include "Game/PerformancePoints/PerformancePointsCalculation.h"
 #include "Game/Score/ReplayTypes.h"
 #include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneBase.h"
@@ -76,6 +77,7 @@ private:
     void UpdateHud();
     void HandleSongEnd();
     void HandleEscapeKey();
+    void HandleRestartKey();
     void ShowHud() const;
     void HideHud() const;
     void EnterPaused();
@@ -110,6 +112,8 @@ private:
     Label* judgementsLabel = nullptr;
     Label* accuracyLabel = nullptr;
     Label* timingStatsLabel = nullptr;
+    Label* performancePointsLabel = nullptr;
+    Label* judgementIndicatorLabel = nullptr;
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
@@ -142,9 +146,12 @@ private:
     bool simulationReady = false;
     bool initFailed = false;
     std::string initErrorMessage;
+    double lastHitTime = 0.0;
 
     std::expected<std::shared_ptr<MIX_Audio>, ResourceError> missAudioRes;
     std::expected<std::shared_ptr<MIX_Audio>, ResourceError> hitAudioRes;
+
+    PerformancePoints::PerformancePointsCalculation performancePointsCalculation = PerformancePoints::PerformancePointsCalculation({}, {});
 };
 
 } // namespace Game

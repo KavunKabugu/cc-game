@@ -89,7 +89,6 @@ function(cc_setup_windows_bundle main_target)
     )
 
     # I don't actually have CPack configured (I think), but one day I might
-    include(CPack)
     set(CPACK_GENERATOR ZIP)
     set(CPACK_PACKAGE_NAME "cc-game")
     set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
@@ -101,4 +100,5 @@ function(cc_setup_windows_bundle main_target)
     set(CPACK_PACKAGE_FILE_NAME "cc-game-${_cc_arch}-windows")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
     set(CPACK_COMPONENTS_ALL Runtime)
+    include(CPack)
 endfunction()

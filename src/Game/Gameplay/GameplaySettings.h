@@ -54,8 +54,13 @@ struct GameplaySettings {
     // Useful for my Left/Up/Down/Right column preference (:D).
     bool swapUpDownLanes = false;
 
+    // When true, shows the judgement of the last hit inside of the crosshair.
+    bool showHitIndicators = true;
+
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
+
+    SDL_Keycode keyBindRestart = SDLK_R;
 
     // Display name (editable in Options).
     std::string playerName = "Player";

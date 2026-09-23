@@ -56,6 +56,7 @@ public:
     void SetPlayfieldBorderOpacity(float opacity);
     void SetPlayfieldBorderSize(float size);
     void SetSwapUpDownLanes(bool enabled);
+    void SetShowHitIndicators(bool show);
 
     void SetPlayerName(std::string name);
 
@@ -71,6 +72,8 @@ public:
 
     void setLastSelectedSongIndex(int index);
     [[nodiscard]] int getLastSelectedSongIndex() const;
+
+    void SetRestartKeyBinding(SDL_Keycode key);
 
 private:
     void ApplyLogicalPresentation() const;

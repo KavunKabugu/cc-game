@@ -1,4 +1,5 @@
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
+#include <cstring>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -9,6 +10,21 @@ static Game::GameInstance* game = nullptr;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("cc-game", "0.1.4alpha", "com.karp.cc-game");
+
+#ifdef __linux__
+    bool hasPulseAudio = false;
+
+    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
+        if (const char* driver = SDL_GetAudioDriver(i); driver && std::strcmp(driver, "pulseaudio") == 0) {
+            hasPulseAudio = true;
+            break;
+        }
+    }
+
+    if (hasPulseAudio) {
+        SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "pulseaudio");
+    }
+#endif
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());

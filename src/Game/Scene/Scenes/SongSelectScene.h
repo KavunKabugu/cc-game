@@ -28,7 +28,7 @@ private:
         Scores
     };
 
-    void BuildSongList();
+    void BuildSongList(const std::vector<std::shared_ptr<Song::SongMetadata>> &songsToShow);
     void BuildLeftPanel();
     void BuildChartList();
     void BuildScoreList();
@@ -43,6 +43,7 @@ private:
     SceneManager& sceneManager;
     GameInstance& game;
     std::vector<std::shared_ptr<Song::SongMetadata>> songs;
+    std::vector<std::shared_ptr<Song::SongMetadata>> filteredSongs;
 
     Sprite* coverSprite = nullptr;
     ScrollContainer* leftScroll = nullptr;

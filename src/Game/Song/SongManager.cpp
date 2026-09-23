@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <mutex>
 
+#include "Game/PerformancePoints/DifficultyCalculation.h"
+
 namespace Game::Song {
     using json = nlohmann::json;
     using Game::PathFromSdlBasePath;
@@ -28,11 +30,12 @@ namespace Game::Song {
 
         json SerializeSongMetadata(const SongMetadata& metadata) {
             json difficulties = json::array();
-            for (const auto&[name, chartPath, level] : metadata.difficulties) {
+            for (const auto&[name, chartPath, level, rating] : metadata.difficulties) {
                 difficulties.push_back({
                     {"name", name},
                     {"chartPath", PathToUtf8String(chartPath)},
-                    {"level", level}
+                    {"level", level},
+                    {"rating", rating}
                 });
             }
 
@@ -61,7 +64,8 @@ namespace Game::Song {
                     metadata->difficulties.push_back(SongDifficulty{
                         .name = d.at("name").get<std::string>(),
                         .chartPath = Utf8StringToPath(d.at("chartPath").get<std::string>()),
-                        .level = d.at("level").get<int>()
+                        .level = d.at("level").get<int>(),
+                        .rating = d.at("rating").get<double>()
                     });
                 }
                 return metadata;
@@ -103,10 +107,15 @@ namespace Game::Song {
                     std::string chartFile = d.contains("chartFile")
                                                 ? d.at("chartFile").get<std::string>()
                                                 : d.at("chartPath").get<std::string>();
+
+                    auto difficultyPath = SongManager::ResolveSongFile(*metadata, chartFile);
+                    auto difficulty = PerformancePoints::DifficultyCalculation::CalculateDifficulty(difficultyPath);
+
                     metadata->difficulties.push_back(SongDifficulty{
                         .name = d.at("name").get<std::string>(),
                         .chartPath = Utf8StringToPath(chartFile),
-                        .level = d.value("level", 0)
+                        .level = d.value("level", 0),
+                        .rating = difficulty.rating
                     });
                 }
 

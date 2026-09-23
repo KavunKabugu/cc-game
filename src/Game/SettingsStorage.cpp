@@ -206,8 +206,14 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     if (j.contains("keyBindings") && j["keyBindings"].is_array()) {
         ApplyKeyBindingsJson(j["keyBindings"], settings.keyBindings);
     }
+    if (j.contains("keyBindRestart") && j["keyBindRestart"].is_number_integer()) {
+        settings.keyBindRestart = j["keyBindRestart"].get<int>();
+    }
     if (j.contains("playerName") && j["playerName"].is_string()) {
         settings.playerName = j["playerName"].get<std::string>();
+    }
+    if (j.contains("showHitIndicators") && j["showHitIndicators"].is_boolean()) {
+        settings.showHitIndicators = j["showHitIndicators"].get<bool>();
     }
 }
 
@@ -412,7 +418,9 @@ bool SaveAll(
              {"playfieldBorderSize", gCopy.playfieldBorderSize},
              {"swapUpDownLanes", gCopy.swapUpDownLanes},
              {"keyBindings", keyBindingsJson},
+             {"keyBindRestart", gCopy.keyBindRestart},
              {"playerName", gCopy.playerName},
+             {"showHitIndicators", gCopy.showHitIndicators},
          }},
         {"audio",
          {

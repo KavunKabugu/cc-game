@@ -604,11 +604,21 @@ Container* GameInstance::GetRoot() const {
     return nullptr;
 }
 
-void GameInstance::setLastSelectedSongIndex(int index) {
+void GameInstance::setLastSelectedSongIndex(const int index) {
     this->lastSelectedSongIndex = index;
 }
 
 int GameInstance::getLastSelectedSongIndex() const {
     return this->lastSelectedSongIndex;
+}
+
+void GameInstance::SetRestartKeyBinding(const SDL_Keycode key) {
+    gameplaySettings.keyBindRestart = key;
+    PersistAllSettings();
+}
+
+void GameInstance::SetShowHitIndicators(const bool show) {
+    gameplaySettings.showHitIndicators = show;
+    PersistAllSettings();
 }
 } // namespace Game

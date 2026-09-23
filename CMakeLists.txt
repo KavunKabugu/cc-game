@@ -119,6 +119,12 @@ set(GAME_SOURCES
         src/Game/Profile.h
         src/Game/DiscordPresenceManager.h
         src/Game/DiscordPresenceManager.cpp
+        src/Game/PerformancePoints/PerformancePointsCalculation.h
+        src/Game/PerformancePoints/PerformancePointsCalculation.cpp
+        src/Game/PerformancePoints/DifficultyConstants.h
+        src/Game/PerformancePoints/PerformancePointsConstants.h
+        src/Game/PerformancePoints/DifficultyCalculation.cpp
+        src/Game/PerformancePoints/DifficultyCalculation.h
 )
 
 add_executable(cc_game main.cpp ${GAME_SOURCES})

@@ -12,6 +12,7 @@
 
 #include "Game/DiscordPresenceManager.h"
 #include "Game/PathUtf8.h"
+#include "Game/PerformancePoints/PerformancePointsCalculation.h"
 
 using Game::PathToUtf8String;
 using Game::Utf8StringToPath;
@@ -39,6 +40,7 @@ using Game::Utf8StringToPath;
 #include "Game/objects/PanelRect.h"
 #include "Game/objects/Sprite.h"
 #include "Game/Profile.h"
+#include "Game/Gameplay/JudgementDisplayColors.h"
 
 namespace Game {
 
@@ -66,6 +68,8 @@ constexpr UnitBounds kHudJudgementsBounds{.min = {.x = 0.02f, .y = 0.058f}, .max
 constexpr UnitBounds kHudAccuracyBounds{.min = {.x = 0.02f, .y = 0.098f}, .max = {.x = 0.70f, .y = 0.138f}};
 constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {.x = 0.92f, .y = 0.178f}};
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
+constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
+constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
 
@@ -90,6 +94,32 @@ public:
 
 private:
     std::function<void()> onEscape;
+};
+
+class RestartMapHandler final : public GameObject, public IKeyHandler {
+public:
+    explicit RestartMapHandler(const UnitBounds bounds, std::function<void()> onRestart, SDL_Keycode restartKeyCode)
+        : GameObject(bounds), onRestart(std::move(onRestart))
+    {
+        this->restartKeyCode = restartKeyCode;
+    }
+
+    void Update() override {}
+
+    IKeyHandler* AsKeyHandler() override { return this; }
+
+    bool OnKeyDown(const SDL_Keycode key, const Uint64 /*timestamp*/) override {
+        if (key == this->restartKeyCode && onRestart) {
+            onRestart();
+            return true;
+        }
+        return false;
+    }
+
+    bool OnKeyUp(SDL_Keycode, Uint64) override { return false; }
+    SDL_Keycode restartKeyCode;
+private:
+    std::function<void()> onRestart;
 };
 
 } // namespace
@@ -190,6 +220,7 @@ GameplayScene::GameplayScene(
         }
     }
 
+    const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", this->settings.crosshairRadius / 3);
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
@@ -337,6 +368,12 @@ GameplayScene::GameplayScene(
         "Bias: 0.00ms   Std.Dev.: 0.00ms");
     timingStatsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+    performancePointsLabel = root->CreateChild<Label>(
+        kHudPerformancePointsBounds,
+        *textFontRes,
+        "PP: 0pp");
+    performancePointsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
     timingRuler = root->CreateChild<Gameplay::TimingRuler>(kTimingRulerBounds);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
@@ -347,6 +384,19 @@ GameplayScene::GameplayScene(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleEscapeKey(); });
 
+    root->CreateChild<RestartMapHandler>(
+        UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
+        [this] { HandleRestartKey(); },
+        settings.keyBindRestart);
+
+    if (this->settings.showHitIndicators) {
+        judgementIndicatorLabel = root->CreateChild<Label>(
+        kHudJudgementHitIndicatorBounds,
+        *judgementIndicatorFontRes,
+        "");
+        judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+    }
+
     const double spawnLead = simulation.SpawnLeadSeconds();
     const double firstHit = simulation.FirstNoteHitTime();
     const double offset = this->settings.audioOffsetSeconds;
@@ -354,6 +404,12 @@ GameplayScene::GameplayScene(
         std::isfinite(firstHit) ? std::max(0.0, spawnLead - firstHit - offset) : 0.0;
     // const double effectiveDelay = std::max(Gameplay::kStartDelaySeconds, leadShortfall);
     const double effectiveDelay = Gameplay::kStartDelaySeconds + leadShortfall;
+
+    ResultsOverlayContext overlayContext;
+    overlayContext.song = this->selectedSong;
+    overlayContext.difficultyIndex = this->selectedDifficultyIndex;
+    this->performancePointsCalculation = PerformancePoints::PerformancePointsCalculation(overlayContext, BuildResultsViewData());
+    this->performancePointsCalculation.CalculateDifficulty();
 
     clock = std::make_unique<Gameplay::SongClock>(*audioRes, effectiveDelay, offset);
     simulationReady = true;
@@ -503,7 +559,14 @@ void GameplayScene::InjectReplayPresses(const double songTimeSeconds) {
 void GameplayScene::ConsumeJudgements() {
     CC_PROFILE("ConsumeJudgements");
     const auto& events = simulation.DrainEvents();
-    if (events.empty()) return;
+    if (events.empty())
+    {
+        if (clock->SongTime() - lastHitTime > 0.2)
+        {
+            if (this->settings.showHitIndicators) this->judgementIndicatorLabel->SetText("");
+        }
+        return;
+    }
 
     using enum Gameplay::Judgement;
     for (const auto& result : events) {
@@ -542,13 +605,49 @@ void GameplayScene::ConsumeJudgements() {
             accuracySteps.emplace_back(nx, accPct);
         }
 
-        if (result.judgement == Miss)
+        switch (result.judgement)
         {
-            AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
-        } else
-        {
-            AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+            case Perfect:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Perfect, result.deltaMs));
+                }
+                break;
+            case Great:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
+                }
+                break;
+            case Good:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("50");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
+                }
+                break;
+            case Bad:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators)
+                {
+                    this->judgementIndicatorLabel->SetText("25");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
+                }
+                break;
+            case Miss:
+                AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators)
+                {
+                    this->judgementIndicatorLabel->SetText("X");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::ResultsJudgementFillColor(Miss, result.deltaMs));
+                }
+                break;
+            case Count:
+                break;
         }
+        lastHitTime = clock->SongTime();
     }
     simulation.ClearEvents();
     UpdateHud();
@@ -577,7 +676,7 @@ void GameplayScene::UpdateHud() {
     }
     if (accuracyLabel) {
         accuracyLabel->SetText(std::format(
-            "Acc: {:.1f}%",
+            "Acc: {:.2f}%",
             AccuracyPercent()));
     }
     if (timingStatsLabel) {
@@ -585,6 +684,11 @@ void GameplayScene::UpdateHud() {
             "Bias: {:.2f}ms   Std.Dev.: {:.2f}ms",
             MeanSignedTimingErrorMs(),
             TimingStandardDeviationMs()));
+    }
+
+    if (performancePointsLabel) {
+        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(this->judgementCounts);
+        performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
 }
 
@@ -614,6 +718,17 @@ void GameplayScene::HandleEscapeKey() {
     }
 }
 
+void GameplayScene::HandleRestartKey()
+{
+    this->sceneManager.QueuePop();
+    this->sceneManager.QueueReplace<GameplayScene>(
+                    std::ref(this->sceneManager),
+                    std::ref(this->game),
+                    selectedSong,
+                    selectedDifficultyIndex,
+                    this->game.GetGameplaySettings());
+}
+
 void GameplayScene::HideHud() const {
     if (scoreLabel) scoreLabel->SetBounds(kOffscreenBounds);
     if (judgementsLabel) judgementsLabel->SetBounds(kOffscreenBounds);
@@ -623,6 +738,7 @@ void GameplayScene::HideHud() const {
         timingRuler->SetBounds(kOffscreenBounds);
         timingRuler->Clear();
     }
+    if (performancePointsLabel) performancePointsLabel->SetBounds(kOffscreenBounds);
 }
 
 void GameplayScene::ShowHud() const {
@@ -631,6 +747,7 @@ void GameplayScene::ShowHud() const {
     if (accuracyLabel) accuracyLabel->SetBounds(kHudAccuracyBounds);
     if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
     if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
+    if (performancePointsLabel) performancePointsLabel->SetBounds(kHudPerformancePointsBounds);
 }
 
 Score::ResultsViewData GameplayScene::BuildResultsViewData() const {
@@ -681,12 +798,16 @@ void GameplayScene::EnterPaused() {
     HideHud();
     phase = Phase::Paused;
 
+    ResultsOverlayContext overlayContext;
+    overlayContext.song = selectedSong;
+    overlayContext.difficultyIndex = selectedDifficultyIndex;
+
     sceneManager.QueuePush<ResultsOverlayScene>(
         std::ref(sceneManager),
         std::ref(game),
         ResultsOverlayScene::Mode::Pause,
         BuildResultsViewData(),
-        ResultsOverlayContext{});
+        std::move(overlayContext));
 
     if (!SDL_ShowCursor()) {
         SDL_Log("GameplayScene: failed to show cursor on pause menu entry: %s", SDL_GetError());

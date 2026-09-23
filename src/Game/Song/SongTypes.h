@@ -22,6 +22,7 @@ namespace Game::Song {
         std::string name;
         std::filesystem::path chartPath;
         int level{0};
+        double rating{0};
     };
 
     struct SongMetadata {
