@@ -67,15 +67,15 @@ void JudgementCountsFromJson(
 
 [[nodiscard]] json GraphEventsToJson(const std::vector<Gameplay::ResultsGraphEvent>& events) {
     json arr = json::array();
-    for (const auto& e : events) {
+    for (const auto& [judgement, missReason, deltaMs, noteTargetTimeSeconds, pressTimeSeconds] : events) {
         json item = {
-            {"judgement", static_cast<int>(e.judgement)},
-            {"missReason", static_cast<int>(e.missReason)},
-            {"deltaMs", e.deltaMs},
-            {"pressTimeSeconds", e.pressTimeSeconds},
+            {"judgement", static_cast<int>(judgement)},
+            {"missReason", static_cast<int>(missReason)},
+            {"deltaMs", deltaMs},
+            {"pressTimeSeconds", pressTimeSeconds},
         };
-        if (e.noteTargetTimeSeconds) {
-            item["noteTargetTimeSeconds"] = *e.noteTargetTimeSeconds;
+        if (noteTargetTimeSeconds) {
+            item["noteTargetTimeSeconds"] = *noteTargetTimeSeconds;
         }
         arr.push_back(std::move(item));
     }
@@ -232,8 +232,7 @@ void JudgementCountsFromJson(
             return out;
         }
         for (const auto& item : j["summaries"]) {
-            ScoreSummary s;
-            if (SummaryFromJson(item, s)) {
+            if (ScoreSummary s; SummaryFromJson(item, s)) {
                 out.push_back(std::move(s));
             }
         }

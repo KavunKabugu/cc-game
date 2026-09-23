@@ -193,9 +193,7 @@ void GameInstance::ApplyWindowModeFromSettings() {
                 LogVideoWarning("SDL_SetWindowBordered(true) failed entering windowed mode");
             }
 
-            const int w = std::max(savedWindowedWidth, 640);
-            const int h = std::max(savedWindowedHeight, 360);
-            if (!SDL_SetWindowSize(window, w, h)) {
+            if (const int w = std::max(savedWindowedWidth, 640), h = std::max(savedWindowedHeight, 360); !SDL_SetWindowSize(window, w, h)) {
                 LogVideoWarning("SDL_SetWindowSize failed restoring windowed size");
             }
 

@@ -110,7 +110,7 @@ void DrawHorizontalGridLine(
     return std::max(2.0f, plotH * 0.008f);
 }
 
-void DrawTextRightOf(
+[[maybe_unused]] void DrawTextRightOf(
     SDL_Renderer* renderer,
     const std::shared_ptr<TTF_Font>& font,
     const std::string& text,
@@ -211,9 +211,9 @@ void ResultsGraphDisplay::FreeTexture() {
     }
 }
 
-void ResultsGraphDisplay::SetMode(const ResultsGraphMode m) {
-    if (mode != m) {
-        mode = m;
+void ResultsGraphDisplay::SetMode(const ResultsGraphMode newMode) {
+    if (mode != newMode) {
+        mode = newMode;
         textureDirty = true;
     }
 }
@@ -227,8 +227,8 @@ void ResultsGraphDisplay::SetChartDomain(const double firstNoteTimeSeconds, cons
     }
 }
 
-void ResultsGraphDisplay::SetEvents(std::vector<ResultsGraphEvent> e) {
-    events = std::move(e);
+void ResultsGraphDisplay::SetEvents(std::vector<ResultsGraphEvent> eventsToSet) {
+    events = std::move(eventsToSet);
     lastPlotW = 0.0f; // Force bar width recalculation
     textureDirty = true;
 }

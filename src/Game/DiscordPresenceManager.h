@@ -16,8 +16,8 @@ public:
     }
 
     bool Init();
-    void Update(const discordpp::Activity &activity);
-    void Update(std::string state, std::string details);
+    void Update(const discordpp::Activity &activity) const;
+    void Update(std::string state, std::string details) const;
 private:
     std::shared_ptr<discordpp::Client> client = nullptr;
 };
