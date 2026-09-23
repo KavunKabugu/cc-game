@@ -384,10 +384,12 @@ GameplayScene::GameplayScene(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleEscapeKey(); });
 
-    root->CreateChild<RestartMapHandler>(
+    if (playMode == PlayMode::Live) {
+        root->CreateChild<RestartMapHandler>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleRestartKey(); },
         this->settings.keyBindRestart);
+    }
 
     if (this->settings.showHitIndicators) {
         judgementIndicatorLabel = root->CreateChild<Label>(
@@ -801,6 +803,8 @@ void GameplayScene::EnterPaused() {
     ResultsOverlayContext overlayContext;
     overlayContext.song = selectedSong;
     overlayContext.difficultyIndex = selectedDifficultyIndex;
+
+    if (playMode == PlayMode::Replay) overlayContext.replayId = "-1";
 
     sceneManager.QueuePush<ResultsOverlayScene>(
         std::ref(sceneManager),
