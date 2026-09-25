@@ -101,10 +101,10 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
     auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 56.0f);
     auto sectionFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 30.0f);
     auto buttonFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 34.0f);
-    auto titleRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 28.0f);
-    auto bodyRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 22.0f);
-    auto metaRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 18.0f);
-    auto buttonTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("button.png");
+    const auto titleRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 28.0f);
+    const auto bodyRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 22.0f);
+    const auto metaRowFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 18.0f);
+    const auto buttonTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("button.png");
 
     if (!titleFontRes || !sectionFontRes || !buttonFontRes || !titleRowFontRes || !bodyRowFontRes ||
         !metaRowFontRes) {
@@ -186,8 +186,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         *buttonFontRes,
         "Refresh",
         [this, songSearch] {
-            const auto e = Song::SongManager::GetInstance().RefreshLibrary();
-            (void) e; // Unused
+            [[maybe_unused]] auto library = Song::SongManager::GetInstance().RefreshLibrary();
             const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
             songs.assign(temp_library.begin(), temp_library.end());
             filteredSongs = songs;

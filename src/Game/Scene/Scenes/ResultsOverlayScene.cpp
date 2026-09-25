@@ -192,12 +192,16 @@ ResultsOverlayScene::ResultsOverlayScene(
             "Resume",
             [this] { CloseResume(); },
             buttonTexture);
-        root->CreateChild<TextButton>(
+
+        if (this->context.replayId.empty()) {
+            root->CreateChild<TextButton>(
             kPauseRestartButtonBounds,
             *buttonFontRes,
             "Restart",
             [this] { CloseToRestart(); },
             buttonTexture);
+        }
+
         root->CreateChild<TextButton>(
             kPauseQuitButtonBounds,
             *buttonFontRes,

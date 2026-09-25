@@ -98,7 +98,7 @@ private:
 
 class RestartMapHandler final : public GameObject, public IKeyHandler {
 public:
-    explicit RestartMapHandler(const UnitBounds bounds, std::function<void()> onRestart, SDL_Keycode restartKeyCode)
+    explicit RestartMapHandler(const UnitBounds bounds, std::function<void()> onRestart, const SDL_Keycode restartKeyCode)
         : GameObject(bounds), onRestart(std::move(onRestart))
     {
         this->restartKeyCode = restartKeyCode;
@@ -384,10 +384,12 @@ GameplayScene::GameplayScene(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleEscapeKey(); });
 
-    root->CreateChild<RestartMapHandler>(
+    if (playMode == PlayMode::Live) {
+        root->CreateChild<RestartMapHandler>(
         UnitBounds{.min = {.x = 0.0f, .y = 0.0f}, .max = {.x = 0.0f, .y = 0.0f}},
         [this] { HandleRestartKey(); },
-        settings.keyBindRestart);
+        this->settings.keyBindRestart);
+    }
 
     if (this->settings.showHitIndicators) {
         judgementIndicatorLabel = root->CreateChild<Label>(
@@ -524,7 +526,7 @@ void GameplayScene::ProcessInputs(const double songTimeSeconds) {
     const auto presses = laneInput->Drain();
     if (presses.empty()) return;
 
-    if (settings.useWallClockForJudgementTiming) {
+    if (this->settings.useWallClockForJudgementTiming) {
         if (!clock) {
             return;
         }
@@ -532,7 +534,7 @@ void GameplayScene::ProcessInputs(const double songTimeSeconds) {
 
     for (const auto&[lane, sdlTimestampNs] : presses) {
         double pressSongTime;
-        if (settings.useWallClockForJudgementTiming) {
+        if (this->settings.useWallClockForJudgementTiming) {
             pressSongTime = clock->WallTimeSongSecondsAt(sdlTimestampNs);
         } else {
             const Uint64 nowNs = SDL_GetTicksNS();
@@ -800,6 +802,8 @@ void GameplayScene::EnterPaused() {
     ResultsOverlayContext overlayContext;
     overlayContext.song = selectedSong;
     overlayContext.difficultyIndex = selectedDifficultyIndex;
+
+    if (playMode == PlayMode::Replay) overlayContext.replayId = "-1";
 
     sceneManager.QueuePush<ResultsOverlayScene>(
         std::ref(sceneManager),

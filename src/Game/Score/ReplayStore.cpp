@@ -62,8 +62,8 @@ using Game::PathToUtf8String;
 
 [[nodiscard]] json PressesToJson(const std::vector<ReplayPress>& presses) {
     json arr = json::array();
-    for (const auto& p : presses) {
-        arr.push_back({{"t", p.t}, {"lane", p.lane}});
+    for (const auto& [t, lane] : presses) {
+        arr.push_back({{"t", t}, {"lane", lane}});
     }
     return arr;
 }

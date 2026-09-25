@@ -110,9 +110,7 @@ namespace Game::PerformancePoints
                 ++lo;
             }
 
-            const int total = std::accumulate(counts.begin(), counts.end(), 0);
-
-            if (total >= anchorMinNotes) {
+            if (const int total = std::accumulate(counts.begin(), counts.end(), 0); total >= anchorMinNotes) {
                 const int busiest = *std::ranges::max_element(counts);
 
                 shares.push_back(static_cast<double>(busiest) / total);
@@ -167,7 +165,7 @@ namespace Game::PerformancePoints
             const double base = std::pow(1000.0 / delta,speedExponent);
 
             // Chords.
-            const double chord_mult = 1.0 + chordWeight * (cur.size() - 1);
+            const double chord_mult = 1.0 + chordWeight * (static_cast<float>(cur.size()) - 1);
 
             // Jacks.
             const int overlap = lane_overlap(prev, cur);
@@ -229,11 +227,11 @@ namespace Game::PerformancePoints
         std::ranges::sort(ranked, std::greater());
 
         // Hardest quarter.
-        const int top_n = std::max(1, static_cast<int>(std::ceil(peakFraction * ranked.size())));
+        const int top_n = std::max(1, static_cast<int>(std::ceil(peakFraction * static_cast<float>(ranked.size()))));
         const double peak_index = std::accumulate(ranked.begin(), ranked.begin() + top_n, 0.0) / top_n;
 
         // Consistency.
-        const double average = std::accumulate(ranked.begin(), ranked.end(), 0.0) / ranked.size();
+        const double average = std::accumulate(ranked.begin(), ranked.end(), 0.0) / static_cast<double>(ranked.size());
         const double consistency = average / peak_index;
 
         // Hard content.
