@@ -10,7 +10,7 @@ namespace Game
 {
 
 bool DiscordPresenceManager::Init() {
-    uint64_t APPLICATION_ID = 1550023229031321670;
+    constexpr uint64_t APPLICATION_ID = 1550023229031321670;
 
     client = std::make_shared<discordpp::Client>();
     client->SetApplicationId(APPLICATION_ID);
@@ -18,8 +18,7 @@ bool DiscordPresenceManager::Init() {
     return true;
 }
 
-void DiscordPresenceManager::Update(const discordpp::Activity &activity)
-{
+void DiscordPresenceManager::Update(const discordpp::Activity &activity) const {
     client->UpdateRichPresence(
         activity, [](const discordpp::ClientResult &result) {
           if (result.Successful()) {
@@ -30,8 +29,7 @@ void DiscordPresenceManager::Update(const discordpp::Activity &activity)
         });
 }
 
-void DiscordPresenceManager::Update(std::string state = "", std::string details = "")
-{
+void DiscordPresenceManager::Update(std::string state = "", std::string details = "") const {
     discordpp::Activity activity;
     activity.SetType(discordpp::ActivityTypes::Playing);
     if (!details.empty())

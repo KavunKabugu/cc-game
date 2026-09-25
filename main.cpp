@@ -8,7 +8,7 @@
 
 static Game::GameInstance* game = nullptr;
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+SDL_AppResult SDL_AppInit([[maybe_unused]] void **appstate, [[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     SDL_SetAppMetadata("cc-game", "0.1.4alpha", "com.karp.cc-game");
 
 #ifdef __linux__
@@ -45,7 +45,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
 #include "Game/EventManager.h"
 
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+
+// build fails if SDL_Event is const, so I had to disable ReSharper for this
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+SDL_AppResult SDL_AppEvent([[maybe_unused]] void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
     }
@@ -55,7 +58,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 static Uint64 lastFrameTimeNs = 0;
 
-SDL_AppResult SDL_AppIterate(void *appstate) {
+SDL_AppResult SDL_AppIterate([[maybe_unused]] void *appstate) {
     if (!game) {
         return SDL_APP_CONTINUE;
     }
@@ -105,7 +108,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+void SDL_AppQuit([[maybe_unused]] void *appstate, [[maybe_unused]] SDL_AppResult result) {
     delete game;
     game = nullptr;
     /* SDL will clean up the window/renderer for us. */

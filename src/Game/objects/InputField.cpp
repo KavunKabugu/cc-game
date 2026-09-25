@@ -80,11 +80,11 @@ void InputField::OnTextInputFocusLost() {
     }
 }
 
-bool InputField::OnTextInput(const char* utf8) {
-    if (!focused || !utf8 || utf8[0] == '\0') {
+bool InputField::OnTextInput(const char* textInput) {
+    if (!focused || !textInput || textInput[0] == '\0') {
         return false;
     }
-    InsertUtf8(utf8);
+    InsertUtf8(textInput);
     return true;
 }
 

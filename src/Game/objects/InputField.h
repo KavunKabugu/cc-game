@@ -43,14 +43,14 @@ public:
     bool OnKeyDown(SDL_Keycode key, Uint64 timestamp) override;
     bool OnKeyUp(SDL_Keycode key, Uint64 timestamp) override;
 
-    bool OnTextInput(const char* text) override;
+    bool OnTextInput(const char* textInput) override;
     void OnTextInputFocusLost() override;
 
     void SetText(std::string newText);
     [[nodiscard]] const std::string& GetText() const { return text; }
-    void SetMaxLength(std::size_t maxLength);
+    void SetMaxLength(std::size_t length);
     void SetOnChanged(std::function<void(const std::string&)> callback);
-    void SetColors(SDL_Color normal, SDL_Color focused, SDL_Color textCol);
+    void SetColors(SDL_Color normal, SDL_Color focusedCol, SDL_Color textCol);
 
     void Focus();
     void Blur(bool notifyChanged = true);

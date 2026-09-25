@@ -27,7 +27,7 @@ constexpr int kLegacyGameplayFileVersion = 1;
 constexpr auto kLegacyGameplayFileName = "gameplay_settings.json";
 
 [[nodiscard]] std::optional<std::filesystem::path> ExecutableDirectory() {
-    return Game::PathFromSdlBasePath();
+    return PathFromSdlBasePath();
 }
 
 [[nodiscard]] std::optional<std::filesystem::path> SettingsFilePath() {
@@ -39,7 +39,7 @@ constexpr auto kLegacyGameplayFileName = "gameplay_settings.json";
 }
 
 [[nodiscard]] std::optional<std::filesystem::path> LegacyPrefDirectory() {
-    return Game::PathFromSdlPrefPath("com.karp", "cc-game");
+    return PathFromSdlPrefPath("com.karp", "cc-game");
 }
 
 void ClampGameplayFields(Gameplay::GameplaySettings& s) {
@@ -249,7 +249,7 @@ void ApplyVideoJson(const json& j, VideoSettings& video, int& savedWindowedWidth
     }
 
     if (j.contains("maxFps") && j["maxFps"].is_number_integer()) {
-        video.maxFps = std::clamp(static_cast<int>(j["maxFps"].get<int>()), 30, 1000);
+        video.maxFps = std::clamp(j["maxFps"].get<int>(), 30, 1000);
     }
 
     if (j.contains("windowedWidth") && j["windowedWidth"].is_number_integer()) {

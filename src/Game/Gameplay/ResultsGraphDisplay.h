@@ -42,11 +42,11 @@ public:
 
     void Render(SDL_Renderer* renderer, const SDL_FRect& parentRect) override;
 
-    void SetMode(ResultsGraphMode mode);
+    void SetMode(ResultsGraphMode newMode);
     [[nodiscard]] ResultsGraphMode Mode() const noexcept { return mode; }
 
     void SetChartDomain(double firstNoteTimeSeconds, double lastNoteTimeSeconds);
-    void SetEvents(std::vector<ResultsGraphEvent> events);
+    void SetEvents(std::vector<ResultsGraphEvent> eventsToSet);
     void SetAccuracySteps(std::vector<std::pair<double, double>> steps);
     void SetLabelFont(std::shared_ptr<TTF_Font> font);
 
