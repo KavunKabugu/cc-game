@@ -1,5 +1,8 @@
 #include "SongClock.h"
 
+#include <cstdint>
+#include <limits>
+
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_timer.h>
 
@@ -14,15 +17,32 @@ SongClock::SongClock(std::shared_ptr<MIX_Audio> audio,
     : audio(std::move(audio)),
       delayRemaining(startDelaySeconds),
       startDelaySeconds(startDelaySeconds),
-      audioOffsetSeconds(audioOffsetSeconds),
-      sceneWallStartNs(SDL_GetTicksNS()) {}
+      audioOffsetSeconds(audioOffsetSeconds) {}
 
 SongClock::~SongClock() {
     Stop();
 }
 
+void SongClock::BeginSongTimelineIfNeeded(const double deltaTimeSeconds) {
+    if (songTimelineWallStartNs != 0) {
+        return;
+    }
+
+    const std::uint64_t nowNs = SDL_GetTicksNS();
+    std::uint64_t dtNs = 0;
+    if (deltaTimeSeconds > 0.0) {
+        if (const double dtNsDouble = deltaTimeSeconds * 1'000'000'000.0; dtNsDouble < static_cast<double>(
+            std::numeric_limits<std::uint64_t>::max())) {
+            dtNs = static_cast<std::uint64_t>(dtNsDouble);
+        }
+    }
+    songTimelineWallStartNs = nowNs > dtNs ? nowNs - dtNs : nowNs;
+}
+
 void SongClock::Update(const double deltaTimeSeconds) {
     if (paused || musicStarted) return;
+
+    BeginSongTimelineIfNeeded(deltaTimeSeconds);
 
     delayRemaining -= deltaTimeSeconds;
     if (delayRemaining <= 0.0) {
@@ -47,7 +67,7 @@ double SongClock::SongTime() const {
     }
 
     // Subtract the user audio offset uniformly so the time curve is continuous
-    // across the music-start boundary. With offset = 0 this is the raw clock.
+    // across the music start boundary. With offset = 0 this is the raw clock.
     if (!musicStarted) {
         return -delayRemaining - audioOffsetSeconds;
     }
@@ -57,32 +77,36 @@ double SongClock::SongTime() const {
     return sound->GetRawPosition() - audioOffsetSeconds;
 }
 
-std::uint64_t SongClock::EffectivePausedWallNs() const {
-    std::uint64_t total = totalPausedWallNs;
-    if (paused && pauseWallStartNs != 0) {
-        if (const std::uint64_t now = SDL_GetTicksNS(); now >= pauseWallStartNs) {
-            total += now - pauseWallStartNs;
-        }
+void SongClock::ShiftTimelineOriginsByPausedWall(const std::uint64_t pausedNs) {
+    if (pausedNs == 0) {
+        return;
     }
-    return total;
+    if (songTimelineWallStartNs != 0) {
+        songTimelineWallStartNs += pausedNs;
+    }
+    if (musicWallStartNs != 0) {
+        musicWallStartNs += pausedNs;
+    }
 }
 
 double SongClock::WallTimeSongSecondsAt(const std::uint64_t eventTimeNs) const {
-    const double pausedSec = static_cast<double>(EffectivePausedWallNs()) * 1e-9;
-
     if (musicStarted && musicWallStartNs != 0) {
         double elapsedSec = 0.0;
         if (eventTimeNs >= musicWallStartNs) {
             elapsedSec = static_cast<double>(eventTimeNs - musicWallStartNs) * 1e-9;
         }
-        return elapsedSec - pausedSec - audioOffsetSeconds;
+        return elapsedSec - audioOffsetSeconds;
+    }
+
+    if (songTimelineWallStartNs == 0) {
+        return -startDelaySeconds - audioOffsetSeconds;
     }
 
     double elapsedSec = 0.0;
-    if (eventTimeNs >= sceneWallStartNs) {
-        elapsedSec = static_cast<double>(eventTimeNs - sceneWallStartNs) * 1e-9;
+    if (eventTimeNs >= songTimelineWallStartNs) {
+        elapsedSec = static_cast<double>(eventTimeNs - songTimelineWallStartNs) * 1e-9;
     }
-    return elapsedSec - pausedSec - startDelaySeconds - audioOffsetSeconds;
+    return elapsedSec - startDelaySeconds - audioOffsetSeconds;
 }
 
 bool SongClock::MusicEnded() const {
@@ -111,13 +135,15 @@ void SongClock::Resume() {
         return;
     }
 
+    std::uint64_t pausedNs = 0;
     if (pauseWallStartNs != 0) {
         if (const std::uint64_t now = SDL_GetTicksNS(); now >= pauseWallStartNs) {
-            totalPausedWallNs += now - pauseWallStartNs;
+            pausedNs = now - pauseWallStartNs;
         }
     }
     pauseWallStartNs = 0;
     paused = false;
+    ShiftTimelineOriginsByPausedWall(pausedNs);
 
     if (musicStarted && sound) {
         sound->Resume();
@@ -127,7 +153,6 @@ void SongClock::Resume() {
 void SongClock::Stop() {
     paused = false;
     pauseWallStartNs = 0;
-    totalPausedWallNs = 0;
     if (sound) {
         sound->Stop();
         sound.reset();

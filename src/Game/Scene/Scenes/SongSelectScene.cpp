@@ -186,7 +186,8 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         *buttonFontRes,
         "Refresh",
         [this, songSearch] {
-            Song::SongManager::GetInstance().RefreshLibrary();
+            const auto e = Song::SongManager::GetInstance().RefreshLibrary();
+            (void) e; // Unused
             const auto& temp_library = Song::SongManager::GetInstance().GetLibrary();
             songs.assign(temp_library.begin(), temp_library.end());
             filteredSongs = songs;
@@ -227,7 +228,7 @@ SongSelectScene::SongSelectScene(SceneManager& sceneManager, GameInstance& gameI
         *buttonFontRes,
         "Back",
         [this] {
-            this->sceneManager.QueueReplace<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
+            this->sceneManager.QueueReplaceWithFade<MainMenuScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
 
@@ -346,7 +347,7 @@ void SongSelectScene::BuildChartList() {
                 selectedDifficultyIndex = i;
                 UpdateChartSelectionVisuals();
                 const auto selectedSong = filteredSongs[selectedSongIndex];
-                this->sceneManager.QueueReplace<GameplayScene>(
+                this->sceneManager.QueueReplaceWithFade<GameplayScene>(
                     std::ref(this->sceneManager),
                     std::ref(this->game),
                     selectedSong,

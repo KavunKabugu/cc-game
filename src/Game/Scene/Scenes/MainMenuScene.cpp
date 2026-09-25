@@ -48,7 +48,7 @@ MainMenuScene::MainMenuScene(SceneManager& sceneManager, GameInstance& gameInsta
         *buttonFontRes,
         "Play",
         [this] {
-            this->sceneManager.QueueReplace<SongSelectScene>(std::ref(this->sceneManager), std::ref(this->game));
+            this->sceneManager.QueueReplaceWithFade<SongSelectScene>(std::ref(this->sceneManager), std::ref(this->game));
         },
         buttonTexture);
     playButton->SetColors(

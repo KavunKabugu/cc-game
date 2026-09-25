@@ -2,7 +2,6 @@
 #define CC_GAME_HIT_SCORING_H
 
 #include <algorithm>
-#include <cmath>
 
 #include "GameplayConstants.h"
 #include "Judgement.h"

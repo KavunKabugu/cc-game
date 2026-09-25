@@ -720,8 +720,7 @@ void GameplayScene::HandleEscapeKey() {
 
 void GameplayScene::HandleRestartKey()
 {
-    this->sceneManager.QueuePop();
-    this->sceneManager.QueueReplace<GameplayScene>(
+    this->sceneManager.QueueReplaceWithFade<GameplayScene>(
                     std::ref(this->sceneManager),
                     std::ref(this->game),
                     selectedSong,
@@ -883,7 +882,7 @@ void GameplayScene::ReturnToSongSelect(const std::string& errorMessage) const {
     if (clock) {
         clock->Stop();
     }
-    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game), errorMessage);
+    sceneManager.QueueReplaceWithFade<SongSelectScene>(std::ref(sceneManager), std::ref(game), errorMessage);
 }
 
 double GameplayScene::AccuracyPercent() const {

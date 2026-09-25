@@ -135,6 +135,95 @@ static void TestClearKeepingBaseScene() {
     assert(manager.SceneCount() == 1);
 }
 
+static void TestReplaceRemainsImmediate() {
+    std::vector<std::string> log;
+    SceneManager manager;
+
+    manager.QueuePush<FakeScene>("A", std::ref(log), true, true, true);
+    assert(manager.CommitQueuedTransitions());
+
+    log.clear();
+    manager.QueueReplace<FakeScene>("B", std::ref(log), true, true, true);
+    assert(manager.CommitQueuedTransitions());
+
+    AssertSequence(log, {"A:Exit", "B:Enter"});
+    assert(manager.SceneCount() == 1);
+}
+
+static void TestReplaceWithFadeLifecycle() {
+    std::vector<std::string> log;
+    SceneManager manager;
+
+    manager.QueuePush<FakeScene>("A", std::ref(log), true, true, true);
+    assert(manager.CommitQueuedTransitions());
+
+    log.clear();
+    manager.QueueReplaceWithFade<FakeScene>("B", std::ref(log), true, true, true);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"A:Pause"});
+    assert(manager.SceneCount() == 2);
+
+    const std::vector<IScene*> inputScenes = manager.GetInputScenes();
+    assert(inputScenes.size() == 1);
+    assert(inputScenes.front()->BlocksLowerInput());
+    assert(inputScenes.front()->BlocksLowerUpdates());
+    assert(!inputScenes.front()->BlocksLowerRendering());
+
+    log.clear();
+    constexpr SDL_FRect logicalViewport{.x = 0.0f, .y = 0.0f, .w = 1920.0f, .h = 1080.0f};
+    manager.RenderScenes(nullptr, logicalViewport);
+    AssertSequence(log, {"A:Render"});
+
+    log.clear();
+    manager.UpdateActiveScenes(kSceneFadeDurationSeconds * 0.5);
+    assert(!manager.CommitQueuedTransitions());
+    AssertSequence(log, {});
+    assert(manager.SceneCount() == 2);
+
+    log.clear();
+    manager.UpdateActiveScenes(kSceneFadeDurationSeconds);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"A:Exit", "B:Enter"});
+    assert(manager.SceneCount() == 2);
+
+    log.clear();
+    manager.RenderScenes(nullptr, logicalViewport);
+    AssertSequence(log, {"B:Render"});
+
+    log.clear();
+    manager.UpdateActiveScenes(kSceneFadeDurationSeconds);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"B:Resume"});
+    assert(manager.SceneCount() == 1);
+}
+
+static void TestOverlayPopThenReplaceWithFade() {
+    std::vector<std::string> log;
+    SceneManager manager;
+
+    manager.QueuePush<FakeScene>("A", std::ref(log), true, true, true);
+    manager.QueuePush<FakeScene>("Overlay", std::ref(log), true, false, true);
+    assert(manager.CommitQueuedTransitions());
+
+    log.clear();
+    manager.QueuePop();
+    manager.QueueReplaceWithFade<FakeScene>("B", std::ref(log), true, true, true);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"Overlay:Exit", "A:Resume", "A:Pause"});
+    assert(manager.SceneCount() == 2);
+
+    log.clear();
+    manager.UpdateActiveScenes(kSceneFadeDurationSeconds);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"A:Exit", "B:Enter"});
+
+    log.clear();
+    manager.UpdateActiveScenes(kSceneFadeDurationSeconds);
+    assert(manager.CommitQueuedTransitions());
+    AssertSequence(log, {"B:Resume"});
+    assert(manager.SceneCount() == 1);
+}
+
 } // namespace Game
 
 int main() {
@@ -143,5 +232,8 @@ int main() {
     Game::TestInputTargets();
     Game::TestUpdateAndRenderBlocking();
     Game::TestClearKeepingBaseScene();
+    Game::TestReplaceRemainsImmediate();
+    Game::TestReplaceWithFadeLifecycle();
+    Game::TestOverlayPopThenReplaceWithFade();
     return 0;
 }

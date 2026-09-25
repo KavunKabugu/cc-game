@@ -1,7 +1,6 @@
 #ifndef CC_GAME_SONG_CLOCK_H
 #define CC_GAME_SONG_CLOCK_H
 
-#include <cstdint>
 #include <memory>
 
 #include <SDL3_mixer/SDL_mixer.h>
@@ -36,8 +35,12 @@ public:
     [[nodiscard]] double SongTime() const;
 
     // Chart-relative seconds for an input event mapped from SDL_GetTicksNS.
-    // Pre-music: (eventTimeNs - sceneWallStartNs) / 1e9 - startDelaySeconds - audioOffsetSeconds.
+    // Pre-music: (eventTimeNs - songTimelineWallStartNs) / 1e9 - startDelaySeconds - audioOffsetSeconds.
     // After music: (eventTimeNs - musicWallStartNs) / 1e9 - audioOffsetSeconds.
+    // songTimelineWallStartNs is the wall time when the delay countdown begins (first Update),
+    // not construction, so a fade-in that builds the scene early does not shift judgements.
+    // Pause/resume shifts these origins forward so a pause during the delay is not
+    // subtracted again from music hit times.
     [[nodiscard]] double WallTimeSongSecondsAt(std::uint64_t eventTimeNs) const;
 
     [[nodiscard]] double AudioOffsetSeconds() const { return audioOffsetSeconds; }
@@ -50,7 +53,8 @@ public:
 
 private:
     void StartMusic();
-    [[nodiscard]] std::uint64_t EffectivePausedWallNs() const;
+    void BeginSongTimelineIfNeeded(double deltaTimeSeconds);
+    void ShiftTimelineOriginsByPausedWall(std::uint64_t pausedNs);
 
     std::shared_ptr<MIX_Audio> audio;
     std::shared_ptr<Sound> sound;
@@ -60,10 +64,9 @@ private:
     double frozenSongTime = 0.0;
     bool musicStarted = false;
     bool paused = false;
-    std::uint64_t sceneWallStartNs = 0;
+    std::uint64_t songTimelineWallStartNs = 0;
     std::uint64_t musicWallStartNs = 0;
     std::uint64_t pauseWallStartNs = 0;
-    std::uint64_t totalPausedWallNs = 0;
 };
 
 } // namespace Game::Gameplay

@@ -12,12 +12,16 @@
 
 namespace Game {
 
+inline constexpr double kSceneFadeDurationSeconds = 0.2;
+
 class SceneManager {
 public:
     enum class CommandType {
         Push,
         Pop,
         Replace,
+        ReplaceWithFade,
+        ReplaceUnderTop,
         Clear
     };
 
@@ -53,6 +57,19 @@ public:
             }});
     }
 
+    template <typename T, typename... Args>
+    void QueueReplaceWithFade(Args&&... args) {
+        queue.emplace_back(SceneCommand{
+            CommandType::ReplaceWithFade,
+            [captured = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+                return std::apply(
+                    []<typename... T0>(T0&&... unpacked) {
+                        return std::make_unique<T>(std::forward<T0>(unpacked)...);
+                    },
+                    std::move(captured));
+            }});
+    }
+
     void QueuePop();
     void QueueClear(bool allowEmptyStack = true);
 
@@ -68,6 +85,9 @@ public:
     bool CommitQueuedTransitions();
 
 private:
+    class FadeTransitionScene;
+    void QueueReplaceUnderTop(std::function<std::unique_ptr<IScene>()> createScene);
+
     std::vector<std::unique_ptr<IScene>> stack;
     std::deque<SceneCommand> queue;
 };
