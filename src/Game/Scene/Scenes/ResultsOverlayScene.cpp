@@ -243,7 +243,7 @@ void ResultsOverlayScene::CloseResume() const {
 
 void ResultsOverlayScene::CloseToSongSelect() const {
     sceneManager.QueuePop();
-    sceneManager.QueueReplace<SongSelectScene>(std::ref(sceneManager), std::ref(game));
+    sceneManager.QueueReplaceWithFade<SongSelectScene>(std::ref(sceneManager), std::ref(game));
 }
 
 void ResultsOverlayScene::CloseBrowse() const {
@@ -253,7 +253,7 @@ void ResultsOverlayScene::CloseBrowse() const {
 void ResultsOverlayScene::CloseToRestart() const
 {
     sceneManager.QueuePop();
-    sceneManager.QueueReplace<GameplayScene>(
+    sceneManager.QueueReplaceWithFade<GameplayScene>(
                     std::ref(sceneManager),
                     std::ref(game),
                     context.song,
@@ -290,7 +290,7 @@ void ResultsOverlayScene::LaunchWatchReplay() const {
     }
 
     sceneManager.QueuePop();
-    sceneManager.QueueReplace<GameplayScene>(
+    sceneManager.QueueReplaceWithFade<GameplayScene>(
         std::ref(sceneManager),
         std::ref(game),
         context.song,

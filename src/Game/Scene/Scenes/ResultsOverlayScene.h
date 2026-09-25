@@ -4,8 +4,6 @@
 #include <memory>
 #include <string>
 
-#include "Game/Gameplay/ChartData.h"
-#include "Game/Gameplay/ChartLoader.h"
 #include "Game/Score/ResultsViewData.h"
 #include "Game/Scene/SceneBase.h"
 #include "Game/Song/SongTypes.h"
