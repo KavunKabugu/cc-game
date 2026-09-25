@@ -1,5 +1,6 @@
 #include <cassert>
 #include <vector>
+#include <cmath>
 
 #include "Game/Gameplay/GameplayConstants.h"
 #include "Game/Gameplay/ResultsGraphDeltaBarWidth.h"

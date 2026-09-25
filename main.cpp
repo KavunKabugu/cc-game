@@ -9,7 +9,7 @@
 static Game::GameInstance* game = nullptr;
 
 SDL_AppResult SDL_AppInit([[maybe_unused]] void **appstate, [[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
-    SDL_SetAppMetadata("cc-game", "0.1.4alpha", "com.karp.cc-game");
+    SDL_SetAppMetadata("cc-game", "0.1.6alpha", "com.karp.cc-game");
 
 #ifdef __linux__
     bool hasPulseAudio = false;
