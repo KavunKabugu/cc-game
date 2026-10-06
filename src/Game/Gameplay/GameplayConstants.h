@@ -47,6 +47,16 @@ inline constexpr unsigned char kDefaultBackgroundColorR = 20;
 inline constexpr unsigned char kDefaultBackgroundColorG = 28;
 inline constexpr unsigned char kDefaultBackgroundColorB = 42;
 
+// Bottom time bar (RGB 0–255, opacity stored 0–1).
+inline constexpr unsigned char kDefaultTimeBarBackdropColorR = 8;
+inline constexpr unsigned char kDefaultTimeBarBackdropColorG = 10;
+inline constexpr unsigned char kDefaultTimeBarBackdropColorB = 16;
+inline constexpr float kDefaultTimeBarBackdropOpacity = 0.55f;
+inline constexpr unsigned char kDefaultTimeBarColorR = 210;
+inline constexpr unsigned char kDefaultTimeBarColorG = 222;
+inline constexpr unsigned char kDefaultTimeBarColorB = 240;
+inline constexpr float kDefaultTimeBarOpacity = 0.92f;
+
 // Player display name (Options + score snapshots).
 inline constexpr std::size_t kPlayerNameMaxLength = 24;
 

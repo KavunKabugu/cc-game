@@ -173,7 +173,7 @@ target_link_libraries(cc_map_converter PRIVATE SDL3::SDL3)
 # I am pretty sure this will break stuff but whatever.
 target_compile_definitions(cc_map_converter PRIVATE SDLIMAGE_AVIF=$<BOOL:${SDLIMAGE_AVIF}>)
 
-# Bundler for windows, pretty sure this breaks stuff
+# Bundler for windows
 include(cmake/BundleWindows.cmake)
 cc_setup_windows_bundle(cc_game cc_map_converter)
 
@@ -205,6 +205,11 @@ add_executable(results_graph_delta_bar_width_tests tests/ResultsGraphDeltaBarWid
 target_include_directories(results_graph_delta_bar_width_tests PRIVATE src)
 target_link_libraries(results_graph_delta_bar_width_tests PRIVATE SDL3::SDL3)
 add_test(NAME results_graph_delta_bar_width_tests COMMAND results_graph_delta_bar_width_tests)
+
+add_executable(map_progress_tests tests/MapProgressTests.cpp)
+target_include_directories(map_progress_tests PRIVATE src)
+target_link_libraries(map_progress_tests PRIVATE SDL3::SDL3)
+add_test(NAME map_progress_tests COMMAND map_progress_tests)
 
 add_executable(gameplay_math_tests tests/GameplayMathTests.cpp)
 target_include_directories(gameplay_math_tests PRIVATE src)

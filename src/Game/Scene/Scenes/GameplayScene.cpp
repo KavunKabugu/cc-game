@@ -25,6 +25,7 @@ using Game::Utf8StringToPath;
 #include "Game/Gameplay/HitScoring.h"
 #include "Game/Gameplay/LaneInputHandler.h"
 #include "Game/Gameplay/LaneRemap.h"
+#include "Game/Gameplay/MapProgress.h"
 #include "Game/Gameplay/RhythmField.h"
 #include "Game/Gameplay/TimingRuler.h"
 #include "Game/ResourceManager.h"
@@ -70,6 +71,12 @@ constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
 constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
 constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
+// Full-width strip on the bottom edge. Countdown sits just above it, right aligned.
+constexpr float kTimeBarHeight = 0.008f;
+constexpr float kTimeBarTop = 1.0f - kTimeBarHeight;
+constexpr UnitBounds kTimeBarBounds{.min = {.x = 0.0f, .y = kTimeBarTop}, .max = {.x = 1.0f, .y = 1.0f}};
+constexpr UnitBounds kHudTimeRemainingBounds{
+    .min = {.x = 0.70f, .y = kTimeBarTop - 0.046f}, .max = {.x = 0.988f, .y = kTimeBarTop}};
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
 
@@ -121,6 +128,24 @@ public:
 private:
     std::function<void()> onRestart;
 };
+
+[[nodiscard]] UnitBounds TimeBarFillBounds(const float progress) {
+    const float t = std::clamp(progress, 0.0f, 1.0f);
+    UnitBounds bounds = kTimeBarBounds;
+    bounds.max.x = kTimeBarBounds.min.x + (kTimeBarBounds.max.x - kTimeBarBounds.min.x) * t;
+    return bounds;
+}
+
+[[nodiscard]] SDL_Color ColorWithOpacity(
+    const unsigned char r, const unsigned char g, const unsigned char b, const float opacity) {
+    const float clamped = std::clamp(opacity, 0.0f, 1.0f);
+    return SDL_Color{
+        .r = r,
+        .g = g,
+        .b = b,
+        .a = static_cast<Uint8>(std::lround(static_cast<double>(clamped) * 255.0)),
+    };
+}
 
 } // namespace
 
@@ -333,6 +358,8 @@ GameplayScene::GameplayScene(
         const double tl = simulation.LastNoteHitTime();
         chartDomainFirst = std::isfinite(tf) ? tf : 0.0;
         chartDomainLast = std::isfinite(tl) ? tl : chartDomainFirst;
+        mapEndSongTime = Gameplay::MapEndSongTime(tl);
+        timeBarProgress = Gameplay::SampleMapProgress(0.0, mapEndSongTime, false).fraction;
         resultsGraphEvents.reserve(chartNoteCount + 128);
         accuracySteps.reserve(chartNoteCount + 128);
     }
@@ -398,6 +425,26 @@ GameplayScene::GameplayScene(
         "");
         judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
     }
+
+    timeBarBackdrop = root->CreateChild<PanelRect>(
+        kTimeBarBounds,
+        ColorWithOpacity(
+            this->settings.timeBarBackdropColorR,
+            this->settings.timeBarBackdropColorG,
+            this->settings.timeBarBackdropColorB,
+            this->settings.timeBarBackdropOpacity));
+    timeBarFill = root->CreateChild<PanelRect>(
+        TimeBarFillBounds(timeBarProgress),
+        ColorWithOpacity(
+            this->settings.timeBarColorR,
+            this->settings.timeBarColorG,
+            this->settings.timeBarColorB,
+            this->settings.timeBarOpacity));
+    timeRemainingLabel = root->CreateChild<Label>(
+        kHudTimeRemainingBounds,
+        *textFontRes,
+        Gameplay::FormatRemainingTime(mapEndSongTime));
+    timeRemainingLabel->SetAlignment(HorizontalAlignment::Right, VerticalAlignment::Bottom);
 
     const double spawnLead = simulation.SpawnLeadSeconds();
     const double firstHit = simulation.FirstNoteHitTime();
@@ -509,6 +556,7 @@ void GameplayScene::Update(const double dt) {
             DrainLaneInput();
             break;
         }
+        UpdateTimeDisplay(songTime);
     }
 
     SceneBase::Update(dt);
@@ -694,6 +742,25 @@ void GameplayScene::UpdateHud() {
     }
 }
 
+void GameplayScene::UpdateTimeDisplay(const double songTime) {
+    if (!simulationReady) {
+        return;
+    }
+    if (phase != Phase::Playing && phase != Phase::ResumeGrace && phase != Phase::EndDelay) {
+        return;
+    }
+
+    const Gameplay::MapProgressSample sample = Gameplay::SampleMapProgress(
+        songTime, mapEndSongTime, phase == Phase::EndDelay);
+    timeBarProgress = sample.fraction;
+    if (timeBarFill) {
+        timeBarFill->SetBounds(TimeBarFillBounds(timeBarProgress));
+    }
+    if (timeRemainingLabel) {
+        timeRemainingLabel->SetText(Gameplay::FormatRemainingTime(sample.remainingSeconds));
+    }
+}
+
 void GameplayScene::HandleSongEnd() {
     if (phase != Phase::Playing) return;
     if (!clock || !clock->MusicStarted()) return;
@@ -740,6 +807,9 @@ void GameplayScene::HideHud() const {
         timingRuler->Clear();
     }
     if (performancePointsLabel) performancePointsLabel->SetBounds(kOffscreenBounds);
+    if (timeBarBackdrop) timeBarBackdrop->SetBounds(kOffscreenBounds);
+    if (timeBarFill) timeBarFill->SetBounds(kOffscreenBounds);
+    if (timeRemainingLabel) timeRemainingLabel->SetBounds(kOffscreenBounds);
 }
 
 void GameplayScene::ShowHud() const {
@@ -749,6 +819,9 @@ void GameplayScene::ShowHud() const {
     if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
     if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
     if (performancePointsLabel) performancePointsLabel->SetBounds(kHudPerformancePointsBounds);
+    if (timeBarBackdrop) timeBarBackdrop->SetBounds(kTimeBarBounds);
+    if (timeBarFill) timeBarFill->SetBounds(TimeBarFillBounds(timeBarProgress));
+    if (timeRemainingLabel) timeRemainingLabel->SetBounds(kHudTimeRemainingBounds);
 }
 
 Score::ResultsViewData GameplayScene::BuildResultsViewData() const {

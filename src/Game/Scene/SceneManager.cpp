@@ -1,6 +1,7 @@
 #include "SceneManager.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <SDL3/SDL_render.h>
 

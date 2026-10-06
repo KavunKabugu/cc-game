@@ -1,5 +1,6 @@
 #include "OptionsOverlayScene.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <format>
@@ -371,6 +372,48 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
             .b = gs.backgroundColorB,
             .a = 255});
     }
+    if (gameplayTimeBarBackdropColorRValueLabel) {
+        gameplayTimeBarBackdropColorRValueLabel->SetText(std::to_string(gs.timeBarBackdropColorR));
+    }
+    if (gameplayTimeBarBackdropColorGValueLabel) {
+        gameplayTimeBarBackdropColorGValueLabel->SetText(std::to_string(gs.timeBarBackdropColorG));
+    }
+    if (gameplayTimeBarBackdropColorBValueLabel) {
+        gameplayTimeBarBackdropColorBValueLabel->SetText(std::to_string(gs.timeBarBackdropColorB));
+    }
+    if (gameplayTimeBarBackdropOpacityValueLabel) {
+        gameplayTimeBarBackdropOpacityValueLabel->SetText(
+            std::format("{:.0f}%", gs.timeBarBackdropOpacity * 100.0f));
+    }
+    if (gameplayTimeBarBackdropColorPreview) {
+        gameplayTimeBarBackdropColorPreview->SetColor(SDL_Color{
+            .r = gs.timeBarBackdropColorR,
+            .g = gs.timeBarBackdropColorG,
+            .b = gs.timeBarBackdropColorB,
+            .a = static_cast<Uint8>(std::lround(
+                std::clamp(gs.timeBarBackdropOpacity, 0.0f, 1.0f) * 255.0f))});
+    }
+    if (gameplayTimeBarColorRValueLabel) {
+        gameplayTimeBarColorRValueLabel->SetText(std::to_string(gs.timeBarColorR));
+    }
+    if (gameplayTimeBarColorGValueLabel) {
+        gameplayTimeBarColorGValueLabel->SetText(std::to_string(gs.timeBarColorG));
+    }
+    if (gameplayTimeBarColorBValueLabel) {
+        gameplayTimeBarColorBValueLabel->SetText(std::to_string(gs.timeBarColorB));
+    }
+    if (gameplayTimeBarOpacityValueLabel) {
+        gameplayTimeBarOpacityValueLabel->SetText(
+            std::format("{:.0f}%", gs.timeBarOpacity * 100.0f));
+    }
+    if (gameplayTimeBarColorPreview) {
+        gameplayTimeBarColorPreview->SetColor(SDL_Color{
+            .r = gs.timeBarColorR,
+            .g = gs.timeBarColorG,
+            .b = gs.timeBarColorB,
+            .a = static_cast<Uint8>(std::lround(
+                std::clamp(gs.timeBarOpacity, 0.0f, 1.0f) * 255.0f))});
+    }
     if (gameplayEnablePlayfieldBorderCheckbox) {
         gameplayEnablePlayfieldBorderCheckbox->SetText(gs.enablePlayfieldBorder ? "X" : "");
     }
@@ -499,6 +542,16 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplayBackgroundColorGValueLabel = nullptr;
     gameplayBackgroundColorBValueLabel = nullptr;
     gameplayBackgroundColorPreview = nullptr;
+    gameplayTimeBarBackdropColorRValueLabel = nullptr;
+    gameplayTimeBarBackdropColorGValueLabel = nullptr;
+    gameplayTimeBarBackdropColorBValueLabel = nullptr;
+    gameplayTimeBarBackdropOpacityValueLabel = nullptr;
+    gameplayTimeBarBackdropColorPreview = nullptr;
+    gameplayTimeBarColorRValueLabel = nullptr;
+    gameplayTimeBarColorGValueLabel = nullptr;
+    gameplayTimeBarColorBValueLabel = nullptr;
+    gameplayTimeBarOpacityValueLabel = nullptr;
+    gameplayTimeBarColorPreview = nullptr;
     gameplayEnablePlayfieldBorderCheckbox = nullptr;
     gameplaySwapUpDownLanesCheckbox = nullptr;
     gameplayPlayfieldBorderOpacityValueLabel = nullptr;
@@ -560,12 +613,17 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             const float stepV,
             const float initialV,
             std::function<void(float)> onChanged,
-            const float sliderMaxX = 0.98f) {
+            const float sliderMaxX = 0.98f,
+            const bool marqueeLabel = false) {
             auto* row = makeRow();
-            row->CreateChild<Label>(
+            auto* nameLabel = row->CreateChild<Label>(
                 UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.34f, .y = 0.9f}},
                 rowFont,
                 labelText);
+            if (marqueeLabel) {
+                nameLabel->SetOverflowMode(LabelOverflowMode::Marquee);
+                nameLabel->SetMarqueeActive(true);
+            }
             valueLabel = row->CreateChild<Label>(
                 UnitBounds{.min = {.x = 0.34f, .y = 0.1f}, .max = {.x = 0.48f, .y = 0.9f}},
                 rowFont,
@@ -724,6 +782,130 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                 RefreshGameplayControlTexts();
             },
             0.82f);
+
+        {
+            auto* row = addSliderRow(
+                "Time bar backdrop R",
+                gameplayTimeBarBackdropColorRValueLabel,
+                0.0f,
+                255.0f,
+                1.0f,
+                gs.timeBarBackdropColorR,
+                [this](const float v) {
+                    game.SetTimeBarBackdropColorR(static_cast<unsigned char>(std::lround(v)));
+                    RefreshGameplayControlTexts();
+                },
+                0.82f);
+            gameplayTimeBarBackdropColorPreview = row->CreateChild<PanelRect>(
+                UnitBounds{.min = {.x = 0.86f, .y = 0.15f}, .max = {.x = 0.98f, .y = 0.85f}},
+                SDL_Color{
+                    .r = gs.timeBarBackdropColorR,
+                    .g = gs.timeBarBackdropColorG,
+                    .b = gs.timeBarBackdropColorB,
+                    .a = static_cast<Uint8>(std::lround(
+                        std::clamp(gs.timeBarBackdropOpacity, 0.0f, 1.0f) * 255.0f))});
+        }
+
+        addSliderRow(
+            "Time bar backdrop G",
+            gameplayTimeBarBackdropColorGValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            gs.timeBarBackdropColorG,
+            [this](const float v) {
+                game.SetTimeBarBackdropColorG(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addSliderRow(
+            "Time bar backdrop B",
+            gameplayTimeBarBackdropColorBValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            gs.timeBarBackdropColorB,
+            [this](const float v) {
+                game.SetTimeBarBackdropColorB(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addSliderRow(
+            "Time bar backdrop opacity",
+            gameplayTimeBarBackdropOpacityValueLabel,
+            Gameplay::kGameplayOpacityMin,
+            Gameplay::kGameplayOpacityMax,
+            0.01f,
+            gs.timeBarBackdropOpacity,
+            [this](const float v) {
+                game.SetTimeBarBackdropOpacity(v);
+                RefreshGameplayControlTexts();
+            },
+            0.98f,
+            true);
+
+        {
+            auto* row = addSliderRow(
+                "Time bar R",
+                gameplayTimeBarColorRValueLabel,
+                0.0f,
+                255.0f,
+                1.0f,
+                gs.timeBarColorR,
+                [this](const float v) {
+                    game.SetTimeBarColorR(static_cast<unsigned char>(std::lround(v)));
+                    RefreshGameplayControlTexts();
+                },
+                0.82f);
+            gameplayTimeBarColorPreview = row->CreateChild<PanelRect>(
+                UnitBounds{.min = {.x = 0.86f, .y = 0.15f}, .max = {.x = 0.98f, .y = 0.85f}},
+                SDL_Color{
+                    .r = gs.timeBarColorR,
+                    .g = gs.timeBarColorG,
+                    .b = gs.timeBarColorB,
+                    .a = static_cast<Uint8>(std::lround(
+                        std::clamp(gs.timeBarOpacity, 0.0f, 1.0f) * 255.0f))});
+        }
+
+        addSliderRow(
+            "Time bar G",
+            gameplayTimeBarColorGValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            gs.timeBarColorG,
+            [this](const float v) {
+                game.SetTimeBarColorG(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addSliderRow(
+            "Time bar B",
+            gameplayTimeBarColorBValueLabel,
+            0.0f,
+            255.0f,
+            1.0f,
+            gs.timeBarColorB,
+            [this](const float v) {
+                game.SetTimeBarColorB(static_cast<unsigned char>(std::lround(v)));
+                RefreshGameplayControlTexts();
+            },
+            0.82f);
+
+        addSliderRow(
+            "Time bar opacity",
+            gameplayTimeBarOpacityValueLabel,
+            Gameplay::kGameplayOpacityMin,
+            Gameplay::kGameplayOpacityMax,
+            0.01f,
+            gs.timeBarOpacity,
+            [this](const float v) {
+                game.SetTimeBarOpacity(v);
+                RefreshGameplayControlTexts();
+            });
 
         addCheckboxRow(
             "Enable playfield border",

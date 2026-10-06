@@ -84,6 +84,16 @@ private:
     Label* gameplayBackgroundColorGValueLabel = nullptr;
     Label* gameplayBackgroundColorBValueLabel = nullptr;
     PanelRect* gameplayBackgroundColorPreview = nullptr;
+    Label* gameplayTimeBarBackdropColorRValueLabel = nullptr;
+    Label* gameplayTimeBarBackdropColorGValueLabel = nullptr;
+    Label* gameplayTimeBarBackdropColorBValueLabel = nullptr;
+    Label* gameplayTimeBarBackdropOpacityValueLabel = nullptr;
+    PanelRect* gameplayTimeBarBackdropColorPreview = nullptr;
+    Label* gameplayTimeBarColorRValueLabel = nullptr;
+    Label* gameplayTimeBarColorGValueLabel = nullptr;
+    Label* gameplayTimeBarColorBValueLabel = nullptr;
+    Label* gameplayTimeBarOpacityValueLabel = nullptr;
+    PanelRect* gameplayTimeBarColorPreview = nullptr;
     TextButton* gameplayEnablePlayfieldBorderCheckbox = nullptr;
     TextButton* gameplaySwapUpDownLanesCheckbox = nullptr;
     TextButton* gameplayShowHitIndicatorCheckbox = nullptr;
