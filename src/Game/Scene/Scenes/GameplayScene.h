@@ -113,10 +113,13 @@ private:
     Label* accuracyLabel = nullptr;
     Label* timingStatsLabel = nullptr;
     Label* performancePointsLabel = nullptr;
+    Label* comboLabel = nullptr;
     Label* judgementIndicatorLabel = nullptr;
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
+    int currentCombo = 0;
+    int maxCombo = 0;
 
     std::size_t chartNoteCount = 0;
     std::uint64_t chartNotesProcessed = 0; // Resolutions tied to chart notes (excludes EmptyLane).

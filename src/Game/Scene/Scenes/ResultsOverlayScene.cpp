@@ -31,6 +31,7 @@ constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.388f}, 
 constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.438f}, .max = {.x = 0.48f, .y = 0.468f}};
 constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.471f}, .max = {.x = 0.48f, .y = 0.526f}};
 constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.529f}, .max = {.x = 0.48f, .y = 0.584f}};
+constexpr UnitBounds kResultsMaxComboBounds{.min = {.x = 0.06f, .y = 0.587f}, .max = {.x = 0.48f, .y = 0.642f}};
 constexpr UnitBounds kResultsGraphBounds{.min = {.x = 0.52f, .y = 0.24f}, .max = {.x = 0.94f, .y = 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{.min = {.x = 0.52f, .y = 0.17f}, .max = {.x = 0.80f, .y = 0.225f}};
 constexpr UnitBounds kResultsBackButtonAloneBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
@@ -163,6 +164,12 @@ ResultsOverlayScene::ResultsOverlayScene(
         *resultBodyFontRes,
         std::format("Std Dev: {:.2f} ms", this->data.stdDevMs));
     stdDevLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
+    auto* maxComboLabel = root->CreateChild<Label>(
+        kResultsMaxComboBounds,
+        *resultBodyFontRes,
+        std::format("Max Combo: {}", this->data.maxCombo));
+    maxComboLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     resultsGraphDisplay = root->CreateChild<Gameplay::ResultsGraphDisplay>(kResultsGraphBounds);
     resultsGraphDisplay->SetLabelFont(graphLabelFontRes ? *graphLabelFontRes : *resultBodyFontRes);

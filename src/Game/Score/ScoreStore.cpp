@@ -151,6 +151,7 @@ void JudgementCountsFromJson(
         {"timestampUnixSec", s.timestampUnixSec},
         {"score", s.score},
         {"accuracyPercent", s.accuracyPercent},
+        {"maxCombo", s.maxCombo},
         {"judgementCounts", JudgementCountsToJson(s.judgementCounts)},
         {"biasMs", s.biasMs},
         {"stdDevMs", s.stdDevMs},
@@ -173,6 +174,7 @@ void JudgementCountsFromJson(
     s.timestampUnixSec = j.value("timestampUnixSec", static_cast<std::int64_t>(0));
     s.score = j.value("score", static_cast<std::int64_t>(0));
     s.accuracyPercent = j.value("accuracyPercent", 0.0);
+    s.maxCombo = j.value("maxCombo", 0);
     if (j.contains("judgementCounts")) {
         JudgementCountsFromJson(j["judgementCounts"], s.judgementCounts);
     }
@@ -199,6 +201,7 @@ void JudgementCountsFromJson(
     }
     record.detail.score = record.summary.score;
     record.detail.accuracyPercent = record.summary.accuracyPercent;
+    record.detail.maxCombo = record.summary.maxCombo;
     record.detail.judgementCounts = record.summary.judgementCounts;
     record.detail.biasMs = record.summary.biasMs;
     record.detail.stdDevMs = record.summary.stdDevMs;
@@ -334,6 +337,7 @@ std::optional<std::string> ScoreStore::Save(
                                           .count();
     record.summary.score = detail.score;
     record.summary.accuracyPercent = detail.accuracyPercent;
+    record.summary.maxCombo = detail.maxCombo;
     record.summary.judgementCounts = detail.judgementCounts;
     record.summary.biasMs = detail.biasMs;
     record.summary.stdDevMs = detail.stdDevMs;

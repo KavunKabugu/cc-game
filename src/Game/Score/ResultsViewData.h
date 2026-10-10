@@ -2,7 +2,6 @@
 #define CC_GAME_RESULTS_VIEW_DATA_H
 
 #include <array>
-#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,6 +14,7 @@ namespace Game::Score {
 struct ResultsViewData {
     std::int64_t score{0};
     double accuracyPercent{0.0};
+    int maxCombo{0};
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{};
     double biasMs{0.0};
     double stdDevMs{0.0};

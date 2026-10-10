@@ -69,6 +69,7 @@ constexpr UnitBounds kHudAccuracyBounds{.min = {.x = 0.02f, .y = 0.098f}, .max =
 constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {.x = 0.92f, .y = 0.178f}};
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
 constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
+constexpr UnitBounds kHudComboBounds{.min = {.x = 0.02f, .y = 0.218f}, .max = {.x = 0.92f, .y = 0.258f}};
 constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
@@ -374,6 +375,12 @@ GameplayScene::GameplayScene(
         "PP: 0pp");
     performancePointsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+    comboLabel = root->CreateChild<Label>(
+        kHudComboBounds,
+        *textFontRes,
+        "Combo: 0");
+    comboLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
     timingRuler = root->CreateChild<Gameplay::TimingRuler>(kTimingRulerBounds);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
@@ -589,6 +596,15 @@ void GameplayScene::ConsumeJudgements() {
         if (const auto idx = static_cast<size_t>(result.judgement); idx < judgementCounts.size()) {
             ++judgementCounts[idx];
         }
+        if (result.judgement == Perfect ||
+            result.judgement == Great ||
+            result.judgement == Good ||
+            result.judgement == Bad) {
+            ++currentCombo;
+            maxCombo = std::max(maxCombo, currentCombo);
+        } else if (result.judgement == Miss) {
+            currentCombo = 0;
+        }
 
         resultsGraphEvents.push_back(Gameplay::ResultsGraphEvent{
             .judgement = result.judgement,
@@ -692,6 +708,9 @@ void GameplayScene::UpdateHud() {
         const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(this->judgementCounts);
         performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
+    if (comboLabel) {
+        comboLabel->SetText(std::format("Combo: {}", currentCombo));
+    }
 }
 
 void GameplayScene::HandleSongEnd() {
@@ -740,6 +759,7 @@ void GameplayScene::HideHud() const {
         timingRuler->Clear();
     }
     if (performancePointsLabel) performancePointsLabel->SetBounds(kOffscreenBounds);
+    if (comboLabel) comboLabel->SetBounds(kOffscreenBounds);
 }
 
 void GameplayScene::ShowHud() const {
@@ -749,12 +769,14 @@ void GameplayScene::ShowHud() const {
     if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
     if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
     if (performancePointsLabel) performancePointsLabel->SetBounds(kHudPerformancePointsBounds);
+    if (comboLabel) comboLabel->SetBounds(kHudComboBounds);
 }
 
 Score::ResultsViewData GameplayScene::BuildResultsViewData() const {
     Score::ResultsViewData view;
     view.score = totalScore;
     view.accuracyPercent = AccuracyPercent();
+    view.maxCombo = maxCombo;
     view.judgementCounts = judgementCounts;
     view.biasMs = MeanSignedTimingErrorMs();
     view.stdDevMs = TimingStandardDeviationMs();
