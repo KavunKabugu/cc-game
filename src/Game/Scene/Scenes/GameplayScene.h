@@ -25,6 +25,7 @@ namespace Game {
 
 class GameInstance;
 class Label;
+class PanelRect;
 class SceneManager;
 class Sprite;
 
@@ -77,6 +78,7 @@ private:
     void DrainLaneInput() const;
     void ConsumeJudgements();
     void UpdateHud();
+    void UpdateTimeDisplay(double songTime);
     void HandleSongEnd();
     void HandleEscapeKey();
     void HandleRestartKey();
@@ -120,6 +122,9 @@ private:
     Label* timingStatsLabel = nullptr;
     Label* performancePointsLabel = nullptr;
     Label* judgementIndicatorLabel = nullptr;
+    PanelRect* timeBarBackdrop = nullptr;
+    PanelRect* timeBarFill = nullptr;
+    Label* timeRemainingLabel = nullptr;
     Sprite* judgementIndicatorSprite = nullptr;
     std::array<std::shared_ptr<SDL_Texture>, static_cast<int>(Gameplay::Judgement::Count)> judgementIndicatorTextures{};
 
@@ -135,6 +140,9 @@ private:
 
     double chartDomainFirst = 0.0;
     double chartDomainLast = 0.0;
+    // Song time when a chart with an unhit last note leaves Playing (last note + miss expire). 0 if empty.
+    double mapEndSongTime = 0.0;
+    float timeBarProgress = 0.0f;
     std::vector<Gameplay::ResultsGraphEvent> resultsGraphEvents;
     std::vector<std::pair<double, double>> accuracySteps;
 

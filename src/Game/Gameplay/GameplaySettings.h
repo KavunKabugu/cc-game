@@ -41,6 +41,16 @@ struct GameplaySettings {
     unsigned char backgroundColorG = kDefaultBackgroundColorG;
     unsigned char backgroundColorB = kDefaultBackgroundColorB;
 
+    // Bottom progress strip. RGB is 0–255, opacity is 0–1 same as background opacity.
+    unsigned char timeBarBackdropColorR = kDefaultTimeBarBackdropColorR;
+    unsigned char timeBarBackdropColorG = kDefaultTimeBarBackdropColorG;
+    unsigned char timeBarBackdropColorB = kDefaultTimeBarBackdropColorB;
+    float timeBarBackdropOpacity = kDefaultTimeBarBackdropOpacity;
+    unsigned char timeBarColorR = kDefaultTimeBarColorR;
+    unsigned char timeBarColorG = kDefaultTimeBarColorG;
+    unsigned char timeBarColorB = kDefaultTimeBarColorB;
+    float timeBarOpacity = kDefaultTimeBarOpacity;
+
     // When true, draw darkened (black) borders around the playfield edges.
     bool enablePlayfieldBorder = true;
 
