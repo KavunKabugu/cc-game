@@ -481,6 +481,74 @@ void GameInstance::SetBackgroundColorB(const unsigned char value) {
     PersistAllSettings();
 }
 
+void GameInstance::SetTimeBarBackdropColorR(const unsigned char value) {
+    if (value == gameplaySettings.timeBarBackdropColorR) {
+        return;
+    }
+    gameplaySettings.timeBarBackdropColorR = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarBackdropColorG(const unsigned char value) {
+    if (value == gameplaySettings.timeBarBackdropColorG) {
+        return;
+    }
+    gameplaySettings.timeBarBackdropColorG = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarBackdropColorB(const unsigned char value) {
+    if (value == gameplaySettings.timeBarBackdropColorB) {
+        return;
+    }
+    gameplaySettings.timeBarBackdropColorB = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarBackdropOpacity(const float opacity) {
+    const float clamped =
+        std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    if (clamped == gameplaySettings.timeBarBackdropOpacity) {
+        return;
+    }
+    gameplaySettings.timeBarBackdropOpacity = clamped;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarColorR(const unsigned char value) {
+    if (value == gameplaySettings.timeBarColorR) {
+        return;
+    }
+    gameplaySettings.timeBarColorR = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarColorG(const unsigned char value) {
+    if (value == gameplaySettings.timeBarColorG) {
+        return;
+    }
+    gameplaySettings.timeBarColorG = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarColorB(const unsigned char value) {
+    if (value == gameplaySettings.timeBarColorB) {
+        return;
+    }
+    gameplaySettings.timeBarColorB = value;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTimeBarOpacity(const float opacity) {
+    const float clamped =
+        std::clamp(opacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    if (clamped == gameplaySettings.timeBarOpacity) {
+        return;
+    }
+    gameplaySettings.timeBarOpacity = clamped;
+    PersistAllSettings();
+}
+
 void GameInstance::SetEnablePlayfieldBorder(const bool enabled) {
     if (enabled == gameplaySettings.enablePlayfieldBorder) {
         return;
@@ -617,6 +685,16 @@ void GameInstance::SetRestartKeyBinding(const SDL_Keycode key) {
 
 void GameInstance::SetShowHitIndicators(const bool show) {
     gameplaySettings.showHitIndicators = show;
+    PersistAllSettings();
+}
+
+void GameInstance::SetDisplayJudgementIndicatorTextures(const bool enabled) {
+    gameplaySettings.displayJudgementIndicatorTextures = enabled;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTintJudgementIndicators(const bool enabled) {
+    gameplaySettings.tintJudgementIndicators = enabled;
     PersistAllSettings();
 }
 } // namespace Game

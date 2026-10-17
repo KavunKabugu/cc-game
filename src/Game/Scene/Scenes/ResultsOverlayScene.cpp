@@ -27,11 +27,12 @@ constexpr UnitBounds kResultsSongTitleBounds{.min = {.x = 0.06f, .y = 0.13f}, .m
 constexpr UnitBounds kResultsScoreBounds{.min = {.x = 0.06f, .y = 0.20f}, .max = {.x = 0.48f, .y = 0.28f}};
 constexpr UnitBounds kPerformancePointsBounds{.min = {.x = 0.06f, .y = 0.29f}, .max = {.x = 0.48f, .y = 0.345f}};
 constexpr UnitBounds kResultsAccuracyBounds{.min = {.x = 0.06f, .y = 0.323f}, .max = {.x = 0.48f, .y = 0.378f}};
-constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.388f}, .max = {.x = 0.48f, .y = 0.438f}};
-constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.438f}, .max = {.x = 0.48f, .y = 0.468f}};
-constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.471f}, .max = {.x = 0.48f, .y = 0.526f}};
-constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.529f}, .max = {.x = 0.48f, .y = 0.584f}};
-constexpr UnitBounds kResultsMaxComboBounds{.min = {.x = 0.06f, .y = 0.587f}, .max = {.x = 0.48f, .y = 0.642f}};
+constexpr UnitBounds kResultsJudgementsBounds{.min = {.x = 0.06f, .y = 0.378f}, .max = {.x = 0.48f, .y = 0.418f}};
+constexpr UnitBounds kResultsJudgementsLine2Bounds{.min = {.x = 0.06f, .y = 0.418f}, .max = {.x = 0.48f, .y = 0.458f}};
+constexpr UnitBounds kResultsRatioBounds{.min = {.x = 0.06f, .y = 0.458f}, .max = {.x = 0.48f, .y = 0.498f}};
+constexpr UnitBounds kResultsBiasBounds{.min = {.x = 0.06f, .y = 0.501f}, .max = {.x = 0.48f, .y = 0.556f}};
+constexpr UnitBounds kResultsStdDevBounds{.min = {.x = 0.06f, .y = 0.559f}, .max = {.x = 0.48f, .y = 0.614f}};
+constexpr UnitBounds kResultsMaxComboBounds{.min = {.x = 0.06f, .y = 0.617f}, .max = {.x = 0.48f, .y = 0.672f}};
 constexpr UnitBounds kResultsGraphBounds{.min = {.x = 0.52f, .y = 0.24f}, .max = {.x = 0.94f, .y = 0.64f}};
 constexpr UnitBounds kResultsGraphToggleBounds{.min = {.x = 0.52f, .y = 0.17f}, .max = {.x = 0.80f, .y = 0.225f}};
 constexpr UnitBounds kResultsBackButtonAloneBounds{.min = {.x = 0.38f, .y = 0.88f}, .max = {.x = 0.62f, .y = 0.96f}};
@@ -121,7 +122,9 @@ ResultsOverlayScene::ResultsOverlayScene(
 
     auto performancePointsCalculation = PerformancePoints::PerformancePointsCalculation(this->context, this->data);
     performancePointsCalculation.CalculateDifficulty();
-    double ppValue = performancePointsCalculation.CalculatePerformancePoints(this->data.judgementCounts);
+    double ppValue = performancePointsCalculation.CalculatePerformancePoints(
+        this->data.judgementCounts,
+        this->data.accuracyPercent);
 
     auto performancePointsLabel = root->CreateChild<Label>(
         kPerformancePointsBounds,
@@ -135,17 +138,26 @@ ResultsOverlayScene::ResultsOverlayScene(
         std::format("Accuracy: {:.2f}%", this->data.accuracyPercent));
     accuracyLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+    // TODO: I hate this, we should have newline support for text (\n)
     auto* judgementsLabel = root->CreateChild<Label>(
         kResultsJudgementsBounds,
         *resultBodyFontRes,
         std::format(
-            "Perfect {}   Great {}   Good {}   Bad {}   Miss {}",
+            "Marvelous {}   Perfect {}   Great {}",
+            this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)],
             this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
-            this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
+            this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)]));
+    judgementsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
+    auto* judgementsLabelLine2 = root->CreateChild<Label>(
+        kResultsJudgementsLine2Bounds,
+        *resultBodyFontRes,
+        std::format(
+            "Good {}   Bad {}   Miss {}",
             this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
             this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Bad)],
             this->data.judgementCounts[static_cast<size_t>(Gameplay::Judgement::Miss)]));
-    judgementsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+    judgementsLabelLine2->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
     auto* ratioLabel = root->CreateChild<Label>(
         kResultsRatioBounds,

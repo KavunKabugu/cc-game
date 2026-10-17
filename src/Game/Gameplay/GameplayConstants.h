@@ -47,13 +47,27 @@ inline constexpr unsigned char kDefaultBackgroundColorR = 20;
 inline constexpr unsigned char kDefaultBackgroundColorG = 28;
 inline constexpr unsigned char kDefaultBackgroundColorB = 42;
 
+// Bottom time bar (RGB 0–255, opacity stored 0–1).
+inline constexpr unsigned char kDefaultTimeBarBackdropColorR = 8;
+inline constexpr unsigned char kDefaultTimeBarBackdropColorG = 10;
+inline constexpr unsigned char kDefaultTimeBarBackdropColorB = 16;
+inline constexpr float kDefaultTimeBarBackdropOpacity = 0.55f;
+inline constexpr unsigned char kDefaultTimeBarColorR = 210;
+inline constexpr unsigned char kDefaultTimeBarColorG = 222;
+inline constexpr unsigned char kDefaultTimeBarColorB = 240;
+inline constexpr float kDefaultTimeBarOpacity = 0.92f;
+
 // Player display name (Options + score snapshots).
 inline constexpr std::size_t kPlayerNameMaxLength = 24;
 
 // Judgement timing windows (absolute |delta| in milliseconds).
-inline constexpr double kPerfectWindowMs = 18.0;
-inline constexpr double kGreatWindowMs = 60.0;
-inline constexpr double kGoodWindowMs = 135.0;
+inline constexpr double kMarvelousWindowMs = 18.0;
+inline constexpr double kPerfectWindowMs = 55.0;
+inline constexpr double kGreatWindowMs = 100.0;
+inline constexpr double kGoodWindowMs = 150.0;
+static_assert(kMarvelousWindowMs < kPerfectWindowMs);
+static_assert(kPerfectWindowMs < kGreatWindowMs);
+static_assert(kGreatWindowMs < kGoodWindowMs);
 
 // How long after its hit time an unhit note stays hittable, past this it is
 // auto-resolved as Miss and despawned.

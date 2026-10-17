@@ -52,11 +52,21 @@ public:
     void SetBackgroundColorR(unsigned char value);
     void SetBackgroundColorG(unsigned char value);
     void SetBackgroundColorB(unsigned char value);
+    void SetTimeBarBackdropColorR(unsigned char value);
+    void SetTimeBarBackdropColorG(unsigned char value);
+    void SetTimeBarBackdropColorB(unsigned char value);
+    void SetTimeBarBackdropOpacity(float opacity);
+    void SetTimeBarColorR(unsigned char value);
+    void SetTimeBarColorG(unsigned char value);
+    void SetTimeBarColorB(unsigned char value);
+    void SetTimeBarOpacity(float opacity);
     void SetEnablePlayfieldBorder(bool enabled);
     void SetPlayfieldBorderOpacity(float opacity);
     void SetPlayfieldBorderSize(float size);
     void SetSwapUpDownLanes(bool enabled);
     void SetShowHitIndicators(bool show);
+    void SetDisplayJudgementIndicatorTextures(bool enabled);
+    void SetTintJudgementIndicators(bool enabled);
 
     void SetPlayerName(std::string name);
 

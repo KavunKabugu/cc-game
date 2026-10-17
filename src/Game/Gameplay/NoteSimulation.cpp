@@ -102,7 +102,9 @@ HitResult NoteSimulation::TryHit(const int lane, const double hitTimeSeconds) {
     const double bestDelta = hitTimeSeconds - best->hitTime;
     const double absMs = std::abs(bestDelta) * 1000.0;
     Judgement tier;
-    if (absMs <= kPerfectWindowMs) {
+    if (absMs <= kMarvelousWindowMs) {
+        tier = Judgement::Marvelous;
+    } else if (absMs <= kPerfectWindowMs) {
         tier = Judgement::Perfect;
     } else if (absMs <= kGreatWindowMs) {
         tier = Judgement::Great;

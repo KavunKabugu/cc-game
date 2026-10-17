@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -24,7 +25,9 @@ namespace Game {
 
 class GameInstance;
 class Label;
+class PanelRect;
 class SceneManager;
+class Sprite;
 
 namespace Gameplay {
 class LaneInputHandler;
@@ -75,6 +78,7 @@ private:
     void DrainLaneInput() const;
     void ConsumeJudgements();
     void UpdateHud();
+    void UpdateTimeDisplay(double songTime);
     void HandleSongEnd();
     void HandleEscapeKey();
     void HandleRestartKey();
@@ -94,6 +98,10 @@ private:
     // Population deviation of timing errors over hit judgements, 0 when none or one hit.
     [[nodiscard]] double TimingStandardDeviationMs() const;
     [[nodiscard]] std::string PerfectGreatRatioText() const;
+    [[nodiscard]] bool LoadJudgementIndicatorTextures();
+    [[nodiscard]] SDL_Color JudgementIndicatorColor(Gameplay::Judgement judgement, double deltaMs) const;
+    void PresentJudgementIndicator(Gameplay::Judgement judgement, double deltaMs, std::string_view text) const;
+    void ClearJudgementIndicator() const;
 
     SceneManager& sceneManager;
     GameInstance& game;
@@ -115,8 +123,13 @@ private:
     Label* performancePointsLabel = nullptr;
     Label* comboLabel = nullptr;
     Label* judgementIndicatorLabel = nullptr;
+    PanelRect* timeBarBackdrop = nullptr;
+    PanelRect* timeBarFill = nullptr;
+    Label* timeRemainingLabel = nullptr;
+    Sprite* judgementIndicatorSprite = nullptr;
+    std::array<std::shared_ptr<SDL_Texture>, static_cast<int>(Gameplay::Judgement::Count)> judgementIndicatorTextures{};
 
-    std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
+    std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Marvelous, Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
     int currentCombo = 0;
     int maxCombo = 0;
@@ -130,6 +143,9 @@ private:
 
     double chartDomainFirst = 0.0;
     double chartDomainLast = 0.0;
+    // Song time when a chart with an unhit last note leaves Playing (last note + miss expire). 0 if empty.
+    double mapEndSongTime = 0.0;
+    float timeBarProgress = 0.0f;
     std::vector<Gameplay::ResultsGraphEvent> resultsGraphEvents;
     std::vector<std::pair<double, double>> accuracySteps;
 

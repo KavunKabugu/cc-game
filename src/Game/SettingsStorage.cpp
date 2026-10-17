@@ -55,6 +55,10 @@ void ClampGameplayFields(Gameplay::GameplaySettings& s) {
         std::clamp(s.playfieldBorderOpacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
     s.playfieldBorderSize =
         std::clamp(s.playfieldBorderSize, Gameplay::kGameplayBorderSizeMin, Gameplay::kGameplayBorderSizeMax);
+    s.timeBarBackdropOpacity =
+        std::clamp(s.timeBarBackdropOpacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
+    s.timeBarOpacity =
+        std::clamp(s.timeBarOpacity, Gameplay::kGameplayOpacityMin, Gameplay::kGameplayOpacityMax);
     Gameplay::NormalizeLaneKeyBindings(s.keyBindings);
 
     // Trim whitespace and clamp player name length.
@@ -191,6 +195,36 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
         settings.backgroundColorB = static_cast<unsigned char>(
             std::clamp(j["backgroundColorB"].get<int>(), 0, 255));
     }
+    if (j.contains("timeBarBackdropColorR") && j["timeBarBackdropColorR"].is_number_integer()) {
+        settings.timeBarBackdropColorR = static_cast<unsigned char>(
+            std::clamp(j["timeBarBackdropColorR"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarBackdropColorG") && j["timeBarBackdropColorG"].is_number_integer()) {
+        settings.timeBarBackdropColorG = static_cast<unsigned char>(
+            std::clamp(j["timeBarBackdropColorG"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarBackdropColorB") && j["timeBarBackdropColorB"].is_number_integer()) {
+        settings.timeBarBackdropColorB = static_cast<unsigned char>(
+            std::clamp(j["timeBarBackdropColorB"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarBackdropOpacity") && j["timeBarBackdropOpacity"].is_number()) {
+        settings.timeBarBackdropOpacity = j["timeBarBackdropOpacity"].get<float>();
+    }
+    if (j.contains("timeBarColorR") && j["timeBarColorR"].is_number_integer()) {
+        settings.timeBarColorR = static_cast<unsigned char>(
+            std::clamp(j["timeBarColorR"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarColorG") && j["timeBarColorG"].is_number_integer()) {
+        settings.timeBarColorG = static_cast<unsigned char>(
+            std::clamp(j["timeBarColorG"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarColorB") && j["timeBarColorB"].is_number_integer()) {
+        settings.timeBarColorB = static_cast<unsigned char>(
+            std::clamp(j["timeBarColorB"].get<int>(), 0, 255));
+    }
+    if (j.contains("timeBarOpacity") && j["timeBarOpacity"].is_number()) {
+        settings.timeBarOpacity = j["timeBarOpacity"].get<float>();
+    }
     if (j.contains("enablePlayfieldBorder") && j["enablePlayfieldBorder"].is_boolean()) {
         settings.enablePlayfieldBorder = j["enablePlayfieldBorder"].get<bool>();
     }
@@ -214,6 +248,12 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     }
     if (j.contains("showHitIndicators") && j["showHitIndicators"].is_boolean()) {
         settings.showHitIndicators = j["showHitIndicators"].get<bool>();
+    }
+    if (j.contains("displayJudgementIndicatorTextures") && j["displayJudgementIndicatorTextures"].is_boolean()) {
+        settings.displayJudgementIndicatorTextures = j["displayJudgementIndicatorTextures"].get<bool>();
+    }
+    if (j.contains("tintJudgementIndicators") && j["tintJudgementIndicators"].is_boolean()) {
+        settings.tintJudgementIndicators = j["tintJudgementIndicators"].get<bool>();
     }
 }
 
@@ -413,6 +453,14 @@ bool SaveAll(
              {"backgroundColorR", gCopy.backgroundColorR},
              {"backgroundColorG", gCopy.backgroundColorG},
              {"backgroundColorB", gCopy.backgroundColorB},
+             {"timeBarBackdropColorR", gCopy.timeBarBackdropColorR},
+             {"timeBarBackdropColorG", gCopy.timeBarBackdropColorG},
+             {"timeBarBackdropColorB", gCopy.timeBarBackdropColorB},
+             {"timeBarBackdropOpacity", gCopy.timeBarBackdropOpacity},
+             {"timeBarColorR", gCopy.timeBarColorR},
+             {"timeBarColorG", gCopy.timeBarColorG},
+             {"timeBarColorB", gCopy.timeBarColorB},
+             {"timeBarOpacity", gCopy.timeBarOpacity},
              {"enablePlayfieldBorder", gCopy.enablePlayfieldBorder},
              {"playfieldBorderOpacity", gCopy.playfieldBorderOpacity},
              {"playfieldBorderSize", gCopy.playfieldBorderSize},
@@ -421,6 +469,8 @@ bool SaveAll(
              {"keyBindRestart", gCopy.keyBindRestart},
              {"playerName", gCopy.playerName},
              {"showHitIndicators", gCopy.showHitIndicators},
+             {"displayJudgementIndicatorTextures", gCopy.displayJudgementIndicatorTextures},
+             {"tintJudgementIndicators", gCopy.tintJudgementIndicators},
          }},
         {"audio",
          {

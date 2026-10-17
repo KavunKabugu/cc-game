@@ -41,6 +41,16 @@ struct GameplaySettings {
     unsigned char backgroundColorG = kDefaultBackgroundColorG;
     unsigned char backgroundColorB = kDefaultBackgroundColorB;
 
+    // Bottom progress strip. RGB is 0–255, opacity is 0–1 same as background opacity.
+    unsigned char timeBarBackdropColorR = kDefaultTimeBarBackdropColorR;
+    unsigned char timeBarBackdropColorG = kDefaultTimeBarBackdropColorG;
+    unsigned char timeBarBackdropColorB = kDefaultTimeBarBackdropColorB;
+    float timeBarBackdropOpacity = kDefaultTimeBarBackdropOpacity;
+    unsigned char timeBarColorR = kDefaultTimeBarColorR;
+    unsigned char timeBarColorG = kDefaultTimeBarColorG;
+    unsigned char timeBarColorB = kDefaultTimeBarColorB;
+    float timeBarOpacity = kDefaultTimeBarOpacity;
+
     // When true, draw darkened (black) borders around the playfield edges.
     bool enablePlayfieldBorder = true;
 
@@ -56,6 +66,13 @@ struct GameplaySettings {
 
     // When true, shows the judgement of the last hit inside of the crosshair.
     bool showHitIndicators = true;
+
+    // When true, indicator uses the judgement textures (marvelous.png and the rest).
+    // When false, it uses the score / miss text.
+    bool displayJudgementIndicatorTextures = false;
+
+    // When true, the indicator is coloured by judgement. When false, it stays white.
+    bool tintJudgementIndicators = true;
 
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
