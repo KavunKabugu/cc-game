@@ -57,6 +57,13 @@ struct GameplaySettings {
     // When true, shows the judgement of the last hit inside of the crosshair.
     bool showHitIndicators = true;
 
+    // When true, indicator uses the judgement textures (marvelous.png and the rest).
+    // When false, it uses the score / miss text.
+    bool displayJudgementIndicatorTextures = false;
+
+    // When true, the indicator is coloured by judgement. When false, it stays white.
+    bool tintJudgementIndicators = true;
+
     // Lane keys: two slots per lane (see LaneInputHandler).
     LaneKeyBindings keyBindings = DefaultLaneKeyBindings();
 

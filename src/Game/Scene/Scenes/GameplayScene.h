@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -25,6 +26,7 @@ namespace Game {
 class GameInstance;
 class Label;
 class SceneManager;
+class Sprite;
 
 namespace Gameplay {
 class LaneInputHandler;
@@ -94,6 +96,10 @@ private:
     // Population deviation of timing errors over hit judgements, 0 when none or one hit.
     [[nodiscard]] double TimingStandardDeviationMs() const;
     [[nodiscard]] std::string PerfectGreatRatioText() const;
+    [[nodiscard]] bool LoadJudgementIndicatorTextures();
+    [[nodiscard]] SDL_Color JudgementIndicatorColor(Gameplay::Judgement judgement, double deltaMs) const;
+    void PresentJudgementIndicator(Gameplay::Judgement judgement, double deltaMs, std::string_view text) const;
+    void ClearJudgementIndicator() const;
 
     SceneManager& sceneManager;
     GameInstance& game;
@@ -114,6 +120,8 @@ private:
     Label* timingStatsLabel = nullptr;
     Label* performancePointsLabel = nullptr;
     Label* judgementIndicatorLabel = nullptr;
+    Sprite* judgementIndicatorSprite = nullptr;
+    std::array<std::shared_ptr<SDL_Texture>, static_cast<int>(Gameplay::Judgement::Count)> judgementIndicatorTextures{};
 
     std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Marvelous, Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;

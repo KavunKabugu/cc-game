@@ -25,9 +25,14 @@ public:
     void SetAlpha(const Uint8 a) { alpha = a; }
     [[nodiscard]] Uint8 GetAlpha() const { return alpha; }
 
+    // Multiplied into the texture when drawing. White leaves the texture unchanged.
+    void SetColor(const SDL_Color c) { color = c; }
+    [[nodiscard]] SDL_Color GetColor() const { return color; }
+
 protected:
     std::shared_ptr<SDL_Texture> texture;
     Uint8 alpha{255};
+    SDL_Color color{.r = 255, .g = 255, .b = 255, .a = 255};
 };
 
 } // namespace Game

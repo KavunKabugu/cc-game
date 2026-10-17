@@ -619,4 +619,14 @@ void GameInstance::SetShowHitIndicators(const bool show) {
     gameplaySettings.showHitIndicators = show;
     PersistAllSettings();
 }
+
+void GameInstance::SetDisplayJudgementIndicatorTextures(const bool enabled) {
+    gameplaySettings.displayJudgementIndicatorTextures = enabled;
+    PersistAllSettings();
+}
+
+void GameInstance::SetTintJudgementIndicators(const bool enabled) {
+    gameplaySettings.tintJudgementIndicators = enabled;
+    PersistAllSettings();
+}
 } // namespace Game

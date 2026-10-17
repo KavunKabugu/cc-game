@@ -87,6 +87,8 @@ private:
     TextButton* gameplayEnablePlayfieldBorderCheckbox = nullptr;
     TextButton* gameplaySwapUpDownLanesCheckbox = nullptr;
     TextButton* gameplayShowHitIndicatorCheckbox = nullptr;
+    TextButton* gameplayDisplayJudgementTexturesCheckbox = nullptr;
+    TextButton* gameplayTintJudgementIndicatorsCheckbox = nullptr;
     Label* gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     Label* gameplayPlayfieldBorderSizeValueLabel = nullptr;
 
