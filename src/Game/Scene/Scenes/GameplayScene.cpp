@@ -70,6 +70,7 @@ constexpr UnitBounds kHudAccuracyBounds{.min = {.x = 0.02f, .y = 0.098f}, .max =
 constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {.x = 0.92f, .y = 0.178f}};
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
 constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
+constexpr UnitBounds kHudComboBounds{.min = {.x = 0.02f, .y = 0.218f}, .max = {.x = 0.92f, .y = 0.258f}};
 constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
 // Full-width strip on the bottom edge. Countdown sits just above it, right aligned.
 constexpr float kTimeBarHeight = 0.008f;
@@ -432,6 +433,12 @@ GameplayScene::GameplayScene(
         "PP: 0pp");
     performancePointsLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
 
+    comboLabel = root->CreateChild<Label>(
+        kHudComboBounds,
+        *textFontRes,
+        "Combo: 0");
+    comboLabel->SetAlignment(HorizontalAlignment::Left, VerticalAlignment::Top);
+
     timingRuler = root->CreateChild<Gameplay::TimingRuler>(kTimingRulerBounds);
 
     laneInput = root->CreateChild<Gameplay::LaneInputHandler>(
@@ -754,6 +761,8 @@ void GameplayScene::ConsumeJudgements() {
             result.judgement == Great ||
             result.judgement == Good ||
             result.judgement == Bad) {
+            ++currentCombo;
+            maxCombo = std::max(maxCombo, currentCombo);
             ++timingHitCount;
             sumTimingDeltaMs += result.deltaMs;
             sumTimingDeltaSqMs += result.deltaMs * result.deltaMs;
@@ -761,6 +770,10 @@ void GameplayScene::ConsumeJudgements() {
                 timingRuler->PushHit(result.deltaMs, result.judgement);
             }
         }
+        else if (result.judgement == Miss) {
+            currentCombo = 0;
+        }
+      
         if (const auto idx = static_cast<size_t>(result.judgement); idx < judgementCounts.size()) {
             ++judgementCounts[idx];
         }
@@ -857,6 +870,9 @@ void GameplayScene::UpdateHud() {
             AccuracyPercent());
         performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
+    if (comboLabel) {
+        comboLabel->SetText(std::format("Combo: {}", currentCombo));
+    }
 }
 
 void GameplayScene::UpdateTimeDisplay(const double songTime) {
@@ -924,6 +940,7 @@ void GameplayScene::HideHud() const {
         timingRuler->Clear();
     }
     if (performancePointsLabel) performancePointsLabel->SetBounds(kOffscreenBounds);
+    if (comboLabel) comboLabel->SetBounds(kOffscreenBounds);
     if (timeBarBackdrop) timeBarBackdrop->SetBounds(kOffscreenBounds);
     if (timeBarFill) timeBarFill->SetBounds(kOffscreenBounds);
     if (timeRemainingLabel) timeRemainingLabel->SetBounds(kOffscreenBounds);
@@ -936,6 +953,7 @@ void GameplayScene::ShowHud() const {
     if (timingStatsLabel) timingStatsLabel->SetBounds(kHudTimingBounds);
     if (timingRuler) timingRuler->SetBounds(kTimingRulerBounds);
     if (performancePointsLabel) performancePointsLabel->SetBounds(kHudPerformancePointsBounds);
+    if (comboLabel) comboLabel->SetBounds(kHudComboBounds);
     if (timeBarBackdrop) timeBarBackdrop->SetBounds(kTimeBarBounds);
     if (timeBarFill) timeBarFill->SetBounds(TimeBarFillBounds(timeBarProgress));
     if (timeRemainingLabel) timeRemainingLabel->SetBounds(kHudTimeRemainingBounds);
@@ -945,6 +963,7 @@ Score::ResultsViewData GameplayScene::BuildResultsViewData() const {
     Score::ResultsViewData view;
     view.score = totalScore;
     view.accuracyPercent = AccuracyPercent();
+    view.maxCombo = maxCombo;
     view.judgementCounts = judgementCounts;
     view.biasMs = MeanSignedTimingErrorMs();
     view.stdDevMs = TimingStandardDeviationMs();
