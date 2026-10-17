@@ -13,7 +13,9 @@ namespace Game::PerformancePoints {
     class PerformancePointsCalculation final {
         public:
             PerformancePointsCalculation(const ResultsOverlayContext& resultsOverlayContext, const Score::ResultsViewData& resultsViewData);
-            [[nodiscard]] double CalculatePerformancePoints(const std::array<int, static_cast<int>(Gameplay::Judgement::Count)>& judgementCounts) const;
+            [[nodiscard]] double CalculatePerformancePoints(
+                const std::array<int, static_cast<int>(Gameplay::Judgement::Count)>& judgementCounts,
+                double accuracyPercent) const;
             void CalculateDifficulty();
 
         private:
@@ -29,6 +31,7 @@ namespace Game::PerformancePoints {
             };
 
             struct Judgements {
+                int marvelous = 0;
                 int perfect = 0;
                 int great = 0;
                 int good = 0;
@@ -36,23 +39,15 @@ namespace Game::PerformancePoints {
                 int miss = 0;
 
                 [[nodiscard]] int total() const {
-                    return perfect + great + good + bad + miss;
-                }
-
-                [[nodiscard]] double accuracy() const {
-                    if (total() == 0) return 0.0;
-
-                    const double numerator = 100.0 * (perfect + great) + 50.0 * good;
-
-                    return numerator / (100.0 * total());
+                    return marvelous + perfect + great + good + bad + miss;
                 }
 
                 [[nodiscard]] double ratio() const {
-                    const int scored = perfect + great;
+                    const int scored = marvelous + perfect;
 
                     if (scored == 0) return 0;
 
-                    return static_cast<double>(perfect) / scored;
+                    return static_cast<double>(marvelous) / scored;
                 }
             };
 
@@ -60,7 +55,7 @@ namespace Game::PerformancePoints {
             Score::ResultsViewData resultsViewData;
             double difficultyRating = 0.0;
 
-            static Performance CalculatePerformance(double rating, const Judgements& judgements);
+            static Performance CalculatePerformance(double rating, const Judgements& judgements, double accuracy);
     };
 
 }

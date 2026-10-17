@@ -249,6 +249,12 @@ void ApplyGameplayJson(const json& j, Gameplay::GameplaySettings& settings) {
     if (j.contains("showHitIndicators") && j["showHitIndicators"].is_boolean()) {
         settings.showHitIndicators = j["showHitIndicators"].get<bool>();
     }
+    if (j.contains("displayJudgementIndicatorTextures") && j["displayJudgementIndicatorTextures"].is_boolean()) {
+        settings.displayJudgementIndicatorTextures = j["displayJudgementIndicatorTextures"].get<bool>();
+    }
+    if (j.contains("tintJudgementIndicators") && j["tintJudgementIndicators"].is_boolean()) {
+        settings.tintJudgementIndicators = j["tintJudgementIndicators"].get<bool>();
+    }
 }
 
 void ApplyVideoJson(const json& j, VideoSettings& video, int& savedWindowedWidth, int& savedWindowedHeight) {
@@ -463,6 +469,8 @@ bool SaveAll(
              {"keyBindRestart", gCopy.keyBindRestart},
              {"playerName", gCopy.playerName},
              {"showHitIndicators", gCopy.showHitIndicators},
+             {"displayJudgementIndicatorTextures", gCopy.displayJudgementIndicatorTextures},
+             {"tintJudgementIndicators", gCopy.tintJudgementIndicators},
          }},
         {"audio",
          {

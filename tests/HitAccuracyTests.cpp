@@ -20,11 +20,11 @@ using Game::Gameplay::kGreatWindowMs;
 void TestContinuousVersusCeilGood() {
     constexpr double d = kGreatWindowMs + 1.5;
     constexpr double span = kGoodWindowMs - kGreatWindowMs;
-    [[maybe_unused]] constexpr double raw = 100.0 * (kGoodWindowMs - d) / span;
+    [[maybe_unused]] constexpr double raw = 70.0 * (kGoodWindowMs - d) / span;
     [[maybe_unused]] constexpr HitResult hit{.judgement = Judgement::Good, .deltaMs = d};
-    assert(ContinuousRawScore(hit) == raw);
+    assert(std::abs(ContinuousRawScore(hit) - raw) < 1e-9);
     assert(ScoreForHitResult(hit) == static_cast<std::int32_t>(std::ceil(raw)));
-    assert(ScoreForHitResult(hit) == 98);
+    assert(ScoreForHitResult(hit) == 68);
 }
 
 void TestContinuousVersusCeilBad() {
@@ -34,7 +34,7 @@ void TestContinuousVersusCeilBad() {
     [[maybe_unused]] constexpr HitResult hit{.judgement = Judgement::Bad, .deltaMs = d};
     assert(std::abs(ContinuousRawScore(hit) - raw) < 1e-9);
     assert(ScoreForHitResult(hit) == static_cast<std::int32_t>(std::ceil(raw)));
-    assert(ScoreForHitResult(hit) == -3);
+    assert(ScoreForHitResult(hit) == -5);
 }
 
 void TestAccuracyNumeratorContribution() {
@@ -53,14 +53,24 @@ void TestAccuracyNumeratorContribution() {
            }) == 0.0);
 
     assert(AccuracyNumeratorContribution(HitResult{
+               .judgement = Judgement::Marvelous,
+               .deltaMs = 0.0,
+           }) == 100.0);
+
+    assert(AccuracyNumeratorContribution(HitResult{
                .judgement = Judgement::Perfect,
                .deltaMs = 0.0,
            }) == 100.0);
 
     assert(AccuracyNumeratorContribution(HitResult{
                .judgement = Judgement::Great,
-               .deltaMs = 0.0,
-           }) == 100.0);
+               .deltaMs = kGreatWindowMs,
+           }) == 70.0);
+
+    assert(AccuracyNumeratorContribution(HitResult{
+               .judgement = Judgement::Good,
+               .deltaMs = kGoodWindowMs,
+           }) == 0.0);
 }
 
 void TestRunningAccuracyPercentFormula() {

@@ -14,6 +14,7 @@ using Game::Gameplay::kBadScoreGraceEndMs;
 using Game::Gameplay::kBadScorePenaltyEndMs;
 using Game::Gameplay::kGoodWindowMs;
 using Game::Gameplay::kGreatWindowMs;
+using Game::Gameplay::kMarvelousWindowMs;
 using Game::Gameplay::kPerfectWindowMs;
 
 void AssertCeilScore([[maybe_unused]] const HitResult& h) {
@@ -35,6 +36,12 @@ void TestMiss() {
            }) == -25);
 }
 
+void TestMarvelous() {
+    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Marvelous, .deltaMs = 0.0}) == 100);
+    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Marvelous, .deltaMs = kMarvelousWindowMs}) == 100);
+    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Marvelous, .deltaMs = -kMarvelousWindowMs}) == 100);
+}
+
 void TestPerfect() {
     assert(ScoreForHitResult(HitResult{.judgement = Judgement::Perfect, .deltaMs = 0.0}) == 100);
     assert(ScoreForHitResult(HitResult{.judgement = Judgement::Perfect, .deltaMs = kPerfectWindowMs}) == 100);
@@ -42,9 +49,19 @@ void TestPerfect() {
 }
 
 void TestGreat() {
-    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Great, .deltaMs = 0.0}) == 100);
-    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Great, .deltaMs = kGreatWindowMs}) == 100);
-    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Great, .deltaMs = -kGreatWindowMs}) == 100);
+    [[maybe_unused]] constexpr HitResult atInner{.judgement = Judgement::Great, .deltaMs = kPerfectWindowMs};
+    assert(ContinuousRawScore(atInner) == 100.0);
+    assert(ScoreForHitResult(atInner) == 100);
+
+    constexpr double dMid = 0.5 * (kGreatWindowMs + kPerfectWindowMs);
+    [[maybe_unused]] constexpr HitResult mid{.judgement = Judgement::Great, .deltaMs = dMid};
+    assert(std::abs(ContinuousRawScore(mid) - 85.0) < 1e-9);
+    assert(ScoreForHitResult(mid) == 85);
+
+    [[maybe_unused]] constexpr HitResult atOuter{.judgement = Judgement::Great, .deltaMs = kGreatWindowMs};
+    assert(ContinuousRawScore(atOuter) == 70.0);
+    assert(ScoreForHitResult(atOuter) == 70);
+    assert(ScoreForHitResult(HitResult{.judgement = Judgement::Great, .deltaMs = -kGreatWindowMs}) == 70);
 }
 
 void TestGood() {
@@ -53,8 +70,8 @@ void TestGood() {
 
     constexpr double dHalfScore = 0.5 * (kGoodWindowMs + kGreatWindowMs);
     [[maybe_unused]] constexpr HitResult mid{.judgement = Judgement::Good, .deltaMs = dHalfScore};
-    assert(std::abs(ContinuousRawScore(mid) - 50.0) < 1e-9);
-    assert(ScoreForHitResult(mid) == 50);
+    assert(std::abs(ContinuousRawScore(mid) - 35.0) < 1e-9);
+    assert(ScoreForHitResult(mid) == 35);
 
     [[maybe_unused]] constexpr HitResult atOuter{.judgement = Judgement::Good, .deltaMs = kGoodWindowMs};
     assert(ContinuousRawScore(atOuter) == 0.0);
@@ -90,6 +107,7 @@ void TestBad() {
 
 int main() {
     TestMiss();
+    TestMarvelous();
     TestPerfect();
     TestGreat();
     TestGood();

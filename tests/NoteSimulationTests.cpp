@@ -75,7 +75,7 @@ void TestExpiration() {
     assert(*events[0].noteTargetTimeSeconds == 1.0);
 }
 
-void TestTryHitPerfect() {
+void TestTryHitMarvelous() {
     NoteSimulation sim;
     sim.Configure(10.0f, 150.0f, 1920);
 
@@ -87,13 +87,31 @@ void TestTryHitPerfect() {
     assert(sim.ActiveNotes().size() == 1);
 
     [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0);
-    assert(res.judgement == Judgement::Perfect);
+    assert(res.judgement == Judgement::Marvelous);
     assert(res.missReason == MissReason::None);
     assert(res.lane == 0);
     assert(res.deltaMs == 0.0);
 
     assert(sim.ActiveNotes().empty());
     assert(sim.AllNotesResolved());
+}
+
+void TestTryHitPerfect() {
+    NoteSimulation sim;
+    sim.Configure(10.0f, 150.0f, 1920);
+
+    ChartData chart;
+    chart.notes = { ChartNote{.hitTime = 1.0, .lane = 0} };
+    sim.LoadChart(chart);
+
+    sim.Tick(1.0);
+    assert(sim.ActiveNotes().size() == 1);
+
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0 + 0.040); // 40ms, inside Perfect
+    assert(res.judgement == Judgement::Perfect);
+    assert(res.missReason == MissReason::None);
+    assert(std::abs(res.deltaMs - 40.0) < 1e-6);
+    assert(sim.ActiveNotes().empty());
 }
 
 void TestTryHitGreat() {
@@ -107,11 +125,11 @@ void TestTryHitGreat() {
     sim.Tick(1.0); // Exactly at note time
     assert(sim.ActiveNotes().size() == 1);
 
-    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0 + 0.045); // 45ms after note time
+    [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.0 + 0.080); // 80ms, inside Great
     assert(res.judgement == Judgement::Great);
     assert(res.missReason == MissReason::None);
     assert(res.lane == 0);
-    assert(std::abs(res.deltaMs - 45.0) < 1e-6);
+    assert(std::abs(res.deltaMs - 80.0) < 1e-6);
 
     assert(sim.ActiveNotes().empty());
     assert(sim.AllNotesResolved());
@@ -168,11 +186,11 @@ void TestEmptyLaneAndChords() {
 
     // Try hit lane 0: should hit the first note (1.0) because it's the next note in line
     [[maybe_unused]] const HitResult resFirst = sim.TryHit(0, 0.99);
-    assert(resFirst.judgement == Judgement::Perfect);
+    assert(resFirst.judgement == Judgement::Marvelous);
     assert(resFirst.noteTargetTimeSeconds.has_value() && *resFirst.noteTargetTimeSeconds == 1.0);
 
     [[maybe_unused]] const HitResult resSecond = sim.TryHit(0, 1.01);
-    assert(resSecond.judgement == Judgement::Perfect);
+    assert(resSecond.judgement == Judgement::Marvelous);
     assert(resSecond.noteTargetTimeSeconds.has_value() && *resSecond.noteTargetTimeSeconds == 1.01);
 }
 
@@ -195,13 +213,13 @@ void TestTryHitPrefersEarlierNotePastMidpoint() {
     assert(resFirst.missReason == MissReason::None);
     assert(resFirst.noteTargetTimeSeconds.has_value() && *resFirst.noteTargetTimeSeconds == 1.0);
     assert(std::abs(resFirst.deltaMs - 50.0) < 1e-6);
-    assert(resFirst.judgement == Judgement::Great);
+    assert(resFirst.judgement == Judgement::Perfect);
     assert(sim.ActiveNotes().size() == 1);
     assert(sim.ActiveNotes()[0]->hitTime == 1.08);
 
     [[maybe_unused]] const HitResult resSecond = sim.TryHit(0, 1.08);
     assert(resSecond.noteTargetTimeSeconds.has_value() && *resSecond.noteTargetTimeSeconds == 1.08);
-    assert(resSecond.judgement == Judgement::Perfect);
+    assert(resSecond.judgement == Judgement::Marvelous);
     assert(sim.ActiveNotes().empty());
 }
 
@@ -221,7 +239,7 @@ void TestLateTapHitsLeftoverNotLaterNote() {
     [[maybe_unused]] const HitResult res = sim.TryHit(0, 1.08);
     assert(res.noteTargetTimeSeconds.has_value() && *res.noteTargetTimeSeconds == 1.0);
     assert(std::abs(res.deltaMs - 80.0) < 1e-6);
-    assert(res.judgement == Judgement::Good);
+    assert(res.judgement == Judgement::Great);
     assert(sim.ActiveNotes().size() == 1);
     assert(sim.ActiveNotes()[0]->hitTime == 1.08);
 }
@@ -260,7 +278,7 @@ void TestTryHitIsPerLane() {
 
     [[maybe_unused]] const HitResult res = sim.TryHit(1, 1.08);
     assert(res.noteTargetTimeSeconds.has_value() && *res.noteTargetTimeSeconds == 1.08);
-    assert(res.judgement == Judgement::Perfect);
+    assert(res.judgement == Judgement::Marvelous);
     assert(sim.ActiveNotes().size() == 1);
     assert(sim.ActiveNotes()[0]->lane == 0);
 }
@@ -271,6 +289,7 @@ int main() {
     TestConfiguration();
     TestSpawnAndBoundaries();
     TestExpiration();
+    TestTryHitMarvelous();
     TestTryHitPerfect();
     TestTryHitGreat();
     TestTryHitGoodAndBad();

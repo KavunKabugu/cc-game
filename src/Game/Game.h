@@ -65,6 +65,8 @@ public:
     void SetPlayfieldBorderSize(float size);
     void SetSwapUpDownLanes(bool enabled);
     void SetShowHitIndicators(bool show);
+    void SetDisplayJudgementIndicatorTextures(bool enabled);
+    void SetTintJudgementIndicators(bool enabled);
 
     void SetPlayerName(std::string name);
 
