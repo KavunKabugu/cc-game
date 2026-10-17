@@ -577,8 +577,11 @@ void GameplayScene::ConsumeJudgements() {
         if (result.missReason != Gameplay::MissReason::EmptyLane) {
             ++chartNotesProcessed;
         }
-        if (result.judgement == Perfect || result.judgement == Great || result.judgement == Good || result.judgement ==
-            Bad) {
+        if (result.judgement == Marvelous ||
+            result.judgement == Perfect ||
+            result.judgement == Great ||
+            result.judgement == Good ||
+            result.judgement == Bad) {
             ++timingHitCount;
             sumTimingDeltaMs += result.deltaMs;
             sumTimingDeltaSqMs += result.deltaMs * result.deltaMs;
@@ -609,6 +612,13 @@ void GameplayScene::ConsumeJudgements() {
 
         switch (result.judgement)
         {
+            case Marvelous:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                if (this->settings.showHitIndicators) {
+                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Marvelous, result.deltaMs));
+                }
+                break;
             case Perfect:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
                 if (this->settings.showHitIndicators) {
@@ -619,14 +629,14 @@ void GameplayScene::ConsumeJudgements() {
             case Great:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
                 if (this->settings.showHitIndicators) {
-                    this->judgementIndicatorLabel->SetText("100");
+                    this->judgementIndicatorLabel->SetText(std::format("{}", Gameplay::ScoreForHitResult(result)));
                     this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
                 }
                 break;
             case Good:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
                 if (this->settings.showHitIndicators) {
-                    this->judgementIndicatorLabel->SetText("50");
+                    this->judgementIndicatorLabel->SetText(std::format("{}", Gameplay::ScoreForHitResult(result)));
                     this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
                 }
                 break;
@@ -634,7 +644,7 @@ void GameplayScene::ConsumeJudgements() {
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
                 if (this->settings.showHitIndicators)
                 {
-                    this->judgementIndicatorLabel->SetText("25");
+                    this->judgementIndicatorLabel->SetText(std::format("{}", Gameplay::ScoreForHitResult(result)));
                     this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
                 }
                 break;
@@ -669,7 +679,8 @@ void GameplayScene::UpdateHud() {
     }
     if (judgementsLabel) {
         judgementsLabel->SetText(std::format(
-            "P {}   Gr {}   G {}   B {}   M {}",
+            "Ma {}   P {}   Gr {}   G {}   B {}   M {}",
+            judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
@@ -689,7 +700,9 @@ void GameplayScene::UpdateHud() {
     }
 
     if (performancePointsLabel) {
-        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(this->judgementCounts);
+        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(
+            this->judgementCounts,
+            AccuracyPercent());
         performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
 }
@@ -917,14 +930,16 @@ double GameplayScene::TimingStandardDeviationMs() const {
     return std::sqrt(std::max(0.0, var));
 }
 
+// TODO: Rename this function
 std::string GameplayScene::PerfectGreatRatioText() const {
+    // Top tier over the next tier: Marvelous / Perfect.
+    const int marvelous = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)];
     const int perfect = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)];
-    const int great = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)];
-    if (great == 0) {
-        return std::format("Ratio: -  ({} / 0)", perfect);
+    if (perfect == 0) {
+        return std::format("Ratio: -  ({} / 0)", marvelous);
     }
-    const double ratio = static_cast<double>(perfect) / static_cast<double>(great);
-    return std::format("Ratio: {:.2f}  ({} / {})", ratio, perfect, great);
+    const double ratio = static_cast<double>(marvelous) / static_cast<double>(perfect);
+    return std::format("Ratio: {:.2f}  ({} / {})", ratio, marvelous, perfect);
 }
 
 } // namespace Game

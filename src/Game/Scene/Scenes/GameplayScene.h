@@ -115,7 +115,7 @@ private:
     Label* performancePointsLabel = nullptr;
     Label* judgementIndicatorLabel = nullptr;
 
-    std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Perfect, Great, Good, Bad, Miss.
+    std::array<int, static_cast<int>(Gameplay::Judgement::Count)> judgementCounts{}; // Marvelous, Perfect, Great, Good, Bad, Miss.
     std::int64_t totalScore = 0;
 
     std::size_t chartNoteCount = 0;

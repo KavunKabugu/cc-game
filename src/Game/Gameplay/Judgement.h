@@ -6,6 +6,7 @@
 namespace Game::Gameplay {
 
 enum class Judgement {
+    Marvelous,
     Perfect,
     Great,
     Good,

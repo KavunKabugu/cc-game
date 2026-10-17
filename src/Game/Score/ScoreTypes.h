@@ -10,7 +10,7 @@
 
 namespace Game::Score {
 
-inline constexpr int kScoreSchemaVersion = 1;
+inline constexpr int kScoreSchemaVersion = 2;
 
 struct ScoreSummary {
     std::string runId;

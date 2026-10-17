@@ -43,6 +43,7 @@ using Game::Utf8StringToPath;
 [[nodiscard]] json JudgementCountsToJson(
     const std::array<int, static_cast<int>(Gameplay::Judgement::Count)>& counts) {
     return json::array({
+        counts[static_cast<size_t>(Gameplay::Judgement::Marvelous)],
         counts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
         counts[static_cast<size_t>(Gameplay::Judgement::Great)],
         counts[static_cast<size_t>(Gameplay::Judgement::Good)],
@@ -194,6 +195,9 @@ void JudgementCountsFromJson(
 }
 
 [[nodiscard]] bool RecordFromJson(const json& j, ScoreRecord& record) {
+    if (!j.is_object() || j.value("schemaVersion", 0) != kScoreSchemaVersion) {
+        return false;
+    }
     if (!SummaryFromJson(j, record.summary)) {
         return false;
     }
@@ -214,6 +218,23 @@ void JudgementCountsFromJson(
         record.detail.accuracySteps = AccuracyStepsFromJson(j["accuracySteps"]);
     }
     return true;
+}
+
+[[nodiscard]] int IndexSchemaVersion(const std::filesystem::path& path) {
+    std::ifstream in(path);
+    if (!in) {
+        return -1;
+    }
+    try {
+        json j;
+        in >> j;
+        if (!j.is_object()) {
+            return -1;
+        }
+        return j.value("schemaVersion", 0);
+    } catch (...) {
+        return -1;
+    }
 }
 
 [[nodiscard]] std::vector<ScoreSummary> ReadIndexFile(const std::filesystem::path& path) {
@@ -390,13 +411,13 @@ std::optional<std::string> ScoreStore::Save(
 
 std::vector<ScoreSummary> ScoreStore::ListForSong(const Song::SongMetadata& song) {
     const auto indexFile = IndexPath(song.songFolder);
-    auto summaries = ReadIndexFile(indexFile);
-    if (!summaries.empty()) {
-        return summaries;
+    const int indexSchema = IndexSchemaVersion(indexFile);
+    if (indexSchema == kScoreSchemaVersion) {
+        return ReadIndexFile(indexFile);
     }
 
-    summaries = RebuildIndexFromRuns(SongScoresDir(song.songFolder));
-    if (!summaries.empty()) {
+    auto summaries = RebuildIndexFromRuns(SongScoresDir(song.songFolder));
+    if (!summaries.empty() || indexSchema >= 0) {
         (void)WriteIndexFile(indexFile, summaries);
     }
     return summaries;

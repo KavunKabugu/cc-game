@@ -51,9 +51,13 @@ inline constexpr unsigned char kDefaultBackgroundColorB = 42;
 inline constexpr std::size_t kPlayerNameMaxLength = 24;
 
 // Judgement timing windows (absolute |delta| in milliseconds).
-inline constexpr double kPerfectWindowMs = 18.0;
-inline constexpr double kGreatWindowMs = 60.0;
-inline constexpr double kGoodWindowMs = 135.0;
+inline constexpr double kMarvelousWindowMs = 18.0;
+inline constexpr double kPerfectWindowMs = 55.0;
+inline constexpr double kGreatWindowMs = 100.0;
+inline constexpr double kGoodWindowMs = 150.0;
+static_assert(kMarvelousWindowMs < kPerfectWindowMs);
+static_assert(kPerfectWindowMs < kGreatWindowMs);
+static_assert(kGreatWindowMs < kGoodWindowMs);
 
 // How long after its hit time an unhit note stays hittable, past this it is
 // auto-resolved as Miss and despawned.
