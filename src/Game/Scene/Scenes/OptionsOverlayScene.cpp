@@ -388,6 +388,12 @@ void OptionsOverlayScene::RefreshGameplayControlTexts() const {
     if (gameplayShowHitIndicatorCheckbox) {
         gameplayShowHitIndicatorCheckbox->SetText(gs.showHitIndicators ? "X" : "");
     }
+    if (gameplayDisplayJudgementTexturesCheckbox) {
+        gameplayDisplayJudgementTexturesCheckbox->SetText(gs.displayJudgementIndicatorTextures ? "X" : "");
+    }
+    if (gameplayTintJudgementIndicatorsCheckbox) {
+        gameplayTintJudgementIndicatorsCheckbox->SetText(gs.tintJudgementIndicators ? "X" : "");
+    }
 }
 
 void OptionsOverlayScene::RefreshAudioControlTexts() const {
@@ -504,6 +510,8 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
     gameplayPlayfieldBorderOpacityValueLabel = nullptr;
     gameplayPlayfieldBorderSizeValueLabel = nullptr;
     gameplayShowHitIndicatorCheckbox = nullptr;
+    gameplayDisplayJudgementTexturesCheckbox = nullptr;
+    gameplayTintJudgementIndicatorsCheckbox = nullptr;
     audioMasterValueLabel = nullptr;
     audioMusicValueLabel = nullptr;
     audioSfxValueLabel = nullptr;
@@ -585,7 +593,7 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
                                   std::function<void()> onClick) {
             auto* row = makeRow();
             row->CreateChild<Label>(
-                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.78f, .y = 0.9f}},
+                UnitBounds{.min = {.x = 0.02f, .y = 0.1f}, .max = {.x = 0.815f, .y = 0.9f}},
                 rowFont,
                 labelText);
             outCheckbox = row->CreateChild<TextButton>(
@@ -776,6 +784,26 @@ void OptionsOverlayScene::RebuildContent(const Category category) {
             [this] {
                 const bool cur = game.GetGameplaySettings().showHitIndicators;
                 game.SetShowHitIndicators(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Display Judgement indicator textures instead of text",
+            gameplayDisplayJudgementTexturesCheckbox,
+            gs.displayJudgementIndicatorTextures,
+            [this] {
+                const bool cur = game.GetGameplaySettings().displayJudgementIndicatorTextures;
+                game.SetDisplayJudgementIndicatorTextures(!cur);
+                RefreshGameplayControlTexts();
+            });
+
+        addCheckboxRow(
+            "Tint Judgement indicators based on judgement",
+            gameplayTintJudgementIndicatorsCheckbox,
+            gs.tintJudgementIndicators,
+            [this] {
+                const bool cur = game.GetGameplaySettings().tintJudgementIndicators;
+                game.SetTintJudgementIndicators(!cur);
                 RefreshGameplayControlTexts();
             });
 

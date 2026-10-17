@@ -4,6 +4,7 @@
 
 #include "PerformancePointsCalculation.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 
@@ -39,8 +40,10 @@ PerformancePointsCalculation::PerformancePointsCalculation(const ResultsOverlayC
     this->resultsOverlayContext = resultsOverlayContext;
 }
 
-PerformancePointsCalculation::Performance PerformancePointsCalculation::CalculatePerformance(const double rating, const Judgements& judgements) {
-    const double accuracy = judgements.accuracy();
+PerformancePointsCalculation::Performance PerformancePointsCalculation::CalculatePerformance(
+    const double rating,
+    const Judgements& judgements,
+    const double accuracy) {
     auto ratio = judgements.ratio();
 
     const double base = std::pow(std::max(rating, 0.0) / 10.0, difficultyExponent) * baseValueAtDifficultyTen;
@@ -69,17 +72,21 @@ PerformancePointsCalculation::Performance PerformancePointsCalculation::Calculat
     };
 }
 
-double PerformancePointsCalculation::CalculatePerformancePoints(const std::array<int, static_cast<int>(Gameplay::Judgement::Count)>& judgementCounts) const {
+double PerformancePointsCalculation::CalculatePerformancePoints(
+    const std::array<int, static_cast<int>(Gameplay::Judgement::Count)>& judgementCounts,
+    const double accuracyPercent) const {
     const Judgements judgements{
-        .perfect = judgementCounts[0],
-        .great = judgementCounts[1],
-        .good = judgementCounts[2],
-        .bad = judgementCounts[3],
-        .miss = judgementCounts[4]
+        .marvelous = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)],
+        .perfect = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
+        .great = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
+        .good = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
+        .bad = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Bad)],
+        .miss = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Miss)],
     };
 
     if (judgements.total() > 0) {
-        const Performance perf = CalculatePerformance(this->difficultyRating, judgements);
+        const double accuracy = std::clamp(accuracyPercent / 100.0, 0.0, 1.0);
+        const Performance perf = CalculatePerformance(this->difficultyRating, judgements, accuracy);
 
         return perf.pp;
     }

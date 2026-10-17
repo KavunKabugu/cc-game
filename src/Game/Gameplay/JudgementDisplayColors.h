@@ -19,6 +19,8 @@ namespace Game::Gameplay {
 [[nodiscard]] inline SDL_Color TimingRulerMarkerRgb(const Judgement judgement, const double absDeltaMs) {
     using enum Judgement;
     switch (judgement) {
+    case Marvelous:
+        return SDL_Color{.r = 235, .g = 235, .b = 245, .a = 255};
     case Perfect:
         return SDL_Color{.r = 70, .g = 190, .b = 255, .a = 255};
     case Great:

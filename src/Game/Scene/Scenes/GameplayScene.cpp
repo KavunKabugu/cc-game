@@ -70,6 +70,38 @@ constexpr UnitBounds kHudTimingBounds{.min = {.x = 0.02f, .y = 0.138f}, .max = {
 constexpr UnitBounds kTimingRulerBounds{.min = {.x = 0.41f, .y = 0.88f}, .max = {.x = 0.59f, .y = 0.93f}};
 constexpr UnitBounds kHudPerformancePointsBounds{.min = {.x = 0.02f, .y = 0.178f}, .max = {.x = 0.92f, .y = 0.218f}};
 constexpr UnitBounds kHudJudgementHitIndicatorBounds{.min = {.x = 0.45f, .y = 0.45f}, .max = {.x = 0.55f, .y = 0.55f}};
+
+// Whole texture, centered in the indicator slot.
+// Uses the file's pixel size only, so a replacement image is not stretched.
+[[nodiscard]] UnitBounds FitTextureInIndicatorSlot(SDL_Texture* texture, const int logicalW, const int logicalH) {
+    constexpr UnitBounds slot = kHudJudgementHitIndicatorBounds;
+    float texW = 0.0f;
+    float texH = 0.0f;
+    if (texture == nullptr ||
+        logicalW <= 0 ||
+        logicalH <= 0 ||
+        !SDL_GetTextureSize(texture, &texW, &texH) ||
+        texW <= 0.0f ||
+        texH <= 0.0f) {
+        return slot;
+    }
+
+    const float slotPxW = (slot.max.x - slot.min.x) * static_cast<float>(logicalW);
+    const float slotPxH = (slot.max.y - slot.min.y) * static_cast<float>(logicalH);
+    if (slotPxW <= 0.0f || slotPxH <= 0.0f) {
+        return slot;
+    }
+
+    const float scale = std::min(slotPxW / texW, slotPxH / texH);
+    const float fitW = texW * scale / static_cast<float>(logicalW);
+    const float fitH = texH * scale / static_cast<float>(logicalH);
+    constexpr float centerX = (slot.min.x + slot.max.x) * 0.5f;
+    constexpr float centerY = (slot.min.y + slot.max.y) * 0.5f;
+    return UnitBounds{
+        .min = {.x = centerX - fitW * 0.5f, .y = centerY - fitH * 0.5f},
+        .max = {.x = centerX + fitW * 0.5f, .y = centerY + fitH * 0.5f},
+    };
+}
 // Label::Render still draws at the slot's top-left when width/height are 0, park text off-screen.
 constexpr UnitBounds kOffscreenBounds{.min = {.x = 2.0f, .y = 2.0f}, .max = {.x = 2.01f, .y = 2.01f}};
 
@@ -220,7 +252,6 @@ GameplayScene::GameplayScene(
         }
     }
 
-    const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", this->settings.crosshairRadius / 3);
     const auto titleFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 36.0f);
     const auto textFontRes = ResourceManager::getInstance().Get<TTF_Font>("04b_25/04b_25__.ttf", 24.0f);
     const auto arcTextureRes = ResourceManager::getInstance().Get<SDL_Texture>("arc-quarter.png");
@@ -392,11 +423,31 @@ GameplayScene::GameplayScene(
     }
 
     if (this->settings.showHitIndicators) {
-        judgementIndicatorLabel = root->CreateChild<Label>(
-        kHudJudgementHitIndicatorBounds,
-        *judgementIndicatorFontRes,
-        "");
-        judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+        const bool texturesRequested = this->settings.displayJudgementIndicatorTextures;
+        const bool texturesReady = texturesRequested && LoadJudgementIndicatorTextures();
+        if (texturesRequested && !texturesReady) {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "GameplayScene: judgement indicator textures missing, using text");
+        }
+        if (texturesReady) {
+            judgementIndicatorSprite = root->CreateChild<Sprite>(kHudJudgementHitIndicatorBounds);
+            judgementIndicatorSprite->SetAlpha(0);
+        } else {
+            const auto judgementIndicatorFontRes = ResourceManager::getInstance().Get<TTF_Font>(
+                "04b_25/04b_25__.ttf", this->settings.crosshairRadius / 3.0f);
+            if (!judgementIndicatorFontRes) {
+                SDL_Log("GameplayScene: missing judgement indicator font");
+                initFailed = true;
+                initErrorMessage = "Missing judgement indicator font.";
+                return;
+            }
+            judgementIndicatorLabel = root->CreateChild<Label>(
+                kHudJudgementHitIndicatorBounds,
+                *judgementIndicatorFontRes,
+                "");
+            judgementIndicatorLabel->SetAlignment(HorizontalAlignment::Center, VerticalAlignment::Middle);
+        }
     }
 
     const double spawnLead = simulation.SpawnLeadSeconds();
@@ -558,6 +609,77 @@ void GameplayScene::InjectReplayPresses(const double songTimeSeconds) {
     }
 }
 
+bool GameplayScene::LoadJudgementIndicatorTextures() {
+    static constexpr std::array<const char*, static_cast<size_t>(Gameplay::Judgement::Count)> kPaths{
+        "marvelous.png",
+        "perfect.png",
+        "great.png",
+        "good.png",
+        "bad.png",
+        "miss.png",
+    };
+    static_assert(kPaths.size() == static_cast<size_t>(Gameplay::Judgement::Count));
+
+    for (size_t i = 0; i < kPaths.size(); ++i) {
+        auto res = ResourceManager::getInstance().Get<SDL_Texture>(kPaths[i]);
+        if (!res) {
+            SDL_LogWarn(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "GameplayScene: failed to load judgement texture '%s' (%s)",
+                kPaths[i],
+                ResourceErrorToString(res.error()).c_str());
+            judgementIndicatorTextures.fill(nullptr);
+            return false;
+        }
+        judgementIndicatorTextures[i] = *res;
+    }
+    return true;
+}
+
+SDL_Color GameplayScene::JudgementIndicatorColor(const Gameplay::Judgement judgement, const double deltaMs) const {
+    if (!this->settings.tintJudgementIndicators) {
+        return SDL_Color{.r = 255, .g = 255, .b = 255, .a = 255};
+    }
+    if (judgement == Gameplay::Judgement::Miss) {
+        return Gameplay::ResultsJudgementFillColor(judgement, deltaMs);
+    }
+    return Gameplay::TimingRulerMarkerRgb(judgement, deltaMs);
+}
+
+void GameplayScene::PresentJudgementIndicator(
+    const Gameplay::Judgement judgement,
+    const double deltaMs,
+    const std::string_view text) const {
+    if (!this->settings.showHitIndicators) {
+        return;
+    }
+    const SDL_Color color = JudgementIndicatorColor(judgement, deltaMs);
+    if (judgementIndicatorLabel) {
+        judgementIndicatorLabel->SetText(text);
+        judgementIndicatorLabel->SetColor(color);
+    }
+    if (judgementIndicatorSprite) {
+        if (const auto idx = static_cast<size_t>(judgement);
+            idx < judgementIndicatorTextures.size() && judgementIndicatorTextures[idx]) {
+            const auto& video = game.GetVideoSettings();
+            judgementIndicatorSprite->SetTexture(judgementIndicatorTextures[idx]);
+            judgementIndicatorSprite->SetBounds(
+                FitTextureInIndicatorSlot(judgementIndicatorTextures[idx].get(), video.logicalWidth, video.logicalHeight));
+            judgementIndicatorSprite->SetColor(color);
+            judgementIndicatorSprite->SetAlpha(255);
+        }
+    }
+}
+
+void GameplayScene::ClearJudgementIndicator() const {
+    if (judgementIndicatorLabel) {
+        judgementIndicatorLabel->SetText("");
+    }
+    if (judgementIndicatorSprite) {
+        judgementIndicatorSprite->SetAlpha(0);
+    }
+}
+
 void GameplayScene::ConsumeJudgements() {
     CC_PROFILE("ConsumeJudgements");
     const auto& events = simulation.DrainEvents();
@@ -565,7 +687,9 @@ void GameplayScene::ConsumeJudgements() {
     {
         if (clock->SongTime() - lastHitTime > 0.2)
         {
-            if (this->settings.showHitIndicators) this->judgementIndicatorLabel->SetText("");
+            if (this->settings.showHitIndicators) {
+                ClearJudgementIndicator();
+            }
         }
         return;
     }
@@ -577,8 +701,11 @@ void GameplayScene::ConsumeJudgements() {
         if (result.missReason != Gameplay::MissReason::EmptyLane) {
             ++chartNotesProcessed;
         }
-        if (result.judgement == Perfect || result.judgement == Great || result.judgement == Good || result.judgement ==
-            Bad) {
+        if (result.judgement == Marvelous ||
+            result.judgement == Perfect ||
+            result.judgement == Great ||
+            result.judgement == Good ||
+            result.judgement == Bad) {
             ++timingHitCount;
             sumTimingDeltaMs += result.deltaMs;
             sumTimingDeltaSqMs += result.deltaMs * result.deltaMs;
@@ -609,42 +736,29 @@ void GameplayScene::ConsumeJudgements() {
 
         switch (result.judgement)
         {
+            case Marvelous:
+                AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
+                PresentJudgementIndicator(Marvelous, result.deltaMs, "100");
+                break;
             case Perfect:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                if (this->settings.showHitIndicators) {
-                    this->judgementIndicatorLabel->SetText("100");
-                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Perfect, result.deltaMs));
-                }
+                PresentJudgementIndicator(Perfect, result.deltaMs, "100");
                 break;
             case Great:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                if (this->settings.showHitIndicators) {
-                    this->judgementIndicatorLabel->SetText("100");
-                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Great, result.deltaMs));
-                }
+                PresentJudgementIndicator(Great, result.deltaMs, std::format("{}", Gameplay::ScoreForHitResult(result)));
                 break;
             case Good:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                if (this->settings.showHitIndicators) {
-                    this->judgementIndicatorLabel->SetText("50");
-                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Good, result.deltaMs));
-                }
+                PresentJudgementIndicator(Good, result.deltaMs, std::format("{}", Gameplay::ScoreForHitResult(result)));
                 break;
             case Bad:
                 AudioManager::getInstance().Play(*this->hitAudioRes, AudioCategory::Sfx, false);
-                if (this->settings.showHitIndicators)
-                {
-                    this->judgementIndicatorLabel->SetText("25");
-                    this->judgementIndicatorLabel->SetColor(Gameplay::TimingRulerMarkerRgb(Bad, result.deltaMs));
-                }
+                PresentJudgementIndicator(Bad, result.deltaMs, std::format("{}", Gameplay::ScoreForHitResult(result)));
                 break;
             case Miss:
                 AudioManager::getInstance().Play(*this->missAudioRes, AudioCategory::Sfx, false);
-                if (this->settings.showHitIndicators)
-                {
-                    this->judgementIndicatorLabel->SetText("X");
-                    this->judgementIndicatorLabel->SetColor(Gameplay::ResultsJudgementFillColor(Miss, result.deltaMs));
-                }
+                PresentJudgementIndicator(Miss, result.deltaMs, "X");
                 break;
             case Count:
                 break;
@@ -669,7 +783,8 @@ void GameplayScene::UpdateHud() {
     }
     if (judgementsLabel) {
         judgementsLabel->SetText(std::format(
-            "P {}   Gr {}   G {}   B {}   M {}",
+            "Ma {}   P {}   Gr {}   G {}   B {}   M {}",
+            judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)],
             judgementCounts[static_cast<size_t>(Gameplay::Judgement::Good)],
@@ -689,7 +804,9 @@ void GameplayScene::UpdateHud() {
     }
 
     if (performancePointsLabel) {
-        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(this->judgementCounts);
+        const double performancePoints = performancePointsCalculation.CalculatePerformancePoints(
+            this->judgementCounts,
+            AccuracyPercent());
         performancePointsLabel->SetText(std::format("PP: {}pp", performancePoints));
     }
 }
@@ -917,14 +1034,16 @@ double GameplayScene::TimingStandardDeviationMs() const {
     return std::sqrt(std::max(0.0, var));
 }
 
+// TODO: Rename this function
 std::string GameplayScene::PerfectGreatRatioText() const {
+    // Top tier over the next tier: Marvelous / Perfect.
+    const int marvelous = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Marvelous)];
     const int perfect = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Perfect)];
-    const int great = judgementCounts[static_cast<size_t>(Gameplay::Judgement::Great)];
-    if (great == 0) {
-        return std::format("Ratio: -  ({} / 0)", perfect);
+    if (perfect == 0) {
+        return std::format("Ratio: -  ({} / 0)", marvelous);
     }
-    const double ratio = static_cast<double>(perfect) / static_cast<double>(great);
-    return std::format("Ratio: {:.2f}  ({} / {})", ratio, perfect, great);
+    const double ratio = static_cast<double>(marvelous) / static_cast<double>(perfect);
+    return std::format("Ratio: {:.2f}  ({} / {})", ratio, marvelous, perfect);
 }
 
 } // namespace Game

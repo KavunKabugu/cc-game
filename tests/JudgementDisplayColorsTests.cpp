@@ -18,6 +18,10 @@ void TestLerpU8() {
 void TestTimingRulerMarkerRgb() {
     using enum Judgement;
 
+    // Marvelous
+    [[maybe_unused]] SDL_Color cMarvelous = TimingRulerMarkerRgb(Marvelous, 0.0);
+    assert(cMarvelous.r == 235 && cMarvelous.g == 235 && cMarvelous.b == 245 && cMarvelous.a == 255);
+
     // Perfect
     [[maybe_unused]] SDL_Color cPerf = TimingRulerMarkerRgb(Perfect, 0.0);
     assert(cPerf.r == 70 && cPerf.g == 190 && cPerf.b == 255 && cPerf.a == 255);
